@@ -310,6 +310,8 @@ class EntityTemplate(object):
         if type_interfaces:
             for interface_type, value in type_interfaces.items():
                 for op, op_def in value.items():
+                    if op == 'inputs':
+                      continue
                     iface = InterfacesDef(self.type_definition,
                                           interfacetype=interface_type,
                                           node_template=self,

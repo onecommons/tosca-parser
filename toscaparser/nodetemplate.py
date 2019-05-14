@@ -264,10 +264,10 @@ class NodeTemplate(EntityTemplate):
                         interfaces_relationship_configure_operations,
                         'interfaces')
                 elif name in self.type_definition.interfaces.keys():
-                    self._common_validate_field(
-                        value,
-                        self._collect_custom_iface_operations(name),
-                        'interfaces')
+                      self._common_validate_field(
+                          value,
+                          ['inputs'] + self._collect_custom_iface_operations(name),
+                          'interfaces')
                 else:
                     ExceptionCollector.appendException(
                         UnknownFieldError(
