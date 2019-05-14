@@ -166,7 +166,7 @@ class NodeType(StatefulEntityType):
 
     @property
     def interfaces(self):
-        return self.get_value(self.INTERFACES)
+        return self.get_value(self.INTERFACES, None, True)
 
     @property
     def lifecycle_inputs(self):
