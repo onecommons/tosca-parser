@@ -46,7 +46,7 @@ node_types:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
       Configurator:
-        type: giterop.Configurator
+        type: giterop.interfaces.Configurator
 
   tosca.nodes.Compute:
     derived_from: tosca.nodes.Root
@@ -748,16 +748,6 @@ interface_types:
       description: Standard lifecycle stop operation.
     delete:
       description: Standard lifecycle delete operation.
-
-  giterop.Configurator:
-    inputs:
-      properties:
-        name:
-          type: string
-          required: true
-    instantiate:
-    revert:
-    discover:
 
   tosca.interfaces.relationship.Configure:
     pre_configure_source:
