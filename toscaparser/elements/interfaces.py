@@ -30,14 +30,14 @@ class InterfacesDef(StatefulEntityType):
     '''TOSCA built-in interfaces type.'''
 
     def __init__(self, node_type, interfacetype,
-                 node_template=None, name=None, value=None):
+                 node_template=None, name=None, value=None, inputs=None):
         self.ntype = node_type
         self.node_template = node_template
         self.type = interfacetype
         self.name = name
         self.value = value
         self.implementation = None
-        self.inputs = None
+        self.inputs = inputs
         self.defs = {}
         if interfacetype == LIFECYCLE_SHORTNAME:
             interfacetype = LIFECYCLE
@@ -59,7 +59,10 @@ class InterfacesDef(StatefulEntityType):
                     if i == IMPLEMENTATION:
                         self.implementation = j
                     elif i == INPUTS:
-                        self.inputs = j
+                        if self.inputs:
+                          self.inputs = self.inputs.update(j)
+                        else:
+                          self.inputs = j
                     else:
                         what = ('"interfaces" of template "%s"' %
                                 self.node_template.name)

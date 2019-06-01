@@ -255,12 +255,12 @@ class NodeTemplate(EntityTemplate):
             for name, value in ifaces.items():
                 if name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
                     self._common_validate_field(
-                        value, InterfacesDef.
+                        value, ['inputs'] + InterfacesDef.
                         interfaces_node_lifecycle_operations,
                         'interfaces')
                 elif name in (CONFIGURE, CONFIGURE_SHORTNAME):
                     self._common_validate_field(
-                        value, InterfacesDef.
+                        value, ['inputs'] + InterfacesDef.
                         interfaces_relationship_configure_operations,
                         'interfaces')
                 elif name in self.type_definition.interfaces.keys():

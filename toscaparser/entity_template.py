@@ -309,6 +309,7 @@ class EntityTemplate(object):
                                                              self.entity_tpl)
         if type_interfaces:
             for interface_type, value in type_interfaces.items():
+                inputs = value.get('inputs') # shared inputs
                 for op, op_def in value.items():
                     if op == 'inputs':
                       continue
@@ -316,7 +317,8 @@ class EntityTemplate(object):
                                           interfacetype=interface_type,
                                           node_template=self,
                                           name=op,
-                                          value=op_def)
+                                          value=op_def,
+                                          inputs=inputs.copy() if inputs else None)
                     interfaces.append(iface)
         return interfaces
 
