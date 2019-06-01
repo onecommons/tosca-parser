@@ -40,6 +40,8 @@ class EntityTemplate(object):
     # Special key names
     SPECIAL_SECTIONS = (METADATA) = ('metadata')
 
+    allowUndefinedProps = True
+
     def __init__(self, name, template, entity_name, custom_def=None):
         self.name = name
         self.entity_tpl = template
@@ -170,7 +172,7 @@ class EntityTemplate(object):
 
     def _validate_properties(self, template, entitytype):
         properties = entitytype.get_value(self.PROPERTIES, template)
-        self._common_validate_properties(entitytype, properties)
+        self._common_validate_properties(entitytype, properties, self.allowUndefinedProps)
 
     def _validate_capabilities(self):
         type_capabilities = self.type_definition.get_capabilities()
@@ -212,7 +214,7 @@ class EntityTemplate(object):
                         ExceptionCollector.appendException(
                             ValidationError(message=err_msg))
 
-    def _common_validate_properties(self, entitytype, properties):
+    def _common_validate_properties(self, entitytype, properties, allowUndefined=False):
         allowed_props = []
         required_props = []
         for p in entitytype.get_properties_def_objects():
@@ -223,8 +225,9 @@ class EntityTemplate(object):
         # validate all required properties have values
         if properties:
             req_props_no_value_or_default = []
-            self._common_validate_field(properties, allowed_props,
-                                        'properties')
+            if not allowUndefined:
+              self._common_validate_field(properties, allowed_props,
+                                          'properties')
             # make sure it's not missing any property required by a tosca type
             for r in required_props:
                 if r not in properties.keys():
@@ -279,6 +282,10 @@ class EntityTemplate(object):
             if props_def and name in props_def:
                 prop = Property(name, value,
                                 props_def[name].schema, self.custom_def)
+                props.append(prop)
+            elif self.allowUndefinedProps:
+                prop = Property(name, value,
+                          dict(type='any'), self.custom_def)
                 props.append(prop)
         for p in self.type_definition.get_properties_def_objects():
             if p.default is not None and p.name not in properties.keys():
