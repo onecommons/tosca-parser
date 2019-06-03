@@ -77,20 +77,16 @@ class ToscaTemplate(object):
         if path:
             self.input_path = path
             self.path = self._get_path(path)
-            if self.path:
+            # ignore if yaml_dict_tpl was set
+            if self.path and yaml_dict_tpl:
                 self.tpl = YAML_LOADER(self.path, self.a_file)
-            if yaml_dict_tpl:
-                msg = (_('Both path and yaml_dict_tpl arguments were '
-                         'provided. Using path and ignoring yaml_dict_tpl.'))
-                log.info(msg)
-                print(msg)
-        else:
-            if yaml_dict_tpl:
-                self.tpl = yaml_dict_tpl
-            else:
-                ExceptionCollector.appendException(
-                    ValueError(_('No path or yaml_dict_tpl was provided. '
-                                 'There is nothing to parse.')))
+        if yaml_dict_tpl:
+            self.tpl = yaml_dict_tpl
+
+        if not path and not yaml_dict_tpl:
+            ExceptionCollector.appendException(
+                ValueError(_('No path or yaml_dict_tpl was provided. '
+                             'There is nothing to parse.')))
 
         if self.tpl:
             self.parsed_params = parsed_params
