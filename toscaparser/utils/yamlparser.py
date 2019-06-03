@@ -27,7 +27,7 @@ else:
     yaml_loader = yaml.SafeLoader
 
 
-def load_yaml(path, a_file=True):
+def load_yaml(path, a_file=True, ctx=None):
     f = None
     try:
         f = codecs.open(path, encoding='utf-8', errors='strict') if a_file \

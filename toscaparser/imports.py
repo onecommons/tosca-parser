@@ -26,7 +26,6 @@ import toscaparser.utils.yamlparser
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
-
 class ImportsLoader(object):
 
     IMPORTS_SECTION = (FILE, REPOSITORY, NAMESPACE_URI, NAMESPACE_PREFIX) = \
@@ -46,13 +45,15 @@ class ImportsLoader(object):
         self.repositories = {}
         if tpl and tpl.get('repositories'):
             self.repositories = tpl.get('repositories')
+        self.tpl = tpl
         self.type_definition_list = []
         if type_definition_list:
             if isinstance(type_definition_list, list):
                 self.type_definition_list = type_definition_list
             else:
                 self.type_definition_list.append(type_definition_list)
-        self._validate_and_load_imports()
+        if importslist is not None:
+          self._validate_and_load_imports()
 
     def get_custom_defs(self):
         return self.custom_defs
@@ -190,7 +191,7 @@ class ImportsLoader(object):
             return None, None
 
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
-            return file_name, YAML_LOADER(file_name, False)
+            return file_name, YAML_LOADER(file_name, False, self.tpl)
         elif not repository:
             import_template = None
             if self.path:
@@ -209,8 +210,11 @@ class ImportsLoader(object):
                 else:
                     a_file = True
                     main_a_file = os.path.isfile(self.path)
-
-                    if main_a_file:
+                    if os.path.isabs(file_name):
+                      import_template = file_name
+                    elif os.path.isdir(self.path):
+                      import_template = os.path.join(self.path, file_name)
+                    elif main_a_file:
                         if os.path.isfile(file_name):
                             import_template = file_name
                         else:
@@ -254,7 +258,7 @@ class ImportsLoader(object):
                     ImportError(_('Import "%s" is not valid.') %
                                 import_uri_def))
                 return None, None
-            return import_template, YAML_LOADER(import_template, a_file)
+            return import_template, YAML_LOADER(import_template, a_file, self.tpl)
 
         if short_import_notation:
             log.error(_('Import "%(name)s" is not valid.') % import_uri_def)
@@ -281,7 +285,7 @@ class ImportsLoader(object):
                 return None, None
 
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
-            return full_url, YAML_LOADER(full_url, False)
+            return full_url, YAML_LOADER(full_url, False, self.tpl)
         else:
             msg = (_('repository url "%(n_uri)s" is not valid in import '
                      'definition "%(tpl)s".')
