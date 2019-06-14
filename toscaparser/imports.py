@@ -191,7 +191,7 @@ class ImportsLoader(object):
             return None, None
 
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
-            return file_name, YAML_LOADER(file_name, False, self.tpl)
+            return file_name, YAML_LOADER(file_name, False, self)
         elif not repository:
             import_template = None
             if self.path:
@@ -258,7 +258,7 @@ class ImportsLoader(object):
                     ImportError(_('Import "%s" is not valid.') %
                                 import_uri_def))
                 return None, None
-            return import_template, YAML_LOADER(import_template, a_file, self.tpl)
+            return import_template, YAML_LOADER(import_template, a_file, self)
 
         if short_import_notation:
             log.error(_('Import "%(name)s" is not valid.') % import_uri_def)
@@ -285,7 +285,7 @@ class ImportsLoader(object):
                 return None, None
 
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
-            return full_url, YAML_LOADER(full_url, False, self.tpl)
+            return full_url, YAML_LOADER(full_url, False, self)
         else:
             msg = (_('repository url "%(n_uri)s" is not valid in import '
                      'definition "%(tpl)s".')
