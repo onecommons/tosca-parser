@@ -39,6 +39,7 @@ log = logging.getLogger("tosca.model")
 
 
 class TopologyTemplate(object):
+    processIntrinsicFunctions = False
 
     '''Load the template data.'''
     def __init__(self, template, custom_defs,
@@ -60,7 +61,10 @@ class TopologyTemplate(object):
                 self.graph = ToscaGraph(self.nodetemplates)
             self.groups = self._groups()
             self.policies = self._policies()
-            self._process_intrinsic_functions()
+            if self.processIntrinsicFunctions:
+              self._process_intrinsic_functions()
+            else:
+              self._validate_intrinsic_functions()
             self.substitution_mappings = self._substitution_mappings()
 
     def _inputs(self):
@@ -279,6 +283,7 @@ class TopologyTemplate(object):
                                     self,
                                     node_template,
                                     prop.value)
+                                # note: (throw exception if validation had failed)
                                 if isinstance(propvalue, functions.GetInput):
                                     propvalue = propvalue.result()
                                     for p, v in cap._properties.items():
@@ -300,6 +305,60 @@ class TopologyTemplate(object):
             func = functions.get_function(self, self.outputs, output.value)
             if isinstance(func, functions.GetAttribute):
                 output.attrs[output.VALUE] = func
+
+    def _validate_intrinsic_functions(self):
+        """Process intrinsic functions
+
+        Current implementation processes functions within node template
+        properties, requirements, interfaces inputs and template outputs.
+        """
+        if hasattr(self, 'nodetemplates'):
+            for node_template in self.nodetemplates:
+                for prop in node_template.get_properties_objects():
+                    functions.get_function(self,
+                                                node_template,
+                                                prop.value)
+                for interface in node_template.interfaces:
+                    if interface.inputs:
+                        for name, value in interface.inputs.items():
+                            functions.get_function(
+                                self,
+                                node_template,
+                                value)
+                if node_template.requirements and \
+                   isinstance(node_template.requirements, list):
+                    for req in node_template.requirements:
+                        rel = req
+                        for req_name, req_item in req.items():
+                            if isinstance(req_item, dict):
+                                rel = req_item.get('relationship')
+                                break
+                        if rel and 'properties' in rel:
+                            for key, value in rel['properties'].items():
+                                    functions.get_function(self,
+                                                           req,
+                                                           value)
+                if node_template.get_capabilities_objects():
+                    for cap in node_template.get_capabilities_objects():
+                        if cap.get_properties_objects():
+                            for prop in cap.get_properties_objects():
+                                functions.get_function(
+                                    self,
+                                    node_template,
+                                    prop.value)
+                for rel, node in node_template.relationships.items():
+                    rel_tpls = node.relationship_tpl
+                    if rel_tpls:
+                        for rel_tpl in rel_tpls:
+                            for interface in rel_tpl.interfaces:
+                                if interface.inputs:
+                                    for name, value in \
+                                            interface.inputs.items():
+                                            functions.get_function(self,
+                                                                   rel_tpl,
+                                                                   value)
+        for output in self.outputs:
+            functions.get_function(self, self.outputs, output.value)
 
     @classmethod
     def get_sub_mapping_node_type(cls, topology_tpl):
