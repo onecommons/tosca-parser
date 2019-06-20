@@ -12,7 +12,6 @@
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import InvalidTypeError
-from toscaparser.elements.attribute_definition import AttributeDef
 from toscaparser.elements.entity_type import EntityType
 from toscaparser.elements.property_definition import PropertyDef
 from toscaparser.unsupportedtype import UnsupportedType
@@ -75,7 +74,7 @@ class StatefulEntityType(EntityType):
         '''Return a list of attribute definition objects.'''
         attrs = self.get_value(self.ATTRIBUTES, parent=True)
         if attrs:
-            return [AttributeDef(attr, None, schema)
+            return [PropertyDef(attr, None, schema)
                     for attr, schema in attrs.items()]
         return []
 
