@@ -17,8 +17,8 @@ from toscaparser.common.exception import URLException
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
 
-SECTIONS = (DESCRIPTION, URL, CREDENTIAL) = \
-           ('description', 'url', 'credential')
+SECTIONS = (DESCRIPTION, URL, CREDENTIAL, METADATA) = \
+           ('description', 'url', 'credential', 'metadata')
 
 
 class Repository(object):
@@ -48,5 +48,5 @@ class Repository(object):
                     validate_url(reposit_url)
                 if url_val is not True:
                     ExceptionCollector.appendException(
-                        URLException(what=_('repsositories "%s" Invalid Url')
+                        URLException(what=_('repositories "%s" Invalid Url')
                                      % self.keyname))
