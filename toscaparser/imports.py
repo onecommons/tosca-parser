@@ -22,6 +22,7 @@ from toscaparser.elements.tosca_type_validation import TypeValidation
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
 import toscaparser.utils.yamlparser
+from six.moves.urllib.parse import urlparse
 
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
@@ -283,6 +284,14 @@ class ImportsLoader(object):
                 log.error(msg)
                 ExceptionCollector.appendException(ImportError(msg))
                 return None, None
+
+            parsed = urlparse(full_url)
+            if parsed.scheme == 'file':
+              isFile = True
+              path = parsed.path
+              if self.path:
+                path = os.path.join(self.path, path)
+              return path, YAML_LOADER(path, isFile, self)
 
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
             return full_url, YAML_LOADER(full_url, False, self)
