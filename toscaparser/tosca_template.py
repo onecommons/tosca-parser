@@ -266,7 +266,7 @@ class ToscaTemplate(object):
                     valid_versions='", "'. join(self.VALID_TEMPLATE_VERSIONS)))
         else:
             if version != 'tosca_simple_yaml_1_0':
-                update_definitions(version)
+                update_definitions(self.exttools, version, YAML_LOADER)
 
     def _get_path(self, path):
         if path.lower().endswith('.yaml') or path.lower().endswith('.yml'):

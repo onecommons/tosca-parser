@@ -15,7 +15,7 @@ import collections
 import importlib
 import logging
 import os
-
+import os.path
 from stevedore import extension
 
 from toscaparser.common.exception import ToscaExtAttributeError
@@ -25,6 +25,8 @@ log = logging.getLogger("tosca.model")
 
 REQUIRED_ATTRIBUTES = ['VERSION', 'DEFS_FILE']
 
+def _b(*args):
+  print(args)
 
 class ExtTools(object):
     def __init__(self):
@@ -34,15 +36,17 @@ class ExtTools(object):
         '''Dynamically load all the extensions .'''
         extensions = collections.OrderedDict()
 
-        extns = extension.ExtensionManager(namespace='toscaparser.extensions',
-                                           invoke_on_load=True).extensions
-
+        extmgr = extension.ExtensionManager(namespace='toscaparser.extensions',
+#                                           propagate_map_exceptions=True,
+#                                           on_load_failure_callback = _b,
+                                           invoke_on_load=True)
+        extns =  extmgr.extensions
         for e in extns:
             try:
                 extinfo = importlib.import_module(e.plugin.__module__)
                 base_path = os.path.dirname(extinfo.__file__)
                 version = e.plugin().VERSION
-                defs_file = base_path + '/' + e.plugin().DEFS_FILE
+                defs_file = os.path.join(os.path.abspath(base_path), e.plugin().DEFS_FILE)
 
                 # Sections is an optional attribute
                 sections = getattr(e.plugin(), 'SECTIONS', ())
@@ -69,7 +73,6 @@ class ExtTools(object):
 
     def get_defs_file(self, version):
         versiondata = self.EXTENSION_INFO.get(version)
-
         if versiondata:
             return versiondata.get('defs_file')
         else:

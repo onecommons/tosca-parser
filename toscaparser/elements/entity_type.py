@@ -150,10 +150,8 @@ class EntityType(object):
         return value
 
 
-def update_definitions(version):
-    exttools = ExtTools()
+def update_definitions(exttools, version, loader = toscaparser.utils.yamlparser.load_yaml):
     extension_defs_file = exttools.get_defs_file(version)
-    loader = toscaparser.utils.yamlparser.load_yaml
     nfv_def_file = loader(extension_defs_file)
     nfv_def = {}
     for section in EntityType.TOSCA_DEF_SECTIONS:
