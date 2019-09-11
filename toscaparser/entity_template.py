@@ -314,8 +314,10 @@ class EntityTemplate(object):
         else:
             type_interfaces = self.type_definition.get_value(self.INTERFACES,
                                                              self.entity_tpl)
-        if type_interfaces:
-            for interface_type, value in type_interfaces.items():
+
+        for interface in (type_interfaces, self.type_definition.interfaces):
+          if interface:
+            for interface_type, value in interface.items():
                 inputs = value.get('inputs') # shared inputs
                 for op, op_def in value.items():
                     if op == 'inputs':
