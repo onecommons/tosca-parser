@@ -70,7 +70,6 @@ class Function(object):
         """Validates function arguments."""
         pass
 
-
 class GetInput(Function):
     """Get a property value declared within the input of the service template.
 
@@ -503,13 +502,20 @@ class GetProperty(Function):
         if node_template_name == HOST:
             node = self._find_host_containing_property()
             if node is None:
-                ExceptionCollector.appendException(
-                    KeyError(_(
-                        "Property '{0}' not found in capability/requirement"
-                        " '{1}' referenced from node template {2}").
-                        format(self.args[2],
-                               self.args[1],
-                               self.context.name)))
+                if len(self.args) == 2:
+                  ExceptionCollector.appendException(
+                      KeyError(_(
+                          "Property '{0}' not found on host when referenced from node template '{1}'").
+                          format(self.args[1],
+                                 self.context.name)))
+                else:
+                  ExceptionCollector.appendException(
+                      KeyError(_(
+                          "Property '{0}' not found in capability/requirement"
+                          " '{1}' referenced from node template '{2}'").
+                          format(self.args[2],
+                                 self.args[1],
+                                 self.context.name)))
                 return None
             else:
                 return node
@@ -592,6 +598,8 @@ class GetProperty(Function):
         for r in node_template.requirements:
             for requirement, target_name in r.items():
                 target_node = self._find_node_template(target_name)
+                if not target_node:
+                  continue
                 target_type = target_node.type_definition
                 for capability in target_type.get_capabilities_objects():
                     if capability.inherits_from(
