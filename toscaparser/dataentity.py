@@ -125,7 +125,7 @@ class DataEntity(object):
         from toscaparser.functions import is_function
         if is_function(value):
             return value
-        if type == 'any':
+        if type == Schema.ANY:
             return value
         if type == Schema.STRING:
             return validateutils.validate_string(value)

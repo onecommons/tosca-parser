@@ -37,12 +37,12 @@ class Schema(collections.Mapping):
         INTEGER, STRING, BOOLEAN, FLOAT, RANGE,
         NUMBER, TIMESTAMP, LIST, MAP,
         SCALAR_UNIT_SIZE, SCALAR_UNIT_FREQUENCY, SCALAR_UNIT_TIME,
-        VERSION, PORTDEF, PORTSPEC
+        VERSION, PORTDEF, PORTSPEC, ANY
     ) = (
         'integer', 'string', 'boolean', 'float', 'range',
         'number', 'timestamp', 'list', 'map',
         'scalar-unit.size', 'scalar-unit.frequency', 'scalar-unit.time',
-        'version', 'PortDef', PortSpec.SHORTNAME
+        'version', 'PortDef', PortSpec.SHORTNAME, 'any'
     )
 
     SCALAR_UNIT_SIZE_DEFAULT = 'B'

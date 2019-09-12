@@ -653,9 +653,8 @@ class GetProperty(Function):
             property_value = self._find_property(self.args[1]).value
         if isinstance(property_value, Function):
             return property_value.result()
-        return get_function(self.tosca_tpl,
-                            self.context,
-                            property_value)
+        else:
+          return property_value
 
     @property
     def node_template_name(self):
