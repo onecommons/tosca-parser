@@ -10,8 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pbr.version
-
-
-__version__ = pbr.version.VersionInfo(
-    'tosca-parser').version_string()
+# this doesn't work when vendored:
+# import pbr.version
+#
+# __version__ = pbr.version.VersionInfo(
+#     'tosca-parser').version_string()
