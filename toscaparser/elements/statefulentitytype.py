@@ -45,7 +45,7 @@ class StatefulEntityType(EntityType):
                 entitytype = entire_entitytype
             elif custom_def and entitytype in list(custom_def.keys()):
                 self.defs = custom_def[entitytype]
-            if entitytype in toscaNames:
+            elif entitytype in toscaNames:
               self.defs = self.TOSCA_DEF[entitytype]
             else:
                 self.defs = None
