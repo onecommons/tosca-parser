@@ -45,8 +45,6 @@ node_types:
     interfaces:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
-      Configurator:
-        type: giterop.interfaces.Configurator
 
   tosca.nodes.Compute:
     derived_from: tosca.nodes.Root
