@@ -287,7 +287,7 @@ class TopologyTemplate(object):
                 for interface in node_template.interfaces:
                     if interface.inputs:
                         for name, value in interface.inputs.items():
-                           interfacevalue =  functions.get_function(
+                            interfacevalue =  functions.get_function(
                                 self,
                                 node_template,
                                 value)
