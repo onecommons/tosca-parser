@@ -263,7 +263,8 @@ class NodeTemplate(EntityTemplate):
                         value, ['inputs'] + InterfacesDef.
                         interfaces_relationship_configure_operations,
                         'interfaces')
-                elif name in self.type_definition.interfaces.keys():
+                elif (name in self.type_definition.interfaces
+                      or name in self.type_definition.TOSCA_DEF):
                       self._common_validate_field(
                           value,
                           ['inputs'] + self._collect_custom_iface_operations(name),
@@ -276,7 +277,8 @@ class NodeTemplate(EntityTemplate):
 
     def _collect_custom_iface_operations(self, name):
         allowed_operations = []
-        nodetype_iface_def = self.type_definition.interfaces[name]
+        nodetype_iface_def = self.type_definition.interfaces.get(
+                              name, self.type_definition.TOSCA_DEF.get(name))
         allowed_operations.extend(nodetype_iface_def.keys())
         if 'type' in nodetype_iface_def:
             iface_type = nodetype_iface_def['type']
