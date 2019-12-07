@@ -315,20 +315,50 @@ class EntityTemplate(object):
             type_interfaces = self.type_definition.get_value(self.INTERFACES,
                                                              self.entity_tpl)
 
-        for interface in (type_interfaces, self.type_definition.interfaces):
-          if interface:
-            for interface_type, value in interface.items():
-                inputs = value.get('inputs') # shared inputs
-                for op, op_def in value.items():
-                    if op == 'inputs':
-                      continue
-                    iface = InterfacesDef(self.type_definition,
-                                          interfacetype=interface_type,
-                                          node_template=self,
-                                          name=op,
-                                          value=op_def,
-                                          inputs=inputs.copy() if inputs else None)
-                    interfaces.append(iface)
+        if self.type_definition.interfaces and type_interfaces:
+          # merge the interfaces defined on the type with the template interface definition
+          interfacesDefs = self.type_definition.interfaces.copy()
+          for iName, defs in type_interfaces.items():
+              baseDefs = interfacesDefs.get(iName)
+              if baseDefs:
+                  defs = defs.copy()
+                  # merge the two definitions
+                  for op, iDef in baseDefs.items():
+                      if op in defs:
+                          currentiDef = defs[op]
+                          if isinstance(iDef, dict) and isinstance(currentiDef, dict):
+                            defs[op] = dict(iDef, **currentiDef)
+                            if 'inputs' in iDef and 'inputs' in currentiDef:
+                                # merge inputs
+                                defs[op]['inputs'] = dict(iDef['inputs'], **currentiDef['inputs'])
+                      else:
+                          defs[op] = iDef
+              interfacesDefs[iName] = defs
+        else:
+            interfacesDefs = type_interfaces or self.type_definition.interfaces
+            if not interfacesDefs:
+              return interfaces
+
+        for interface_type, value in interfacesDefs.items():
+            inputs = value.get('inputs') # shared inputs
+            for op, op_def in value.items():
+                if op == 'inputs' or op == 'type':
+                  continue
+                iface = InterfacesDef(self.type_definition,
+                                      interfacetype=interface_type,
+                                      node_template=self,
+                                      name=op,
+                                      value=op_def,
+                                      inputs=inputs.copy() if inputs else None)
+                interfaces.append(iface)
+              # add a "default" operation that has the shared inputs
+            iface = InterfacesDef(self.type_definition,
+                                  interfacetype=interface_type,
+                                  node_template=self,
+                                  name='default',
+                                  value={},
+                                  inputs=inputs)
+            interfaces.append(iface)
         return interfaces
 
     def get_capability(self, name):

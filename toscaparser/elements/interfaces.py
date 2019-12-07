@@ -33,7 +33,7 @@ class InterfacesDef(StatefulEntityType):
                  node_template=None, name=None, value=None, inputs=None):
         self.ntype = node_type
         self.node_template = node_template
-        self.type = interfacetype
+        self.iname = interfacetype
         self.name = name
         self.value = value
         self.implementation = None
@@ -47,6 +47,7 @@ class InterfacesDef(StatefulEntityType):
            and self.ntype.interfaces \
            and interfacetype in self.ntype.interfaces:
             interfacetype = self.ntype.interfaces[interfacetype]['type']
+        self.type = interfacetype
         if node_type:
             if self.node_template and self.node_template.custom_def \
                and interfacetype in self.node_template.custom_def:
