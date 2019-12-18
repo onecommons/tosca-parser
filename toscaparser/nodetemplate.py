@@ -76,16 +76,12 @@ class NodeTemplate(EntityTemplate):
         node = value.get('node') if isinstance(value, dict) else value
 
         if node:
-            # TODO(spzala) implement look up once Glance meta data is available
-            # to find a matching TOSCA node using the TOSCA types
-            msg = _('Lookup by TOSCA types is not supported. '
-                    'Requirement node "%(node)s" for "%(name)s"'
-                    ' can not be full-filled.') \
-                % {'node': node, 'name': self.name}
             if (node in list(self.type_definition.TOSCA_DEF.keys())
                or node in self.custom_def):
-                ExceptionCollector.appendException(NotImplementedError(msg))
-                return
+                for name, tpl in self.templates.items():
+                  if tpl.get('type') == node:
+                    node = name
+                    break
 
             if node not in self.templates:
                 ExceptionCollector.appendException(

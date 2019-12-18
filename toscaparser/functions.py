@@ -292,7 +292,7 @@ class GetAttribute(Function):
             not isinstance(self.context, list) \
             else node_template_name
         for node_template in self.tosca_tpl.nodetemplates:
-            if node_template.name == name:
+            if node_template.name == name or node_template.is_derived_from(name):
                 return node_template
         ExceptionCollector.appendException(
             KeyError(_(
@@ -536,7 +536,7 @@ class GetProperty(Function):
         if not hasattr(self.tosca_tpl, 'nodetemplates'):
             return
         for node_template in self.tosca_tpl.nodetemplates:
-            if node_template.name == node_template_name:
+            if node_template.name == node_template_name or node_template.is_derived_from(node_template_name):
                 return node_template
         ExceptionCollector.appendException(
             KeyError(_(
@@ -744,7 +744,7 @@ class GetOperationOutput(Function):
             not isinstance(self.context, list) \
             else node_template_name
         for node_template in self.tosca_tpl.nodetemplates:
-            if node_template.name == name:
+            if node_template.name == name or node_template.is_derived_from(name):
                 return node_template
         ExceptionCollector.appendException(
             KeyError(_(
