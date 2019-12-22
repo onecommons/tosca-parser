@@ -21,6 +21,7 @@ from toscaparser.nodetemplate import NodeTemplate
 from toscaparser.parameters import Input
 from toscaparser.parameters import Output
 from toscaparser.policy import Policy
+from toscaparser.workflow import Workflow
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.substitution_mappings import SubstitutionMappings
 from toscaparser.tpl_relationship_graph import ToscaGraph
@@ -30,10 +31,10 @@ from toscaparser.utils.gettextutils import _
 # Topology template key names
 SECTIONS = (DESCRIPTION, INPUTS, NODE_TEMPLATES,
             RELATIONSHIP_TEMPLATES, OUTPUTS, GROUPS,
-            SUBSTITUION_MAPPINGS, POLICIES) = \
+            SUBSTITUION_MAPPINGS, POLICIES, WORKFLOWS) = \
            ('description', 'inputs', 'node_templates',
             'relationship_templates', 'outputs', 'groups',
-            'substitution_mappings', 'policies')
+            'substitution_mappings', 'policies', 'workflows')
 
 log = logging.getLogger("tosca.model")
 
@@ -61,10 +62,13 @@ class TopologyTemplate(object):
                 self.graph = ToscaGraph(self.nodetemplates)
             self.groups = self._groups()
             self.policies = self._policies()
-            if self.processIntrinsicFunctions:
-              self._process_intrinsic_functions()
-            else:
-              self._validate_intrinsic_functions()
+            self.workflows = self._workflows()
+            if not exception.ExceptionCollector.exceptionsCaught():
+              if self.processIntrinsicFunctions:
+                self._process_intrinsic_functions()
+              else:
+                self._validate_intrinsic_functions()
+
             self.substitution_mappings = self._substitution_mappings()
 
     def _inputs(self):
@@ -196,6 +200,15 @@ class TopologyTemplate(object):
                         message=_('Target member "%s" is not found in '
                                   'node_templates') % member))
 
+    def _workflows(self):
+        workflows = []
+        for workflow in self._tpl_policies():
+            for workflow_name, workflow_tpl in workflow.items():
+                workflowObj = Workflow(workflow_name, workflow_tpl,
+                                   self.custom_defs)
+                workflows.append(workflowObj)
+        return workflows
+
     # topology template can act like node template
     # it is exposed by substitution_mappings.
     def nodetype(self):
@@ -265,6 +278,13 @@ class TopologyTemplate(object):
             exception.ExceptionCollector.appendException(
                 exception.TypeMismatchError(what=POLICIES, type="list"))
         return policies
+
+    def _tpl_workflows(self):
+        workflows = self.tpl.get(WORKFLOWS) or {}
+        if not isinstance(workflows, dict):
+            exception.ExceptionCollector.appendException(
+                exception.TypeMismatchError(what=WORKFLOWS, type="dict"))
+        return workflows
 
     def _validate_field(self):
         for name in self.tpl:
