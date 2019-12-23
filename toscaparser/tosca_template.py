@@ -165,7 +165,7 @@ class ToscaTemplate(object):
 
     def _get_all_custom_defs(self, imports=None, path=None):
         types = [IMPORTS, NODE_TYPES, CAPABILITY_TYPES, RELATIONSHIP_TYPES,
-                 DATA_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
+                 DATA_TYPES, ARTIFACT_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
         custom_defs_final = {}
 
         custom_defs, nested_imports = self._get_custom_types(
@@ -200,10 +200,10 @@ class ToscaTemplate(object):
 
         if not imports:
             imports = self._tpl_imports()
-        if not path:
-            path = self.path
 
         if imports:
+            if path is None:
+                path = getattr(imports, "baseDir", self.path)
             custom_service = toscaparser.imports.\
                 ImportsLoader(imports, path, type_defs, self.tpl)
 
@@ -211,9 +211,9 @@ class ToscaTemplate(object):
             self._update_nested_tosca_tpls_with_topology(nested_tosca_tpls)
 
             nested_imports = custom_service.get_nested_imports()
-            custom_defs = custom_service.get_custom_defs()
-            if not custom_defs:
-                return None, None
+            imported_custom_defs = custom_service.get_custom_defs()
+            if imported_custom_defs:
+                custom_defs.update(imported_custom_defs)
 
         # Handle custom types defined in current template file
         for type_def in type_defs:
@@ -225,14 +225,16 @@ class ToscaTemplate(object):
 
     def _update_nested_tosca_tpls_with_topology(self, nested_tosca_tpls):
         for tpl in nested_tosca_tpls:
+            # add every imported template (even if it doesn't a topology)
             filename, tosca_tpl = list(tpl.items())[0]
-            if (tosca_tpl.get(TOPOLOGY_TEMPLATE) and
-                filename not in list(
+            if (filename not in list(
                     self.nested_tosca_tpls_with_topology.keys())):
                 self.nested_tosca_tpls_with_topology.update(tpl)
 
     def _handle_nested_tosca_templates_with_topology(self):
         for fname, tosca_tpl in self.nested_tosca_tpls_with_topology.items():
+            if not tosca_tpl.get(TOPOLOGY_TEMPLATE):
+              continue
             for nodetemplate in self.nodetemplates:
                 if self._is_sub_mapped_node(nodetemplate, tosca_tpl):
                     parsed_params = self._get_params_for_nested_template(

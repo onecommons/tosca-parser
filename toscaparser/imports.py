@@ -78,7 +78,9 @@ class ImportsLoader(object):
 
         for import_def in self.importslist:
             if isinstance(import_def, dict):
-                for import_name, import_uri in import_def.items():
+                if len(import_def) == 1 and 'file' not in import_def:
+                    # old style
+                    import_name, import_uri = list(import_def.items())[0]
                     if import_name in imports_names:
                         msg = (_('Duplicate import name "%s" was found.') %
                                import_name)
@@ -86,17 +88,20 @@ class ImportsLoader(object):
                         ExceptionCollector.appendException(
                             ValidationError(message=msg))
                     imports_names.add(import_name)
+                else:
+                    import_name = None
+                    import_uri = import_def
 
-                    full_file_name, custom_type = self._load_import_template(
-                        import_name, import_uri)
-                    namespace_prefix = None
-                    if isinstance(import_uri, dict):
-                        namespace_prefix = import_uri.get(
-                            self.NAMESPACE_PREFIX)
-                    if custom_type:
-                        TypeValidation(custom_type, import_def)
-                        self._update_custom_def(custom_type, namespace_prefix)
-            else:  # old style of imports
+                full_file_name, custom_type = self._load_import_template(
+                    import_name, import_uri)
+                namespace_prefix = None
+                if isinstance(import_uri, dict):
+                    namespace_prefix = import_uri.get(
+                        self.NAMESPACE_PREFIX)
+                if custom_type:
+                    TypeValidation(custom_type, import_def)
+                    self._update_custom_def(custom_type, namespace_prefix)
+            else:  # import_def is just the uri string
                 full_file_name, custom_type = self._load_import_template(
                     None, import_def)
                 if custom_type:
@@ -198,6 +203,7 @@ class ImportsLoader(object):
             ExceptionCollector.appendException(ValidationError(message=msg))
             return None, None
 
+        fragment = None
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
             return file_name, YAML_LOADER(file_name, False, self)
         elif not repository:
@@ -218,6 +224,8 @@ class ImportsLoader(object):
                 else:
                     a_file = True
                     main_a_file = os.path.isfile(self.path)
+                    if '#/' in file_name:
+                      file_name, sep, fragment = file_name.rpartition('#')
                     if os.path.isabs(file_name):
                       import_template = file_name
                     elif os.path.isdir(self.path):
@@ -232,13 +240,13 @@ class ImportsLoader(object):
                             if os.path.isfile(full_path):
                                 import_template = full_path
                             else:
-                                file_path = file_name.rpartition("/")
+                                file_path = file_name.rpartition(os.path.sep)
                                 dir_path = os.path.dirname(os.path.abspath(
                                     self.path))
                                 if file_path[0] != '' and dir_path.endswith(
                                         file_path[0]):
-                                        import_template = dir_path + "/" +\
-                                            file_path[2]
+                                        import_template = os.path.join(dir_path,
+                                            file_path[2])
                                         if not os.path.isfile(import_template):
                                             msg = (_('"%(import_template)s" is'
                                                      'not a valid file')
@@ -247,6 +255,9 @@ class ImportsLoader(object):
                                             log.error(msg)
                                             ExceptionCollector.appendException
                                             (ValueError(msg))
+                                else:
+                                    import_template = full_path #try anyway
+
             else:  # template is pre-parsed
                 if os.path.isabs(file_name) and os.path.isfile(file_name):
                     a_file = True
@@ -266,7 +277,7 @@ class ImportsLoader(object):
                     ImportError(_('Import "%s" is not valid.') %
                                 import_uri_def))
                 return None, None
-            return import_template, YAML_LOADER(import_template, a_file, self)
+            return import_template, YAML_LOADER(import_template, a_file, self, fragment)
 
         if short_import_notation:
             log.error(_('Import "%(name)s" is not valid.') % import_uri_def)
@@ -298,7 +309,7 @@ class ImportsLoader(object):
               path = parsed.path
               if self.path:
                 path = os.path.join(self.path, path)
-              return path, YAML_LOADER(path, isFile, self)
+              return path, YAML_LOADER(path, isFile, self, parsed.fragment)
 
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
             return full_url, YAML_LOADER(full_url, False, self)
