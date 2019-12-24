@@ -47,7 +47,8 @@ def load_yaml(path, a_file=True, ctx=None, fragment=None):
             return
     except Exception as e:
         raise
-    return yaml.load(f.read(), Loader=yaml_loader)
+    with f:
+      return yaml.load(f.read(), Loader=yaml_loader)
 
 
 def simple_parse(tmpl_str):
