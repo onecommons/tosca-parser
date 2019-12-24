@@ -74,7 +74,7 @@ class ToscaTemplate(object):
         self.input_path = None
         self.path = None
         self.tpl = None
-        self.nested_tosca_tpls_with_topology = {}
+        self.nested_tosca_tpls = {}
         self.nested_tosca_templates_with_topology = []
         if path:
             self.input_path = path
@@ -228,11 +228,11 @@ class ToscaTemplate(object):
             # add every imported template (even if it doesn't a topology)
             filename, tosca_tpl = list(tpl.items())[0]
             if (filename not in list(
-                    self.nested_tosca_tpls_with_topology.keys())):
-                self.nested_tosca_tpls_with_topology.update(tpl)
+                    self.nested_tosca_tpls.keys())):
+                self.nested_tosca_tpls.update(tpl)
 
     def _handle_nested_tosca_templates_with_topology(self):
-        for fname, tosca_tpl in self.nested_tosca_tpls_with_topology.items():
+        for fname, tosca_tpl in self.nested_tosca_tpls.items():
             if not tosca_tpl.get(TOPOLOGY_TEMPLATE):
               continue
             for nodetemplate in self.nodetemplates:
