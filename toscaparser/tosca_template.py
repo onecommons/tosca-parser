@@ -94,6 +94,7 @@ class ToscaTemplate(object):
             self.parsed_params = parsed_params
             self._validate_field()
             self.version = self._tpl_version()
+            # XXX causes imports to be loaded twice
             self.relationship_types = self._tpl_relationship_types()
             self.description = self._tpl_description()
             self.topology_template = self._topology_template()
@@ -208,7 +209,7 @@ class ToscaTemplate(object):
                 ImportsLoader(imports, path, type_defs, self.tpl)
 
             nested_tosca_tpls = custom_service.get_nested_tosca_tpls()
-            self._update_nested_tosca_tpls_with_topology(nested_tosca_tpls)
+            self._update_nested_tosca_tpls(nested_tosca_tpls)
 
             nested_imports = custom_service.get_nested_imports()
             imported_custom_defs = custom_service.get_custom_defs()
@@ -223,7 +224,7 @@ class ToscaTemplate(object):
                     custom_defs.update(inner_custom_types)
         return custom_defs, nested_imports
 
-    def _update_nested_tosca_tpls_with_topology(self, nested_tosca_tpls):
+    def _update_nested_tosca_tpls(self, nested_tosca_tpls):
         for tpl in nested_tosca_tpls:
             # add every imported template (even if it doesn't a topology)
             filename, tosca_tpl = list(tpl.items())[0]
