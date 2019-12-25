@@ -201,12 +201,11 @@ class TopologyTemplate(object):
                                   'node_templates') % member))
 
     def _workflows(self):
-        workflows = []
-        for workflow in self._tpl_policies():
-            for workflow_name, workflow_tpl in workflow.items():
-                workflowObj = Workflow(workflow_name, workflow_tpl,
-                                   self.custom_defs)
-                workflows.append(workflowObj)
+        workflows = {}
+        for workflow_name, workflow_tpl in self._tpl_workflows().items():
+            workflowObj = Workflow(workflow_name, workflow_tpl,
+                               self.custom_defs)
+            workflows[workflow_name] = workflowObj
         return workflows
 
     # topology template can act like node template

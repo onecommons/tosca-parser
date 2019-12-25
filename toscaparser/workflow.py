@@ -18,50 +18,43 @@ from toscaparser.common.exception import UnknownFieldError
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.steps import Step
 from toscaparser.utils import validateutils
-from toscaparser.activities import ConditionClause
+from toscaparser.activities import Precondition
 
-SECTIONS = (TYPE, METADATA, DESCRIPTION, INPUTS, PRECONDITIONS, STEPS, IMPLEMENTATION, OUTPUTS) = \
-           ('type', 'metadata', 'description',
+SECTIONS = (METADATA, DESCRIPTION, INPUTS, PRECONDITIONS, STEPS, IMPLEMENTATION, OUTPUTS) = \
+           ('metadata', 'description',
             'inputs', 'preconditions', 'steps', 'implementation', 'outputs')
 
 log = logging.getLogger('tosca')
 
 
-class Workflow(EntityTemplate):
+class Workflow(object):
     '''Workflows defined in Topology template.'''
     def __init__(self, name, workflow, custom_def=None):
-        super(Workflow, self).__init__(name,
-                                     workflow,
-                                     'workflow_type',
-                                     custom_def)
+        self.name = name
+        self._tpl = workflow
         self.meta_data = None
-        if self.METADATA in workflow:
-            self.meta_data = workflow.get(self.METADATA)
+        if METADATA in workflow:
+            self.meta_data = workflow.get(METADATA)
             validateutils.validate_map(self.meta_data)
         self.steps = self._steps(workflow.get(STEPS))
         self.inputs = workflow.get('inputs')
         self._validate_keys()
-        self.preconditions = list(ConditionClause.getConditions(workflow.get(PRECONDITIONS, [])))
+        self.preconditions = [Precondition(tpl) for tpl in workflow.get(PRECONDITIONS, [])]
         self.outputs = workflow.get('outputs')
 
     @property
     def description(self):
-        return self.entity_tpl.get('description')
+        return self._tpl.get('description')
 
     @property
     def metadata(self):
-        return self.entity_tpl.get('metadata')
+        return self._tpl.get('metadata')
 
-    def _step(self, step):
-        stepObjs = []
-        if step:
-            for name, step_tpl in step.items():
-                stepObj = Step(name, step_tpl)
-                stepObjs.append(stepObj)
-        return stepObjs
+    def _steps(self, steps):
+        return {name: Step(name, step_tpl) for name, step_tpl in steps.items()}
 
     def _validate_keys(self):
-        for key in self.entity_tpl.keys():
+        for key in self._tpl.keys():
             if key not in SECTIONS:
                 ExceptionCollector.appendException(
                     UnknownFieldError(what='Workflow "%s"' % self.name,
