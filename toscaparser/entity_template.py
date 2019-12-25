@@ -16,7 +16,7 @@ from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
 from toscaparser.elements.grouptype import GroupType
-from toscaparser.elements.interfaces import InterfacesDef
+from toscaparser.elements.interfaces import InterfacesDef, INTERFACE_DEF_RESERVED_WORDS
 from toscaparser.elements.nodetype import NodeType
 from toscaparser.elements.policytype import PolicyType
 from toscaparser.elements.relationshiptype import RelationshipType
@@ -339,11 +339,22 @@ class EntityTemplate(object):
             if not interfacesDefs:
               return interfaces
 
+        # XXX should also merge interface definition too
         for interface_type, value in interfacesDefs.items():
             inputs = value.get('inputs') # shared inputs
             for op, op_def in value.items():
-                if op == 'inputs' or op == 'type':
-                  continue
+                if op == 'operations':
+                    for op, op_def in op_def.items():
+                        iface = InterfacesDef(self.type_definition,
+                                              interfacetype=interface_type,
+                                              node_template=self,
+                                              name=op,
+                                              value=op_def,
+                                              inputs=inputs.copy() if inputs else None)
+                        interfaces.append(iface)
+                    break
+                if op in INTERFACE_DEF_RESERVED_WORDS:
+                    continue
                 iface = InterfacesDef(self.type_definition,
                                       interfacetype=interface_type,
                                       node_template=self,
@@ -351,7 +362,7 @@ class EntityTemplate(object):
                                       value=op_def,
                                       inputs=inputs.copy() if inputs else None)
                 interfaces.append(iface)
-              # add a "default" operation that has the shared inputs
+            # add a "default" operation that has the shared inputs
             iface = InterfacesDef(self.type_definition,
                                   interfacetype=interface_type,
                                   node_template=self,

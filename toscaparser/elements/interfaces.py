@@ -20,12 +20,12 @@ SECTIONS = (LIFECYCLE, CONFIGURE, LIFECYCLE_SHORTNAME,
             'tosca.interfaces.relationship.Configure',
             'Standard', 'Configure')
 
-INTERFACEVALUE = (IMPLEMENTATION, INPUTS) = ('implementation', 'inputs')
+OPERATION_DEF_RESERVED_WORDS = (DESCRIPTION, IMPLEMENTATION, INPUTS, OUTPUTS) = (
+                            'description', 'implementation', 'inputs', 'outputs')
 
-INTERFACE_DEF_RESERVED_WORDS = ['type', 'inputs', 'derived_from', 'version',
-                                'description']
+INTERFACE_DEF_RESERVED_WORDS = ['type', 'inputs', 'operations', 'notifications']
 
-
+# this is kind of misnamed, these are created for each operation defined on a interface definition
 class InterfacesDef(StatefulEntityType):
     '''TOSCA built-in interfaces type.'''
 
@@ -61,10 +61,10 @@ class InterfacesDef(StatefulEntityType):
                         self.implementation = j
                     elif i == INPUTS:
                         if self.inputs:
-                          self.inputs = self.inputs.update(j)
+                          self.inputs.update(j)
                         else:
                           self.inputs = j
-                    else:
+                    elif i not in OPERATION_DEF_RESERVED_WORDS:
                         what = ('"interfaces" of template "%s"' %
                                 self.node_template.name)
                         ExceptionCollector.appendException(

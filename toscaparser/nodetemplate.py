@@ -251,19 +251,19 @@ class NodeTemplate(EntityTemplate):
             for name, value in ifaces.items():
                 if name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
                     self._common_validate_field(
-                        value, ['inputs'] + InterfacesDef.
+                        value, INTERFACE_DEF_RESERVED_WORDS + InterfacesDef.
                         interfaces_node_lifecycle_operations,
                         'interfaces')
                 elif name in (CONFIGURE, CONFIGURE_SHORTNAME):
                     self._common_validate_field(
-                        value, ['inputs'] + InterfacesDef.
+                        value, INTERFACE_DEF_RESERVED_WORDS + InterfacesDef.
                         interfaces_relationship_configure_operations,
                         'interfaces')
                 elif (name in self.type_definition.interfaces
                       or name in self.type_definition.TOSCA_DEF):
                       self._common_validate_field(
                           value,
-                          ['inputs'] + self._collect_custom_iface_operations(name),
+                          INTERFACE_DEF_RESERVED_WORDS + self._collect_custom_iface_operations(name),
                           'interfaces')
                 else:
                     ExceptionCollector.appendException(
