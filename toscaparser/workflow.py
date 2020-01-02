@@ -14,7 +14,7 @@
 import logging
 
 from toscaparser.common.exception import ExceptionCollector
-from toscaparser.common.exception import UnknownFieldError
+from toscaparser.common.exception import UnknownFieldError, ValidationError
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.steps import Step
 from toscaparser.utils import validateutils
@@ -36,11 +36,22 @@ class Workflow(object):
         if METADATA in workflow:
             self.meta_data = workflow.get(METADATA)
             validateutils.validate_map(self.meta_data)
-        self.steps = self._steps(workflow.get(STEPS))
-        self.inputs = workflow.get('inputs')
         self._validate_keys()
+        self.steps = self._steps(workflow.get(STEPS))
+        self._validate_steps()
+        self.inputs = workflow.get('inputs')
         self.preconditions = [Precondition(tpl) for tpl in workflow.get(PRECONDITIONS, [])]
         self.outputs = workflow.get('outputs')
+
+    def _validate_steps(self):
+      steps = set()
+      for step in self.steps.values():
+        steps.update(step.on_success + step.on_failure)
+      missing = steps.difference(self.steps)
+      if missing:
+          msg = "Workflow %s referencing missing step(s): %s", (self.name, missing)
+          ExceptionCollector.appendException(
+              ValidationError(message=msg))
 
     @property
     def description(self):
