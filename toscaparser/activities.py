@@ -16,7 +16,7 @@ import logging
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError, ValidationError
 from toscaparser.entity_template import EntityTemplate
-from toscaparser.elements.constraints import Constraint
+from toscaparser.elements.constraints import Constraint, get_constraint_class
 
 
 SECTIONS = (DELEGATE, SET_STATE, CALL_OPERATION, INLINE) = \
@@ -63,16 +63,50 @@ class ConditionClause(object):
 
   def __init__(self, name, definition):
     self.name = name
-    self.conditions = list(self.getConditions(definition))
+    if name in ['and', 'or', 'not', 'assert']:
+        self.conditions = list(self.getConditions(definition))
+    else: # 3.6.25.3 Direct assertion definition
+        if isinstance(definition, dict):
+            definition = [definition]
+        # hack: pick a prop_type to avoid validation error
+        # XXX need to get the real property_type from the target's attribute definition
+        self.conditions = [Constraint(name,
+                            get_constraint_class(next(iter(constraint))).valid_prop_types[0],
+                            constraint) for constraint in definition]
+
+  def evaluate(self, attributes):
+    if self.name == 'not':
+        for condition in self.conditions:
+            if not condition.evaluate(attributes):
+                return True
+        return False
+    elif self.name in ['and', 'assert']:
+        for condition in self.conditions:
+            if not condition.evaluate(attributes):
+                return False
+        return True
+    elif self.name == 'or':
+        for condition in self.conditions:
+            if condition.evaluate(attributes):
+                return True
+    else:
+        # 3.6.25.3 Direct assertion definition
+        if self.name not in attributes:
+            return False
+        value = attributes[self.name]
+        for condition in self.conditions:
+            # XXX:
+            #if condition.property_type in scalarunit.ScalarUnit.SCALAR_UNIT_TYPES:
+            #  value = scalarunit.get_scalarunit_value(condition.property_type, value)
+            if not condition._is_valid(value):
+                return False
+        return True
 
   @staticmethod
   def getConditions(constraints):
       for constraint in constraints:
           key, value = list(constraint.items())[0]
-          if key in ['and', 'or', 'not', 'assert']:
-              yield ConditionClause(key, value)
-          else:
-              yield Constraint(key, None, value)
+          yield ConditionClause(key, value)
 
 class Activity(object):
 
