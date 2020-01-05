@@ -98,12 +98,13 @@ class TopologyTemplate(object):
                 tpl = NodeTemplate(name, tpls, self.custom_defs,
                                    self.relationship_templates,
                                    self.rel_types)
-                if (tpl.type_definition and
-                    (tpl.type in tpl.type_definition.TOSCA_DEF or
-                     (tpl.type not in tpl.type_definition.TOSCA_DEF and
-                      bool(tpl.custom_def)))):
-                    tpl.validate(self)
-                    nodetemplates.append(tpl)
+                # why these tests? defeats validation
+                # if (tpl.type_definition and
+                #     (tpl.type in tpl.type_definition.TOSCA_DEF or
+                #      (tpl.type not in tpl.type_definition.TOSCA_DEF and
+                #       bool(tpl.custom_def)))):
+                tpl.validate(self)
+                nodetemplates.append(tpl)
         return nodetemplates
 
     def _relationship_templates(self):
@@ -190,15 +191,12 @@ class TopologyTemplate(object):
         return member_groups
 
     def _validate_group_members(self, members):
-        node_names = []
-        for node in self.nodetemplates:
-            node_names.append(node.name)
         for member in members:
-            if member not in node_names:
+            if member not in self._tpl_nodetemplates() and member not in self._tpl_groups():
                 exception.ExceptionCollector.appendException(
                     exception.InvalidGroupTargetException(
                         message=_('Target member "%s" is not found in '
-                                  'node_templates') % member))
+                                  'node_templates or groups') % member))
 
     def _workflows(self):
         workflows = {}
