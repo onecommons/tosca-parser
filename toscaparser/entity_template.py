@@ -23,6 +23,7 @@ from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.properties import Property
 from toscaparser.unsupportedtype import UnsupportedType
 from toscaparser.utils.gettextutils import _
+from toscaparser.elements.capabilitytype import CapabilityTypeDef
 
 
 class EntityTemplate(object):
@@ -152,9 +153,14 @@ class EntityTemplate(object):
                                               self.entity_tpl, True)
         if caps:
             for name, props in caps.items():
+                ctype = props.get('type')
                 capabilities = self.type_definition.get_capabilities()
                 if name in capabilities.keys():
                     c = capabilities[name]
+                    ctype = props.get('type')
+                    if ctype and ctype != c.type:
+                        c = CapabilityTypeDef(name, ctype, self.type_definition.type,
+                                                self.type_definition.custom_def)
                     properties = {}
                     # first use the definition default value
                     if c.properties:
