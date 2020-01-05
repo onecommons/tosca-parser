@@ -324,7 +324,7 @@ class GetAttribute(Function):
         if caps and capability_name in caps.keys():
             cap = caps[capability_name]
             attribute = None
-            attrs = cap.definition.get_attributes_def()
+            attrs = cap.type_definition.get_attributes_def()
             if attrs and attr_name in attrs.keys():
                 attribute = attrs[attr_name]
             if not attribute:

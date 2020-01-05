@@ -19,8 +19,9 @@ class Capability(object):
     def __init__(self, name, properties, definition, custom_def=None):
         self.name = name
         self._properties = properties
-        self.definition = definition
+        self.type_definition = definition
         self.custom_def = custom_def
+        self.type = definition.type
 
     def get_properties_objects(self):
         '''Return a list of property objects.'''
@@ -28,7 +29,7 @@ class Capability(object):
         props = self._properties
         if props:
             for name, value in props.items():
-                props_def = self.definition.get_properties_def()
+                props_def = self.type_definition.get_properties_def()
                 if props_def and name in props_def:
                     properties.append(Property(name, value,
                                                props_def[name].schema,
@@ -45,3 +46,15 @@ class Capability(object):
         props = self.get_properties()
         if props and name in props:
             return props[name].value
+
+    def is_derived_from(self, type_str):
+        '''Check if object inherits from the given type.
+
+        Returns true if this object is derived from 'type_str'.
+        False otherwise.
+        '''
+        if not self.type:
+            return False
+        elif self.type == type_str:
+            return True
+        return self.type_definition.inherits_from([type_str])

@@ -190,7 +190,7 @@ class EntityTemplate(object):
             capability = self.get_capability(cap)
             if not capability:
                 continue
-            capabilitydef = capability.definition
+            capabilitydef = capability.type_definition
             self._common_validate_properties(capabilitydef,
                                              props[self.PROPERTIES])
 
