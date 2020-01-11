@@ -36,11 +36,13 @@ log = logging.getLogger('tosca')
 
 class NodeTemplate(EntityTemplate):
     '''Node template from a Tosca profile.'''
-    def __init__(self, name, node_templates, custom_def=None,
+    def __init__(self, name, topology_template, custom_def=None,
                  available_rel_tpls=None, available_rel_types=None):
+        node_templates = topology_template._tpl_nodetemplates()
         super(NodeTemplate, self).__init__(name, node_templates[name],
                                            'node_type',
                                            custom_def)
+        self.topology_template = topology_template
         self.templates = node_templates
         self._validate_fields(node_templates[name])
         self.custom_def = custom_def
@@ -48,12 +50,17 @@ class NodeTemplate(EntityTemplate):
         self.relationship_tpl = []
         self.available_rel_tpls = available_rel_tpls
         self.available_rel_types = available_rel_types
-        self._relationships = {}
+        self._relationships = None
         self.sub_mapping_tosca_template = None
 
     @property
     def relationships(self):
-        if not self._relationships:
+        """
+        returns {RelationshipType: NodeTemplate} where NodeTemplate is the target node
+        """
+        if self._relationships is None:
+            self._relationships = {}
+            # self.requirements is from the yaml
             requires = self.requirements
             if requires and isinstance(requires, list):
                 for r in requires:
@@ -73,9 +80,19 @@ class NodeTemplate(EntityTemplate):
             relationship: tosca.relationships.HostedOn
         """
         explicit_relation = {}
-        node = value.get('node') if isinstance(value, dict) else value
+        if isinstance(value, dict):
+            node = value.get('node')
+            capability = value.get('capability')
+        else:
+            node = value
+            capability = None
+
+        # XXX
+        #if not node and capability:
+        #    find a node that has the given capability type
 
         if node:
+            # if node is a type find the first node template with that type
             if (node in list(self.type_definition.TOSCA_DEF.keys())
                or node in self.custom_def):
                 for name, tpl in self.templates.items():
@@ -90,10 +107,10 @@ class NodeTemplate(EntityTemplate):
                              % {'node': node, 'name': self.name}))
                 return
 
-            related_tpl = NodeTemplate(node, self.templates, self.custom_def)
+            related_tpl = self.topology_template.node_templates[node]
             relationship = value.get('relationship') \
                 if isinstance(value, dict) else None
-            # check if it's type has relationship defined
+            # check if its type has a relationship defined
             if not relationship:
                 parent_reqs = self.type_definition.get_all_requirements()
                 if parent_reqs is None:
@@ -113,12 +130,12 @@ class NodeTemplate(EntityTemplate):
                 if self.available_rel_tpls:
                     for tpl in self.available_rel_tpls:
                         if tpl.name == relationship:
-                            rtype = RelationshipType(tpl.type, None,
+                            rtype = RelationshipType(tpl.type, capability,
                                                      self.custom_def)
                             explicit_relation[rtype] = related_tpl
                             tpl.target = related_tpl
                             tpl.source = self
-                            self.relationship_tpl.append(tpl)
+                            related_tpl.relationship_tpl.append(tpl)
                             found_relationship_tpl = True
                 # create relationship template object.
                 rel_prfx = self.type_definition.RELATIONSHIP_PREFIX
@@ -159,13 +176,14 @@ class NodeTemplate(EntityTemplate):
                                                 req, rtype.type, self)
         return explicit_relation
 
-    def _add_relationship_template(self, requirement, rtype, source):
+    def _add_relationship_template(self, requirement, rtypeName, source):
         req = requirement.copy()
-        req['type'] = rtype
-        tpl = RelationshipTemplate(req, rtype, self.custom_def, self, source)
+        req['type'] = rtypeName
+        tpl = RelationshipTemplate(req, rtypeName, self.custom_def, self, source)
         self.relationship_tpl.append(tpl)
 
     def get_relationship_template(self):
+        """Returns a list of RelationshipTemplates that target this node"""
         return self.relationship_tpl
 
     def _add_next(self, nodetpl, relationship):

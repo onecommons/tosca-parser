@@ -55,7 +55,8 @@ class TopologyTemplate(object):
             self.description = self._tpl_description()
             self.inputs = self._inputs()
             self.relationship_templates = self._relationship_templates()
-            self.nodetemplates = self._nodetemplates()
+            self.node_templates = self._nodetemplates()
+            self.nodetemplates = list(self.node_templates.values())
             self.outputs = self._outputs()
             self.groups = self._groups()
             self.policies = self._policies()
@@ -88,20 +89,24 @@ class TopologyTemplate(object):
         return inputs
 
     def _nodetemplates(self):
-        nodetemplates = []
+        nodetemplates = {}
         tpls = self._tpl_nodetemplates()
         if tpls:
             for name in tpls:
-                tpl = NodeTemplate(name, tpls, self.custom_defs,
-                                   self.relationship_templates,
-                                   self.rel_types)
+                tpl = NodeTemplate(
+                    name,
+                    self,
+                    self.custom_defs,
+                    self.relationship_templates,
+                    self.rel_types,
+                )
                 # why these tests? defeats validation
                 # if (tpl.type_definition and
                 #     (tpl.type in tpl.type_definition.TOSCA_DEF or
                 #      (tpl.type not in tpl.type_definition.TOSCA_DEF and
                 #       bool(tpl.custom_def)))):
                 tpl.validate(self)
-                nodetemplates.append(tpl)
+                nodetemplates[name] = tpl
         return nodetemplates
 
     def _relationship_templates(self):

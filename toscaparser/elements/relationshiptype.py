@@ -43,7 +43,7 @@ class RelationshipType(StatefulEntityType):
 
     @property
     def valid_target_types(self):
-        return self.entity_value(self.defs, 'valid_target_types')
+        return self.entity_value(self.defs, 'valid_target_types') or []
 
     def _validate_keys(self):
         for key in self.defs.keys():
