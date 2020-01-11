@@ -26,7 +26,6 @@ import toscaparser.imports
 from toscaparser.prereq.csar import CSAR
 from toscaparser.repositories import Repository
 from toscaparser.topology_template import TopologyTemplate
-from toscaparser.tpl_relationship_graph import ToscaGraph
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.yamlparser
 
@@ -106,7 +105,6 @@ class ToscaTemplate(object):
                 self.outputs = self._outputs()
                 self.policies = self._policies()
                 self._handle_nested_tosca_templates_with_topology()
-                self.graph = ToscaGraph(self.nodetemplates)
 
         ExceptionCollector.stop()
         self.verify_template()

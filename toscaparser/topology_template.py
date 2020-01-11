@@ -24,7 +24,6 @@ from toscaparser.policy import Policy
 from toscaparser.workflow import Workflow
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.substitution_mappings import SubstitutionMappings
-from toscaparser.tpl_relationship_graph import ToscaGraph
 from toscaparser.utils.gettextutils import _
 
 
@@ -58,8 +57,6 @@ class TopologyTemplate(object):
             self.relationship_templates = self._relationship_templates()
             self.nodetemplates = self._nodetemplates()
             self.outputs = self._outputs()
-            if hasattr(self, 'nodetemplates'):
-                self.graph = ToscaGraph(self.nodetemplates)
             self.groups = self._groups()
             self.policies = self._policies()
             self.workflows = self._workflows()
