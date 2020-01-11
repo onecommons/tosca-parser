@@ -32,7 +32,7 @@ class RelationshipTemplate(EntityTemplate):
                                                    relationship_template,
                                                    'relationship_type',
                                                    custom_def)
-        self.name = name.lower()
+        self.name = name
         self.target = target
         self.source = source
 
