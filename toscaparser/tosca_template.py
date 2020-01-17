@@ -55,12 +55,14 @@ class ToscaTemplate(object):
     exttools = ExtTools()
 
     MAIN_TEMPLATE_VERSIONS = ['tosca_simple_yaml_1_0',
-                              'tosca_simple_yaml_1_2']
+                              'tosca_simple_yaml_1_2',
+                              'tosca_simple_yaml_1_3']
 
     VALID_TEMPLATE_VERSIONS = MAIN_TEMPLATE_VERSIONS + exttools.get_versions()
 
     ADDITIONAL_SECTIONS = {'tosca_simple_yaml_1_0': SPECIAL_SECTIONS,
-                           'tosca_simple_yaml_1_2': SPECIAL_SECTIONS}
+                           'tosca_simple_yaml_1_2': SPECIAL_SECTIONS,
+                           'tosca_simple_yaml_1_3': SPECIAL_SECTIONS}
 
     ADDITIONAL_SECTIONS.update(exttools.get_sections())
 
@@ -224,7 +226,7 @@ class ToscaTemplate(object):
 
     def _update_nested_tosca_tpls(self, nested_tosca_tpls):
         for tpl in nested_tosca_tpls:
-            # add every imported template (even if it doesn't a topology)
+            # add every import (even if it doesn't have a topology)
             filename, tosca_tpl = list(tpl.items())[0]
             if (filename not in list(
                     self.nested_tosca_tpls.keys())):
