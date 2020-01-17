@@ -45,9 +45,6 @@ class Policy(EntityTemplate):
         self.targets_type = targets_type
         self.triggers = self._triggers(policy.get(TRIGGERS))
         self.reservation = self._reservation(policy.get(RESERVATION))
-        self.properties = None
-        if 'properties' in policy:
-            self.properties = policy['properties']
         self._validate_keys()
 
     @property
