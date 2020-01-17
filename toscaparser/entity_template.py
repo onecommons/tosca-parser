@@ -41,7 +41,7 @@ class EntityTemplate(object):
     # Special key names
     SPECIAL_SECTIONS = (METADATA) = ('metadata')
 
-    allowUndefinedProps = True
+    additionalProperties = True
 
     def __init__(self, name, template, entity_name, custom_def=None):
         self.name = name
@@ -79,6 +79,9 @@ class EntityTemplate(object):
         self._interfaces = None
         self._requirements = None
         self._capabilities = None
+        metadata = self.type_definition.get_definition('metadata')
+        if metadata and 'additionalProperties' in metadata:
+            self.additionalProperties = metadata['additionalProperties']
 
     @property
     def type(self):
@@ -187,7 +190,7 @@ class EntityTemplate(object):
 
     def _validate_properties(self, template, entitytype):
         properties = entitytype.get_value(self.PROPERTIES, template)
-        self._common_validate_properties(entitytype, properties, self.allowUndefinedProps)
+        self._common_validate_properties(entitytype, properties, self.additionalProperties)
 
     def _validate_capabilities(self):
         type_capabilities = self.type_definition.get_capabilities()
@@ -298,7 +301,7 @@ class EntityTemplate(object):
                 prop = Property(name, value,
                                 props_def[name].schema, self.custom_def)
                 props.append(prop)
-            elif self.allowUndefinedProps:
+            elif self.additionalProperties:
                 prop = Property(name, value,
                           dict(type='any'), self.custom_def)
                 props.append(prop)
