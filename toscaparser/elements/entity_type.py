@@ -72,6 +72,7 @@ class EntityType(object):
     DATATYPE_PREFIX = 'tosca.datatypes.'
     DATATYPE_NETWORK_PREFIX = DATATYPE_PREFIX + 'network.'
     TOSCA = 'tosca'
+    _source = None
 
     def derived_from(self, defs):
         '''Return a type this type is derived from.'''
@@ -96,7 +97,11 @@ class EntityType(object):
         if defs and key in defs:
             return defs[key]
 
-    def get_value(self, ndtype, defs=None, parent=None):
+    def get_value(self, ndtype, defs=None, parent=None, addPath=False):
+        '''
+        If set, `defs` should be from the template otherwise uses defs from this type
+        `parent` merges in defs from this type and ancestors
+        '''
         value = None
         if defs is None:
             if not hasattr(self, 'defs'):
@@ -116,14 +121,24 @@ class EntityType(object):
                         if value:
                             if isinstance(value, dict):
                                 for k, v in parent_value.items():
-                                    if k not in value.keys():
+                                    if k not in value:
                                         value[k] = v
+                                        if addPath and p._source:
+                                          for item in v.values():
+                                              if isinstance(item, dict):
+                                                  item['_source'] = p._source
+
                             if isinstance(value, list):
                                 for p_value in parent_value:
                                     if p_value not in value:
                                         value.append(p_value)
                         else:
                             value = copy.copy(parent_value)
+                            if addPath and p._source and isinstance(value, dict):
+                                for item in value.values():
+                                    if isinstance(item, dict):
+                                        item['_source'] = p._source
+
                     p = p.parent_type
         return value
 
@@ -148,7 +163,6 @@ class EntityType(object):
                     inherited.update(value)
                     value.update(inherited)
         return value
-
 
 def update_definitions(exttools, version, loader = toscaparser.utils.yamlparser.load_yaml):
     extension_defs_file = exttools.get_defs_file(version)

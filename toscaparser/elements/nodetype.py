@@ -21,10 +21,11 @@ from toscaparser.elements.statefulentitytype import StatefulEntityType
 
 class NodeType(StatefulEntityType):
     '''TOSCA built-in node type.'''
-    SECTIONS = (DERIVED_FROM, METADATA, PROPERTIES, VERSION, DESCRIPTION, ATTRIBUTES, REQUIREMENTS, CAPABILITIES, INTERFACES, ARTIFACTS) = \
+    SECTIONS = (DERIVED_FROM, METADATA, PROPERTIES, VERSION, DESCRIPTION, ATTRIBUTES,
+                REQUIREMENTS, CAPABILITIES, INTERFACES, ARTIFACTS, _SOURCE) = \
                ('derived_from', 'metadata', 'properties', 'version',
                 'description', 'attributes', 'requirements', 'capabilities',
-                'interfaces', 'artifacts')
+                'interfaces', 'artifacts', '_source')
 
     def __init__(self, ntype, custom_def=None):
         super(NodeType, self).__init__(ntype, self.NODE_PREFIX, custom_def)
@@ -166,7 +167,7 @@ class NodeType(StatefulEntityType):
 
     @property
     def interfaces(self):
-        return self.get_value(self.INTERFACES, None, True)
+        return self.get_value(self.INTERFACES, None, True, True)
 
     @property
     def lifecycle_inputs(self):

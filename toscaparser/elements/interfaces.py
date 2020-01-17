@@ -56,6 +56,7 @@ class InterfacesDef(StatefulEntityType):
                 self.defs = self.TOSCA_DEF[interfacetype]
         if value:
             if isinstance(self.value, dict):
+                self._source = self.value.get('_source')
                 for i, j in self.value.items():
                     if i == IMPLEMENTATION:
                         self.implementation = j

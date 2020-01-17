@@ -91,3 +91,7 @@ class StatefulEntityType(EntityType):
         attrs_def = self.get_attributes_def()
         if attrs_def and name in attrs_def.keys():
             return attrs_def[name].value
+
+    @property
+    def _source(self):
+      return self.defs.get('_source')

@@ -115,7 +115,6 @@ class ImportsLoader(object):
             self._update_nested_tosca_tpls(full_file_name, custom_type)
 
     def _update_custom_def(self, custom_type, namespace_prefix):
-        outer_custom_types = {}
         for type_def in self.type_definition_list:
             outer_custom_types = custom_type.get(type_def)
             if outer_custom_types:
@@ -125,9 +124,12 @@ class ImportsLoader(object):
                             outer_custom_types.append(i)
                     self.custom_defs.update({'imports': outer_custom_types})
                 else:
+                    if type_def in ['node_types', 'relationship_types']:
+                        for custom_def in outer_custom_types.values():
+                            custom_def['_source'] = self.path
                     if namespace_prefix:
                         prefix_custom_types = {}
-                        for type_def_key in outer_custom_types.keys():
+                        for type_def_key in outer_custom_types:
                             namespace_prefix_to_key = (namespace_prefix +
                                                        "." + type_def_key)
                             prefix_custom_types[namespace_prefix_to_key] = \

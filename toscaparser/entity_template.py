@@ -91,6 +91,15 @@ class EntityTemplate(object):
             return self.type_definition.parent_type
 
     @property
+    def types(self):
+      types = []
+      p = self.type_definition
+      while p:
+        types.append(p)
+        p = p.parent_type
+      return types
+
+    @property
     def requirements(self):
         if self._requirements is None:
             self._requirements = self.type_definition.get_value(
@@ -301,11 +310,11 @@ class EntityTemplate(object):
 
     def _create_interfaces(self):
         interfaces = []
-        type_interfaces = None
+        tpl_interfaces = None
         if isinstance(self.type_definition, RelationshipType):
             if isinstance(self.entity_tpl, dict):
                 if self.INTERFACES in self.entity_tpl:
-                    type_interfaces = self.entity_tpl[self.INTERFACES]
+                    tpl_interfaces = self.entity_tpl[self.INTERFACES]
                 else:
                     for rel_def, value in self.entity_tpl.items():
                         if rel_def != 'type':
@@ -315,42 +324,64 @@ class EntityTemplate(object):
                                 rel = rel_def.get('relationship')
                             if rel:
                                 if self.INTERFACES in rel:
-                                    type_interfaces = rel[self.INTERFACES]
+                                    tpl_interfaces = rel[self.INTERFACES]
                                     break
         else:
-            type_interfaces = self.type_definition.get_value(self.INTERFACES,
+            tpl_interfaces = self.type_definition.get_value(self.INTERFACES,
                                                              self.entity_tpl)
 
-        if self.type_definition.interfaces and type_interfaces:
-          # merge the interfaces defined on the type with the template interface definition
-          interfacesDefs = self.type_definition.interfaces.copy()
-          for iName, defs in type_interfaces.items():
-              baseDefs = interfacesDefs.get(iName)
-              if baseDefs:
-                  defs = defs.copy()
-                  # merge the two definitions
-                  for op, iDef in baseDefs.items():
-                      if op in defs:
-                          currentiDef = defs[op]
-                          if isinstance(iDef, dict) and isinstance(currentiDef, dict):
-                            defs[op] = dict(iDef, **currentiDef)
-                            if 'inputs' in iDef and 'inputs' in currentiDef:
-                                # merge inputs
-                                defs[op]['inputs'] = dict(iDef['inputs'], **currentiDef['inputs'])
-                      else:
-                          defs[op] = iDef
-              interfacesDefs[iName] = defs
-        else:
-            interfacesDefs = type_interfaces or self.type_definition.interfaces
-            if not interfacesDefs:
-              return interfaces
+        if self.type_definition.interfaces:
+            interfacesDefs = self.type_definition.interfaces.copy()
+            if tpl_interfaces:
+                # merge the interfaces defined on the type with the template interface definition
+                for iName, defs in tpl_interfaces.items():
+                    defs = defs.copy()
+                    # for each interface, see if base defines it too
+                    inputs = defs.get('inputs')
+                    iDefs = defs
+                    if 'operations' in defs:
+                        defs = defs.get('operations', {})
+                    baseDefs = interfacesDefs.get(iName)
+                    if baseDefs:
+                        # add in base's ops and merge interface-level inputs
+                        baseInputs = baseDefs.get('inputs')
+                        if 'operations' in baseDefs:
+                            baseDefs = baseDefs.get('operations', {})
+                        if inputs and baseInputs:
+                            iDefs['inputs'] = dict(baseInputs, **inputs)
 
-        # XXX should also merge interface definition too
+                        for op, iDef in baseDefs.items():
+                            if op in ['inputs', 'notifications', '_source']:
+                                continue
+                            if op in defs:
+                                # op in both, merge
+                                currentiDef = defs[op]
+                                if isinstance(iDef.get('implementation'), dict) and self.type_definition.path:
+                                    # if implementation might be an inline artifact, save the baseDir of the source
+                                    iDef.get['implementation']['_source'] = self.type_definition.path
+                                if isinstance(iDef, dict) and isinstance(currentiDef, dict):
+                                  defs[op] = dict(iDef, **currentiDef)
+                                  if 'inputs' in iDef and 'inputs' in currentiDef:
+                                      # merge inputs
+                                      defs[op]['inputs'] = dict(iDef['inputs'], **currentiDef['inputs'])
+                            else:
+                                defs[op] = iDef
+                    # add or replace:
+                    interfacesDefs[iName] = defs
+        else:
+            interfacesDefs = tpl_interfaces
+            if not interfacesDefs:
+              return []
+        # XXX should also merge interface type definition too
+
         for interface_type, value in interfacesDefs.items():
             inputs = value.get('inputs') # shared inputs
+            _source = value.pop('_source', None)
             for op, op_def in value.items():
                 if op == 'operations':
                     for op, op_def in op_def.items():
+                        if _source:
+                          op_def['_source'] = _source
                         iface = InterfacesDef(self.type_definition,
                                               interfacetype=interface_type,
                                               node_template=self,
@@ -361,6 +392,8 @@ class EntityTemplate(object):
                     break
                 if op in INTERFACE_DEF_RESERVED_WORDS:
                     continue
+                if _source:
+                  op_def['_source'] = _source
                 iface = InterfacesDef(self.type_definition,
                                       interfacetype=interface_type,
                                       node_template=self,
