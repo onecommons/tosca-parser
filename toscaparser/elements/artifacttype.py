@@ -21,10 +21,10 @@ class ArtifactTypeDef(StatefulEntityType):
                                               custom_def)
         self.type = atype
         self.custom_def = custom_def
-        self.properties = None
-        if self.PROPERTIES in self.defs:
-            self.properties = self.defs[self.PROPERTIES]
+        self.properties =  self.defs.get(self.PROPERTIES)
         self.parent_artifacts = self._get_parent_artifacts()
+        self.mime_type = self.defs.get('mime_type')
+        self.file_ext = self.defs.get('file_ext',[])
 
     def _get_parent_artifacts(self):
         artifacts = {}

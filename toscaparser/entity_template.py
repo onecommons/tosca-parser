@@ -24,7 +24,7 @@ from toscaparser.properties import Property
 from toscaparser.unsupportedtype import UnsupportedType
 from toscaparser.utils.gettextutils import _
 from toscaparser.elements.capabilitytype import CapabilityTypeDef
-
+from toscaparser.elements.artifacttype import ArtifactTypeDef
 
 class EntityTemplate(object):
     '''Base class for TOSCA templates.'''
@@ -74,6 +74,9 @@ class EntityTemplate(object):
             self.type_definition = PolicyType(type, custom_def)
         if entity_name == 'group_type':
             self.type_definition = GroupType(type, custom_def) \
+                if type is not None else None
+        if entity_name == 'artifact_type':
+            self.type_definition = ArtifactTypeDef(type, custom_def) \
                 if type is not None else None
         self._properties = None
         self._interfaces = None

@@ -30,6 +30,7 @@ from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.utils.gettextutils import _
+from toscaparser.artifacts import Artifact
 
 log = logging.getLogger('tosca')
 
@@ -52,6 +53,7 @@ class NodeTemplate(EntityTemplate):
         self.available_rel_types = available_rel_types
         self._relationships = None
         self.sub_mapping_tosca_template = None
+        self._artifacts = None
 
     @property
     def relationships(self):
@@ -197,6 +199,19 @@ class NodeTemplate(EntityTemplate):
                     if tpl == node.type:
                         self.related[NodeTemplate(tpl)] = relation
         return self.related.keys()
+
+    @property
+    def artifacts(self):
+        if self._artifacts is None:
+            # node templates can't be imported so we don't need to track their source
+            artifacts = {name: Artifact(name, value, self.custom_def)
+                for name, value in self.entity_tpl.get(self.ARTIFACTS, {}).items()}
+            # but types can, so we do
+            for parent_type in reversed(self.types):
+                for name, value in parent_type.defs.get(self.ARTIFACTS, {}).items():
+                    artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
+            self._artifacts = artifacts
+        return self._artifacts
 
     def validate(self, tosca_tpl=None):
         self._validate_capabilities()
