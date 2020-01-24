@@ -52,6 +52,7 @@ class StatefulEntityType(EntityType):
                 ExceptionCollector.appendException(
                     InvalidTypeError(what=entitytype))
         self.type = entitytype
+        self._source = self.defs and self.defs.get('_source') or None
 
     def get_properties_def_objects(self):
         '''Return a list of property definition objects.'''
@@ -91,7 +92,3 @@ class StatefulEntityType(EntityType):
         attrs_def = self.get_attributes_def()
         if attrs_def and name in attrs_def.keys():
             return attrs_def[name].value
-
-    @property
-    def _source(self):
-      return self.defs.get('_source')
