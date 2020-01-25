@@ -106,6 +106,10 @@ class EntityTemplate(object):
       return types
 
     @property
+    def directives(self):
+        return self.entity_tpl.get('directives', [])
+
+    @property
     def requirements(self):
         if self._requirements is None:
             self._requirements = self.type_definition.get_value(
