@@ -14,11 +14,12 @@ from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.elements.statefulentitytype import StatefulEntityType
 
-SECTIONS = (LIFECYCLE, CONFIGURE, LIFECYCLE_SHORTNAME,
-            CONFIGURE_SHORTNAME) = \
+SECTIONS = (LIFECYCLE, CONFIGURE, INSTALL, LIFECYCLE_SHORTNAME,
+            CONFIGURE_SHORTNAME, INSTALL_SHORTNAME) = \
            ('tosca.interfaces.node.lifecycle.Standard',
             'tosca.interfaces.relationship.Configure',
-            'Standard', 'Configure')
+            'unfurl.interfaces.Install',
+            'Standard', 'Configure', 'Install')
 
 OPERATION_DEF_RESERVED_WORDS = (DESCRIPTION, IMPLEMENTATION, INPUTS, OUTPUTS) = (
                             'description', 'implementation', 'inputs', 'outputs')
@@ -39,14 +40,15 @@ class InterfacesDef(StatefulEntityType):
         self.implementation = None
         self.inputs = inputs
         self.defs = {}
-        if interfacetype == LIFECYCLE_SHORTNAME:
+        interfaces = getattr(self.ntype, 'interfaces', None)
+        if 'type' in interfaces.get(interfacetype, {}):
+            interfacetype = interfaces[interfacetype]['type']
+        elif interfacetype == LIFECYCLE_SHORTNAME:
             interfacetype = LIFECYCLE
-        if interfacetype == CONFIGURE_SHORTNAME:
+        elif interfacetype == CONFIGURE_SHORTNAME:
             interfacetype = CONFIGURE
-        if hasattr(self.ntype, 'interfaces') \
-           and self.ntype.interfaces \
-           and interfacetype in self.ntype.interfaces:
-            interfacetype = self.ntype.interfaces[interfacetype]['type']
+        elif interfacetype == INSTALL_SHORTNAME:
+            interfacetype = INSTALL
         self.type = interfacetype
         if node_type:
             if self.node_template and self.node_template.custom_def \
