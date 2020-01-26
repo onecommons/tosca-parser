@@ -164,6 +164,7 @@ class DataEntity(object):
             # TODO(TBD) bug 1567063, validate source & target as PortDef type
             # as complex types not just as integers
             PortSpec.validate_additional_req(value, prop_name, custom_def)
+            return value
         else:
             data = DataEntity(type, value, custom_def)
             return data.validate()

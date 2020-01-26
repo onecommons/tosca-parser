@@ -40,25 +40,29 @@ class PropertyDef(object):
         self._status = self.PROPERTY_STATUS_DEFAULT
         self._required = self.PROPERTY_REQUIRED_DEFAULT
 
-        # Validate required 'type' property exists
-        try:
-            self.schema['type']
-        except KeyError:
-            msg = (_('Schema definition of "%(pname)s" must have a "type" '
-                     'attribute.') % dict(pname=self.name))
-            ExceptionCollector.appendException(
-                InvalidSchemaError(message=msg))
+        if schema is not None:
+            # Validate required 'type' property exists
+            try:
+                self.schema['type']
+            except KeyError:
+                msg = (_('Schema definition of "%(pname)s" must have a "type" '
+                         'attribute.') % dict(pname=self.name))
+                ExceptionCollector.appendException(
+                    InvalidSchemaError(message=msg))
 
-        if self.schema:
             self._load_required_attr_from_schema()
             self._load_status_attr_from_schema()
 
     @property
+    def type(self):
+        if self.schema:
+            return self.schema['type']
+        return None
+
+    @property
     def default(self):
         if self.schema:
-            for prop_key, prop_value in self.schema.items():
-                if prop_key == self.PROPERTY_KEYNAME_DEFAULT:
-                    return prop_value
+            return self.schema.get(self.PROPERTY_KEYNAME_DEFAULT)
         return None
 
     @property

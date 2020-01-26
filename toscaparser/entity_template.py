@@ -302,8 +302,8 @@ class EntityTemplate(object):
         props = []
         properties = self.type_definition.get_value(self.PROPERTIES,
                                                     self.entity_tpl) or {}
+        props_def = self.type_definition.get_properties_def()
         for name, value in properties.items():
-            props_def = self.type_definition.get_properties_def()
             if props_def and name in props_def:
                 prop = Property(name, value,
                                 props_def[name].schema, self.custom_def)
@@ -312,8 +312,8 @@ class EntityTemplate(object):
                 prop = Property(name, value,
                           dict(type='any'), self.custom_def)
                 props.append(prop)
-        for p in self.type_definition.get_properties_def_objects():
-            if p.default is not None and p.name not in properties.keys():
+        for p in props_def.values():
+            if p.default is not None and p.name not in properties:
                 prop = Property(p.name, p.default, p.schema, self.custom_def)
                 props.append(prop)
         return props

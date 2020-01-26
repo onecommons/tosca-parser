@@ -35,6 +35,13 @@ class Property(object):
         self.value = value
         self.custom_def = custom_def
         self.schema = Schema(property_name, schema_dict)
+        self._datatype = None
+
+    @property
+    def datatype(self):
+        if self._datatype is None:
+            self._datatype = DataEntity(self.type, self.value, self.custom_def, self.name)
+        return self._datatype
 
     @property
     def type(self):
