@@ -23,6 +23,9 @@ from toscaparser.elements.scalarunit import ScalarUnit_Time
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils import validateutils
 
+class ValueDataType(object):
+  def __init__(self, type):
+    self.value_type = type
 
 class DataEntity(object):
     '''A complex data value entity.'''
@@ -30,10 +33,26 @@ class DataEntity(object):
     def __init__(self, datatypename, value_dict, custom_def=None,
                  prop_name=None):
         self.custom_def = custom_def
-        self.datatype = DataType(datatypename, custom_def)
-        self.schema = self.datatype.get_all_properties()
+        self.type = datatypename
+        if datatypename in Schema.PROPERTY_TYPES:
+            self.datatype = ValueDataType(datatypename)
+            self.schema = {}
+        else:
+            self.datatype = DataType(datatypename, custom_def)
+            self.schema = self.datatype.get_all_properties()
         self.value = value_dict
         self.property_name = prop_name
+        self._properties = None
+
+    @property
+    def properties(self):
+        if self._properties is None:
+            from toscaparser.properties import Property
+            self._properties = {
+              name : Property(name, aDef.default, aDef.schema, self.custom_def)
+              for name, aDef in self.schema.items()
+            }
+        return self._properties
 
     def validate(self):
         '''Validate the value by the definition of the datatype.'''

@@ -35,13 +35,20 @@ class Property(object):
         self.value = value
         self.custom_def = custom_def
         self.schema = Schema(property_name, schema_dict)
-        self._datatype = None
+        self._entity = None
+        self._entry_schema_entity = None
 
     @property
-    def datatype(self):
-        if self._datatype is None:
-            self._datatype = DataEntity(self.type, self.value, self.custom_def, self.name)
-        return self._datatype
+    def entity(self):
+        if self._entity is None:
+            self._entity = DataEntity(self.type, self.value, self.custom_def, self.name)
+        return self._entity
+
+    @property
+    def entry_schema_entity(self):
+        if self._entry_schema_entity is None and self.entry_schema:
+            self._entry_schema_entity = DataEntity(self.entry_schema['type'], None, self.custom_def, self.name)
+        return self._entry_schema_entity
 
     @property
     def type(self):
