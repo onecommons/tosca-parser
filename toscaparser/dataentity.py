@@ -30,7 +30,7 @@ class ValueDataType(object):
 class DataEntity(object):
     '''A complex data value entity.'''
 
-    def __init__(self, datatypename, value_dict, custom_def=None,
+    def __init__(self, datatypename, value, custom_def=None,
                  prop_name=None):
         self.custom_def = custom_def
         self.type = datatypename
@@ -40,7 +40,7 @@ class DataEntity(object):
         else:
             self.datatype = DataType(datatypename, custom_def)
             self.schema = self.datatype.get_all_properties()
-        self.value = value_dict
+        self.value = value
         self.property_name = prop_name
         self._properties = None
 
@@ -48,8 +48,9 @@ class DataEntity(object):
     def properties(self):
         if self._properties is None:
             from toscaparser.properties import Property
+            values = self.value or {}
             self._properties = {
-              name : Property(name, aDef.default, aDef.schema, self.custom_def)
+              name : Property(name,  values.get(name, aDef.default), aDef.schema, self.custom_def)
               for name, aDef in self.schema.items()
             }
         return self._properties
