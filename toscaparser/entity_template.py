@@ -30,10 +30,10 @@ class EntityTemplate(object):
     '''Base class for TOSCA templates.'''
 
     SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
-                INTERFACES, CAPABILITIES, TYPE, DESCRIPTION, DIRECTIVES,
+                INTERFACES, CAPABILITIES, TYPE, DESCRIPTION, DIRECTIVES, KEYS,
                 ATTRIBUTES, ARTIFACTS, NODE_FILTER, COPY) = \
                ('derived_from', 'properties', 'requirements', 'interfaces',
-                'capabilities', 'type', 'description', 'directives',
+                'capabilities', 'type', 'description', 'directives', "instance_keys",
                 'attributes', 'artifacts', 'node_filter', 'copy')
     REQUIREMENTS_SECTION = (NODE, CAPABILITY, RELATIONSHIP, OCCURRENCES, NODE_FILTER) = \
                            ('node', 'capability', 'relationship',
@@ -53,6 +53,8 @@ class EntityTemplate(object):
         if entity_name == 'node_type':
             self.type_definition = NodeType(type, custom_def) \
                 if type is not None else None
+            self._validate_directives(self.entity_tpl)
+            self._validate_keys(self.entity_tpl)
         if entity_name == 'relationship_type':
             relationship = template.get('relationship')
             type = None
@@ -85,6 +87,7 @@ class EntityTemplate(object):
         metadata = self.type_definition.get_definition('metadata')
         if metadata and 'additionalProperties' in metadata:
             self.additionalProperties = metadata['additionalProperties']
+        self._keys = None
 
     @property
     def type(self):
@@ -108,6 +111,13 @@ class EntityTemplate(object):
     @property
     def directives(self):
         return self.entity_tpl.get('directives', [])
+
+    @property
+    def keys(self):
+        if self._keys is None:
+          self._keys = map(lambda k: [k] if isinstance(k, str) else k,
+            self.type_definition.get_value(self.KEYS, self.entity_tpl, True) or [])
+        return self._keys
 
     @property
     def requirements(self):
@@ -194,6 +204,34 @@ class EntityTemplate(object):
                     cap = Capability(name, properties, c, self.custom_def)
                     capability.append(cap)
         return capability
+
+    def _validate_keys(self, template):
+        msg = (_('keys definition of "%s" must be a list of containing strings or lists') % self.name)
+        keys = self.type_definition.get_value(self.KEYS, template, True) or []
+        if not isinstance(keys, list):
+            ExceptionCollector.appendException(
+                ValidationError(msg))
+        for key in keys:
+            if isinstance(key, list):
+                for item in key:
+                  if not isinstance(item, str):
+                      compoundKeyMsg = _("individual keys in compound keys must be strings")
+                      ExceptionCollector.appendException(
+                        ValidationError(compoundKeyMsg))
+            elif not isinstance(key, str):
+                ExceptionCollector.appendException(
+                    ValidationError(msg))
+
+    def _validate_directives(self, template):
+        msg = (_('directives of "%s" must be a list of strings') % self.name)
+        keys = template.get("directives", [])
+        if not isinstance(keys, list):
+            ExceptionCollector.appendException(
+                ValidationError(msg))
+        for key in keys:
+            if not isinstance(key, str):
+                ExceptionCollector.appendException(
+                    ValidationError(msg))
 
     def _validate_properties(self, template, entitytype):
         properties = entitytype.get_value(self.PROPERTIES, template)
