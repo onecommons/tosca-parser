@@ -303,6 +303,7 @@ class TopologyTemplate(object):
                     prop.value = functions.get_function(self,
                                                         node_template,
                                                         prop.value)
+
                 for interface in node_template.interfaces:
                     if interface.inputs:
                         for name, value in interface.inputs.items():
@@ -313,20 +314,6 @@ class TopologyTemplate(object):
                             if isinstance(interfacevalue, functions.GetInput):
                                interface.inputs[name] = interfacevalue.result()
 
-                if node_template.requirements and \
-                   isinstance(node_template.requirements, list):
-                    for req in node_template.requirements:
-                        rel = req
-                        for req_name, req_item in req.items():
-                            if isinstance(req_item, dict):
-                                rel = req_item.get('relationship')
-                                break
-                        if rel and 'properties' in rel:
-                            for key, value in rel['properties'].items():
-                                rel['properties'][key] = \
-                                    functions.get_function(self,
-                                                           req,
-                                                           value)
                 if node_template.get_capabilities_objects():
                     for cap in node_template.get_capabilities_objects():
                         if cap.get_properties_objects():
@@ -341,18 +328,18 @@ class TopologyTemplate(object):
                                     for p, v in cap._properties.items():
                                         if p == prop.name:
                                             cap._properties[p] = propvalue
-                for rel, node in node_template.relationships.items():
-                    rel_tpls = node.relationship_tpl
-                    if rel_tpls:
-                        for rel_tpl in rel_tpls:
-                            for interface in rel_tpl.interfaces:
-                                if interface.inputs:
-                                    for name, value in \
-                                            interface.inputs.items():
-                                        interface.inputs[name] = \
-                                            functions.get_function(self,
-                                                                   rel_tpl,
-                                                                   value)
+
+                for rel_tpl, req in node_template.relationships:
+                    # XXX should use something like findProps to recursively validate properties
+                    for prop in rel_tpl.get_properties_objects():
+                        prop.value = functions.get_function(self, req, prop.value)
+                    for interface in rel_tpl.interfaces:
+                        if interface.inputs:
+                            for name, value in interface.inputs.items():
+                                interface.inputs[name] = functions.get_function(self,
+                                                           rel_tpl,
+                                                           value)
+
         for output in self.outputs:
             func = functions.get_function(self, self.outputs, output.value)
             if isinstance(func, functions.GetAttribute):
@@ -366,6 +353,7 @@ class TopologyTemplate(object):
         """
         if hasattr(self, 'nodetemplates'):
             for node_template in self.nodetemplates:
+                # XXX should use something like findProps to recursively validate properties
                 for prop in node_template.get_properties_objects():
                     functions.get_function(self,
                                                 node_template,
@@ -377,19 +365,6 @@ class TopologyTemplate(object):
                                 self,
                                 node_template,
                                 value)
-                if node_template.requirements and \
-                   isinstance(node_template.requirements, list):
-                    for req in node_template.requirements:
-                        rel = req
-                        for req_name, req_item in req.items():
-                            if isinstance(req_item, dict):
-                                rel = req_item.get('relationship')
-                                break
-                        if rel and 'properties' in rel:
-                            for key, value in rel['properties'].items():
-                                    functions.get_function(self,
-                                                           req,
-                                                           value)
                 if node_template.get_capabilities_objects():
                     for cap in node_template.get_capabilities_objects():
                         if cap.get_properties_objects():
@@ -398,17 +373,17 @@ class TopologyTemplate(object):
                                     self,
                                     node_template,
                                     prop.value)
-                for rel, node in node_template.relationships.items():
-                    rel_tpls = node.relationship_tpl
-                    if rel_tpls:
-                        for rel_tpl in rel_tpls:
-                            for interface in rel_tpl.interfaces:
-                                if interface.inputs:
-                                    for name, value in \
-                                            interface.inputs.items():
-                                            functions.get_function(self,
-                                                                   rel_tpl,
-                                                                   value)
+
+                for rel_tpl, req in node_template.relationships:
+                    # XXX should use something like findProps to recursively validate properties
+                    for prop in rel_tpl.get_properties_objects():
+                        functions.get_function(self, req, prop.value)
+                    for interface in rel_tpl.interfaces:
+                        if interface.inputs:
+                            for name, value in interface.inputs.items():
+                                functions.get_function(self,
+                                                       rel_tpl,
+                                                       value)
         for output in self.outputs:
             functions.get_function(self, self.outputs, output.value)
 

@@ -49,8 +49,8 @@ class NodeTemplate(EntityTemplate):
         self.custom_def = custom_def
         self.related = {}
         self.relationship_tpl = []
-        self.available_rel_tpls = available_rel_tpls
-        self.available_rel_types = available_rel_types
+        self.available_rel_tpls = available_rel_tpls or []
+        self.available_rel_types = available_rel_types or []
         self._relationships = None
         self.sub_mapping_tosca_template = None
         self._artifacts = None
@@ -61,135 +61,157 @@ class NodeTemplate(EntityTemplate):
         returns {RelationshipType: NodeTemplate} where NodeTemplate is the target node
         """
         if self._relationships is None:
-            self._relationships = {}
+            self._relationships = []
             # self.requirements is from the yaml
             requires = self.requirements
             if requires and isinstance(requires, list):
                 for r in requires:
-                    for r1, value in r.items():
-                        explicit = self._get_explicit_relationship(r, value)
-                        if explicit:
-                            for key, value in explicit.items():
-                                self._relationships[key] = value
+                    relTpl = self._get_explicit_relationship(r)
+                    if relTpl:
+                        self._relationships.append( (relTpl, r) )
         return self._relationships
 
-    def _get_explicit_relationship(self, req, value):
+    def _getRequirementDefinition(self, requirementName):
+        parent_reqs = self.type_definition.get_all_requirements()
+        defaultDef = dict(relationship=dict(type = "tosca.relationships.Root"))
+        if parent_reqs:
+            for req_dict in parent_reqs:
+                if requirementName in req_dict:
+                    # 3.7.3 Requirement definition p.122
+                    # if present, this will be either the name of the relationship type
+                    # or a dictionary containing "type"
+                    reqDef = req_dict[requirementName]
+                    if isinstance(reqDef, dict):
+                        # normalize 'relationship' key:
+                        relDef = reqDef.get('relationship')
+                        if not relDef:
+                            relDef = dict(type = "tosca.relationships.Root")
+                        elif isinstance(relDef, dict):
+                            relDef = relDef.copy()
+                        else:
+                            relDef = dict(type = relDef)
+                        reqDef = reqDef.copy()
+                        reqDef['relationship'] = relDef
+                        return reqDef
+                    else:
+                        # 3.7.3.2.1 Simple grammar (Capability Type only)
+                        defaultDef['capability'] = reqDef
+                        return defaultDef
+        return defaultDef
+
+    def _get_explicit_relationship(self, req):
         """Handle explicit relationship
 
         For example,
         - req:
             node: DBMS
             relationship: tosca.relationships.HostedOn
+
+        Returns RelationshipTemplate or None if there was a validation error.
+
+        If no relationship was either assigned or defined by the node's type definition,
+        one with type "tosca.relationships.Root" will be returned.
         """
-        explicit_relation = {}
+        name, value = next(iter(req.items()))
+        reqDef = self._getRequirementDefinition(name)
         if isinstance(value, dict):
-            node = value.get('node')
-            capability = value.get('capability')
+            # see 3.8.2 Requirement assignment p. 140 for value
+            reqDef.update(value)
         else:
-            node = value
-            capability = None
+            reqDef['node'] = value
 
-        # XXX
-        #if not node and capability:
-        #    find a node that has the given capability type
+        # if 'node' not in reqDef and 'capability' not in reqDef:
+        #     ExceptionCollector.appendException(
+        #       ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
+        #                       (name, self.name)))
+        #     return None
 
-        if node:
-            # if node is a type find the first node template with that type
-            if (node in list(self.type_definition.TOSCA_DEF.keys())
-               or node in self.custom_def):
-                for name, tpl in self.templates.items():
-                  if tpl.get('type') == node:
-                    node = name
-                    break
-
-            if node not in self.templates:
+        relationship = reqDef['relationship']
+        relTpl = None
+        if isinstance(relationship, dict):
+          type = relationship.get('type')
+          if not type:
+              ExceptionCollector.appendException(
+                  MissingRequiredFieldError(
+                      what=_('"relationship" used in template '
+                             '"%s"') % self.name,
+                      required=self.TYPE))
+              return None
+        elif relationship in self.available_rel_types:
+            relationship = dict(type = relationship) # it's the name of a type
+        else:
+            # it's the name of a relationship template
+            for tpl in self.available_rel_tpls:
+                if tpl.name == relationship:
+                  type = tpl.type
+                  relTpl = tpl
+                  break
+            else:
                 ExceptionCollector.appendException(
-                    KeyError(_('Node template "%(node)s" was not found'
-                               ' in "%(name)s".')
-                             % {'node': node, 'name': self.name}))
-                return
+                  ValidationError(message = _('Relationship template "%(relationship)s" was not found'
+                       ' for requirement "%(rname)s" of node "%(nname)s".')
+                     % {'relationship': relationship, 'rname': name, 'nname': self.name}))
+                return None
 
-            related_tpl = self.topology_template.node_templates[node]
-            relationship = value.get('relationship') \
-                if isinstance(value, dict) else None
-            # check if its type has a relationship defined
-            if not relationship:
-                parent_reqs = self.type_definition.get_all_requirements()
-                if parent_reqs is None:
-                    ExceptionCollector.appendException(
-                        ValidationError(message='parent_req is ' +
-                                        str(parent_reqs)))
-                else:
-                    for key in req.keys():
-                        for req_dict in parent_reqs:
-                            if key in req_dict.keys():
-                                relationship = (req_dict.get(key).
-                                                get('relationship'))
-                                break
-            if relationship:
-                found_relationship_tpl = False
-                # apply available relationship templates if found
-                if self.available_rel_tpls:
-                    for tpl in self.available_rel_tpls:
-                        if tpl.name == relationship:
-                            rtype = RelationshipType(tpl.type, capability,
-                                                     self.custom_def)
-                            explicit_relation[rtype] = related_tpl
-                            tpl.target = related_tpl
-                            tpl.source = self
-                            related_tpl.relationship_tpl.append(tpl)
-                            found_relationship_tpl = True
-                # create relationship template object.
-                rel_prfx = self.type_definition.RELATIONSHIP_PREFIX
-                if not found_relationship_tpl:
-                    if isinstance(relationship, dict):
-                        relationship = relationship.get('type')
-                        if relationship:
-                            if self.available_rel_types and \
-                               relationship in self.available_rel_types.keys():
-                                pass
-                            elif not relationship.startswith(rel_prfx):
-                                relationship = rel_prfx + relationship
+        if not relTpl:
+            assert isinstance(relationship, dict) and relationship['type'] == type
+            relTpl = RelationshipTemplate(relationship, type, self.custom_def)
+            relTpl.validate()
+        relTpl.source = self
+
+        # XXX node_filter
+        node = reqDef.get('node')
+        related_tpl = None
+        if node:
+            related_tpl = self.topology_template.node_templates.get(node)
+
+        if not related_tpl:
+            if 'capability' in reqDef:
+                capabilities = [reqDef['capability']]
+            else:
+                capabilities = relTpl.type_definition.valid_target_types
+            if node or capabilities:
+                for nodeTemplate in self.topology_template.node_templates.values():
+                    found = None
+                    if node:
+                        # check if node name is node type
+                        if nodeTemplate.is_derived_from(node):
+                            found = nodeTemplate
+                    elif capabilities:
+                        for capability in nodeTemplate.get_capabilities_objects():
+                            for capType in capabilities:
+                                if capability.is_derived_from(capType):
+                                    found = nodeTemplate
+                                    break
+                    if found:
+                        if related_tpl:
+                            if "default" in found.directives:
+                                continue
+                            elif "default" in related_tpl.directives:
+                                related_tpl = found
+                            else:
+                                ExceptionCollector.appendException(
+                              ValidationError(message=
+          'requirement "%s" of node ""%s" is ambiguous, targets more than one template: "%s" and "%s"' %
+                                            (name, self.name, related_tpl.name, found.name)))
+                                return None
                         else:
-                            ExceptionCollector.appendException(
-                                MissingRequiredFieldError(
-                                    what=_('"relationship" used in template '
-                                           '"%s"') % related_tpl.name,
-                                    required=self.TYPE))
-                    for rtype in self.type_definition.relationship.keys():
-                        if rtype.type == relationship:
-                            explicit_relation[rtype] = related_tpl
-                            related_tpl._add_relationship_template(req,
-                                                                   rtype.type,
-                                                                   self)
-                        elif self.available_rel_types:
-                            if relationship in self.available_rel_types.keys():
-                                rel_type_def = self.available_rel_types.\
-                                    get(relationship)
-                                if 'derived_from' in rel_type_def:
-                                    super_type = \
-                                        rel_type_def.get('derived_from')
-                                    if not super_type.startswith(rel_prfx):
-                                        super_type = rel_prfx + super_type
-                                    if rtype.type == super_type:
-                                        explicit_relation[rtype] = related_tpl
-                                        related_tpl.\
-                                            _add_relationship_template(
-                                                req, rtype.type, self)
-        return explicit_relation
+                            related_tpl = found
 
-    def _add_relationship_template(self, requirement, rtypeName, source):
-        req = requirement.copy()
-        req['type'] = rtypeName
-        tpl = RelationshipTemplate(req, rtypeName, self.custom_def, self, source)
-        self.relationship_tpl.append(tpl)
+        if related_tpl:
+            # if relTpl is in available_rel_tpls what if target and source are already assigned?
+            relTpl.target = related_tpl
+            related_tpl.relationship_tpl.append(relTpl)
+        else:
+            ExceptionCollector.appendException(
+                ValidationError(message = _('No matching target template found'
+                           ' for requirement "%(rname)s" of node "%(nname)s".')
+                         % {'rname': name, 'nname': self.name}))
+        return relTpl
 
     def get_relationship_template(self):
         """Returns a list of RelationshipTemplates that target this node"""
         return self.relationship_tpl
-
-    def _add_next(self, nodetpl, relationship):
-        self.related[nodetpl] = relationship
 
     @property
     def related_nodes(self):
