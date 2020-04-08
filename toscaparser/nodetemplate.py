@@ -99,6 +99,29 @@ class NodeTemplate(EntityTemplate):
                         return defaultDef
         return defaultDef
 
+    def _validate_requirements_capability(self, targetTemplate, reqDef, relTpl):
+        capabilities = targetTemplate.get_capabilities()
+        capabilityTypes = relTpl.type_definition.valid_target_types
+        if 'capability' in reqDef:
+            cName = reqDef['capability']
+            capability = capabilities.get(cName)
+            if capability:
+                # just test the capability that matches the symbolic name
+                capabilities = {cName:capability}
+            else:
+                # name doesn't match a symbolic name, see if its a valid type name
+                capabilityTypes = [cName]
+
+        if not capabilityTypes:
+            # nothing specified
+            return True
+
+        for capability in capabilities.values():
+            for capType in capabilityTypes:
+                if capability.is_derived_from(capType):
+                    return True
+        return False
+
     def _get_explicit_relationship(self, req):
         """Handle explicit relationship
 
@@ -119,12 +142,6 @@ class NodeTemplate(EntityTemplate):
             reqDef.update(value)
         else:
             reqDef['node'] = value
-
-        # if 'node' not in reqDef and 'capability' not in reqDef:
-        #     ExceptionCollector.appendException(
-        #       ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
-        #                       (name, self.name)))
-        #     return None
 
         relationship = reqDef['relationship']
         relTpl = None
@@ -159,44 +176,52 @@ class NodeTemplate(EntityTemplate):
             relTpl.validate()
         relTpl.source = self
 
-        # XXX node_filter
+        # XXX support node_filter
         node = reqDef.get('node')
         related_tpl = None
         if node:
             related_tpl = self.topology_template.node_templates.get(node)
+            if related_tpl:
+                if not self._validate_requirements_capability(related_tpl, reqDef, relTpl):
+                    if 'capability' in reqDef:
+                        ExceptionCollector.appendException(
+                            ValidationError(message = _('No matching capability "%(cname)%s" found'
+                              ' on target node "%(tname)%s" for requirement "%(rname)s" of node "%(nname)s".')
+                            % {'rname': name, 'nname': self.name, 'cname': reqDef['capability'], 'tname': related_tpl.name}))
+                    else:
+                        ExceptionCollector.appendException(
+                            ValidationError(message = _('No capability with a matching target type found'
+                              ' on target node "%(tname)%s" for requirement "%(rname)s" of node "%(nname)s".')
+                            % {'rname': name, 'nname': self.name, 'tname': related_tpl.name}))
+                    return None
+        elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types:
+            ExceptionCollector.appendException(
+              ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
+                              (name, self.name)))
+            return None
 
         if not related_tpl:
-            if 'capability' in reqDef:
-                capabilities = [reqDef['capability']]
-            else:
-                capabilities = relTpl.type_definition.valid_target_types
-            if node or capabilities:
-                for nodeTemplate in self.topology_template.node_templates.values():
-                    found = None
-                    if node:
-                        # check if node name is node type
-                        if nodeTemplate.is_derived_from(node):
-                            found = nodeTemplate
-                    elif capabilities:
-                        for capability in nodeTemplate.get_capabilities_objects():
-                            for capType in capabilities:
-                                if capability.is_derived_from(capType):
-                                    found = nodeTemplate
-                                    break
-                    if found:
-                        if related_tpl:
-                            if "default" in found.directives:
-                                continue
-                            elif "default" in related_tpl.directives:
-                                related_tpl = found
-                            else:
-                                ExceptionCollector.appendException(
-                              ValidationError(message=
-          'requirement "%s" of node ""%s" is ambiguous, targets more than one template: "%s" and "%s"' %
-                                            (name, self.name, related_tpl.name, found.name)))
-                                return None
-                        else:
+            for nodeTemplate in self.topology_template.node_templates.values():
+                found = None
+                # check if node name is node type
+                if not node or nodeTemplate.is_derived_from(node):
+                    if self._validate_requirements_capability(nodeTemplate, reqDef, relTpl):
+                        found = nodeTemplate
+
+                if found:
+                    if related_tpl:
+                        if "default" in found.directives:
+                            continue
+                        elif "default" in related_tpl.directives:
                             related_tpl = found
+                        else:
+                            ExceptionCollector.appendException(
+                          ValidationError(message=
+      'requirement "%s" of node ""%s" is ambiguous, targets more than one template: "%s" and "%s"' %
+                                        (name, self.name, related_tpl.name, found.name)))
+                            return None
+                    else:
+                        related_tpl = found
 
         if related_tpl:
             # if relTpl is in available_rel_tpls what if target and source are already assigned?
@@ -207,6 +232,7 @@ class NodeTemplate(EntityTemplate):
                 ValidationError(message = _('No matching target template found'
                            ' for requirement "%(rname)s" of node "%(nname)s".')
                          % {'rname': name, 'nname': self.name}))
+            return None
         return relTpl
 
     def get_relationship_template(self):
