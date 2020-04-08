@@ -21,6 +21,7 @@ SECTIONS = (TYPE, METADATA, DESCRIPTION, PROPERTIES, MEMBERS, INTERFACES) = \
 
 
 class Group(EntityTemplate):
+    SECTIONS = SECTIONS
 
     def __init__(self, name, group_templates, member_nodes, custom_defs=None):
         super(Group, self).__init__(name,
@@ -34,7 +35,6 @@ class Group(EntityTemplate):
             self.meta_data = self.tpl.get(self.METADATA)
             validateutils.validate_map(self.meta_data)
         self.member_nodes = member_nodes
-        self._validate_keys()
 
     @property
     def members(self):
@@ -46,10 +46,3 @@ class Group(EntityTemplate):
 
     def get_member_nodes(self):
         return self.member_nodes
-
-    def _validate_keys(self):
-        for key in self.entity_tpl.keys():
-            if key not in SECTIONS:
-                ExceptionCollector.appendException(
-                    UnknownFieldError(what='Groups "%s"' % self.name,
-                                      field=key))

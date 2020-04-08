@@ -31,6 +31,9 @@ log = logging.getLogger('tosca')
 
 class Policy(EntityTemplate):
     '''Policies defined in Topology template.'''
+
+    SECTIONS = SECTIONS
+
     def __init__(self, name, policy, targets=None, targets_type=None,
                  custom_def=None):
         super(Policy, self).__init__(name,
@@ -45,7 +48,6 @@ class Policy(EntityTemplate):
         self.targets_type = targets_type
         self.triggers = self._triggers(policy.get(TRIGGERS))
         self.reservation = self._reservation(policy.get(RESERVATION))
-        self._validate_keys()
 
     @property
     def targets(self):
@@ -79,10 +81,3 @@ class Policy(EntityTemplate):
             reservationObj = Reservation(reservation)
             reservationObjs.append(reservationObj)
         return reservationObjs
-
-    def _validate_keys(self):
-        for key in self.entity_tpl.keys():
-            if key not in SECTIONS:
-                ExceptionCollector.appendException(
-                    UnknownFieldError(what='Policy "%s"' % self.name,
-                                      field=key))

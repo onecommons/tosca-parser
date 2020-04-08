@@ -16,16 +16,17 @@ import logging
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.properties import Property
 
-SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
-            INTERFACES, CAPABILITIES, TYPE) = \
-           ('derived_from', 'properties', 'requirements', 'interfaces',
-            'capabilities', 'type')
-
 log = logging.getLogger('tosca')
 
 
 class RelationshipTemplate(EntityTemplate):
     '''Relationship template.'''
+
+    SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
+                INTERFACES, CAPABILITIES, TYPE) = \
+               ('derived_from', 'properties', 'requirements', 'interfaces',
+                'capabilities', 'type')
+    
     def __init__(self, relationship_template, name, custom_def=None,
                  target=None, source=None):
         super(RelationshipTemplate, self).__init__(name,

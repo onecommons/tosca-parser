@@ -45,7 +45,6 @@ class NodeTemplate(EntityTemplate):
                                            custom_def)
         self.topology_template = topology_template
         self.templates = node_templates
-        self._validate_fields(node_templates[name])
         self.custom_def = custom_def
         self.related = {}
         self.relationship_tpl = []
@@ -54,6 +53,7 @@ class NodeTemplate(EntityTemplate):
         self._relationships = None
         self.sub_mapping_tosca_template = None
         self._artifacts = None
+        self._instance_keys = None
 
     @property
     def relationships(self):
@@ -261,11 +261,19 @@ class NodeTemplate(EntityTemplate):
             self._artifacts = artifacts
         return self._artifacts
 
+    @property
+    def instance_keys(self):
+        if self._instance_keys is None:
+          self._instance_keys = map(lambda k: [k] if isinstance(k, str) else k,
+            self.type_definition.get_value(self.INSTANCE_KEYS, self.entity_tpl, True) or [])
+        return self._instance_keys
+
     def validate(self, tosca_tpl=None):
         self._validate_capabilities()
         self._validate_requirements()
         self._validate_properties(self.entity_tpl, self.type_definition)
         self._validate_interfaces()
+        self._validate_instancekeys()
         for prop in self.get_properties_objects():
             prop.validate()
 
@@ -368,9 +376,20 @@ class NodeTemplate(EntityTemplate):
                               op not in INTERFACE_DEF_RESERVED_WORDS]
         return allowed_operations
 
-    def _validate_fields(self, nodetemplate):
-        for name in nodetemplate.keys():
-            if name not in self.SECTIONS and name not in self.SPECIAL_SECTIONS:
+    def _validate_instancekeys(self):
+        template = self.entity_tpl
+        msg = (_('keys definition of "%s" must be a list of containing strings or lists') % self.name)
+        keys = self.type_definition.get_value(self.INSTANCE_KEYS, template, True) or []
+        if not isinstance(keys, list):
+            ExceptionCollector.appendException(
+                ValidationError(msg))
+        for key in keys:
+            if isinstance(key, list):
+                for item in key:
+                  if not isinstance(item, str):
+                      compoundKeyMsg = _("individual keys in compound keys must be strings")
+                      ExceptionCollector.appendException(
+                        ValidationError(compoundKeyMsg))
+            elif not isinstance(key, str):
                 ExceptionCollector.appendException(
-                    UnknownFieldError(what='Node template "%s"' % self.name,
-                                      field=name))
+                    ValidationError(msg))

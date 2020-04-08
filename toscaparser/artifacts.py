@@ -49,6 +49,8 @@ log = logging.getLogger("tosca")
 class Artifact(EntityTemplate):
     """Artifacts defined in Node types or templates."""
 
+    SECTIONS = SECTIONS
+
     def __init__(
         self, name, artifact, custom_def=None, base=None
     ):
@@ -62,17 +64,9 @@ class Artifact(EntityTemplate):
         self._source = base
         if self.metadata:
             validateutils.validate_map(self.metadata)
-        self._validate_keys()
         # XXX validate file ext matches type definition
 
     @property
     def mime_type(self):
       # XXX if not set deduce from file ext
       return self.type_definition.mime_type
-
-    def _validate_keys(self):
-        for key in self.entity_tpl.keys():
-            if key not in SECTIONS:
-                ExceptionCollector.appendException(
-                    UnknownFieldError(what='Artifact "%s"' % self.name, field=key)
-                )

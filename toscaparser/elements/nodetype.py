@@ -22,7 +22,7 @@ from toscaparser.elements.statefulentitytype import StatefulEntityType
 class NodeType(StatefulEntityType):
     '''TOSCA built-in node type.'''
     SECTIONS = (DERIVED_FROM, METADATA, PROPERTIES, VERSION, DESCRIPTION, ATTRIBUTES,
-                REQUIREMENTS, CAPABILITIES, INTERFACES, ARTIFACTS, KEYS, _SOURCE) = \
+                REQUIREMENTS, CAPABILITIES, INTERFACES, ARTIFACTS, INSTANCE_KEYS, _SOURCE) = \
                ('derived_from', 'metadata', 'properties', 'version',
                 'description', 'attributes', 'requirements', 'capabilities',
                 'interfaces', 'artifacts', 'instance_keys', '_source')
