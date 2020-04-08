@@ -66,7 +66,7 @@ class NodeTemplate(EntityTemplate):
             requires = self.requirements
             if requires and isinstance(requires, list):
                 for r in requires:
-                    relTpl = self._get_explicit_relationship(r)
+                    reqDef, relTpl = self._get_explicit_relationship(r)
                     if relTpl:
                         self._relationships.append( (relTpl, r) )
         return self._relationships
@@ -153,7 +153,7 @@ class NodeTemplate(EntityTemplate):
                       what=_('"relationship" used in template '
                              '"%s"') % self.name,
                       required=self.TYPE))
-              return None
+              return reqDef, None
         elif relationship in self.available_rel_types:
             relationship = dict(type = relationship) # it's the name of a type
         else:
@@ -168,7 +168,7 @@ class NodeTemplate(EntityTemplate):
                   ValidationError(message = _('Relationship template "%(relationship)s" was not found'
                        ' for requirement "%(rname)s" of node "%(nname)s".')
                      % {'relationship': relationship, 'rname': name, 'nname': self.name}))
-                return None
+                return reqDef, None
 
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == type
@@ -193,12 +193,12 @@ class NodeTemplate(EntityTemplate):
                             ValidationError(message = _('No capability with a matching target type found'
                               ' on target node "%(tname)%s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'tname': related_tpl.name}))
-                    return None
+                    return reqDef, None
         elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types:
             ExceptionCollector.appendException(
               ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
                               (name, self.name)))
-            return None
+            return reqDef, None
 
         if not related_tpl:
             for nodeTemplate in self.topology_template.node_templates.values():
@@ -219,7 +219,7 @@ class NodeTemplate(EntityTemplate):
                           ValidationError(message=
       'requirement "%s" of node ""%s" is ambiguous, targets more than one template: "%s" and "%s"' %
                                         (name, self.name, related_tpl.name, found.name)))
-                            return None
+                            return reqDef, None
                     else:
                         related_tpl = found
 
@@ -232,8 +232,8 @@ class NodeTemplate(EntityTemplate):
                 ValidationError(message = _('No matching target template found'
                            ' for requirement "%(rname)s" of node "%(nname)s".')
                          % {'rname': name, 'nname': self.name}))
-            return None
-        return relTpl
+            return reqDef, None
+        return reqDef, relTpl
 
     def get_relationship_template(self):
         """Returns a list of RelationshipTemplates that target this node"""
