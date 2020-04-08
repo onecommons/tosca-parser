@@ -65,8 +65,7 @@ class EntityTemplate(object):
             else:
                 type = self.entity_tpl['type']
             UnsupportedType.validate_type(type)
-            self.type_definition = RelationshipType(type,
-                                self.entity_tpl.get('capabilities'), custom_def)
+            self.type_definition = RelationshipType(type, custom_def)
         if entity_name == 'policy_type':
             if not type:
                 msg = (_('Policy definition of "%(pname)s" must have'

@@ -23,10 +23,9 @@ class RelationshipType(StatefulEntityType):
                                'interfaces', 'attributes', 'properties',
                                'description', 'version', 'credential', '_source')
 
-    def __init__(self, type, capability_name=None, custom_def=None):
+    def __init__(self, type, custom_def=None):
         super(RelationshipType, self).__init__(type, self.RELATIONSHIP_PREFIX,
                                                custom_def)
-        self.capability_name = capability_name
         self.custom_def = custom_def
         self._validate_keys()
 

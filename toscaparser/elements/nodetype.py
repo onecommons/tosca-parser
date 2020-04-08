@@ -42,55 +42,6 @@ class NodeType(StatefulEntityType):
         if pnode:
             return NodeType(pnode, self.custom_def)
 
-    @property
-    def relationship(self):
-        '''Return a dictionary of relationships to other node types.
-
-        This method returns a dictionary of named relationships that nodes
-        of the current node type (self) can have to other nodes (of specific
-        types) in a TOSCA template.
-
-        '''
-        relationship = {}
-        requires = self.get_all_requirements()
-        if requires:
-            # NOTE(sdmonov): Check if requires is a dict.
-            # If it is a dict convert it to a list of dicts.
-            # This is needed because currently the code below supports only
-            # lists as requirements definition. The following check will
-            # make sure if a map (dict) was provided it will be converted to
-            # a list before proceeding to the parsing.
-            if isinstance(requires, dict):
-                requires = [{key: value} for key, value in requires.items()]
-
-            keyword = None
-            node_type = None
-            for require in requires:
-                for key, req in require.items():
-                    if 'relationship' in req:
-                        relation = req.get('relationship')
-                        if 'type' in relation:
-                            relation = relation.get('type')
-                        node_type = req.get('node')
-                        value = req
-                        if node_type:
-                            keyword = 'node'
-                        else:
-                            # If value is a dict and has a type key
-                            # we need to lookup the node type using
-                            # the capability type
-                            value = req
-                            if isinstance(value, dict):
-                                captype = value['capability']
-                                value = (self.
-                                         _get_node_type_by_cap(captype))
-                            keyword = key
-                            node_type = value
-                rtype = RelationshipType(relation, keyword, self.custom_def)
-                relatednode = NodeType(node_type, self.custom_def)
-                relationship[rtype] = relatednode
-        return relationship
-
     def _get_node_type_by_cap(self, cap):
         '''Find the node type that has the provided capability
 
