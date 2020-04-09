@@ -870,8 +870,6 @@ artifact_types:
   tosca.artifacts.Root:
     description: >
       The TOSCA Artifact Type all other TOSCA Artifact Types derive from
-    properties:
-      version: version
 
   tosca.artifacts.File:
     derived_from: tosca.artifacts.Root
@@ -885,6 +883,7 @@ artifact_types:
 
   tosca.artifacts.Deployment.Image.VM:
     derived_from: tosca.artifacts.Deployment.Image
+    description: Virtual Machine (VM) Image
 
   tosca.artifacts.Implementation:
     derived_from: tosca.artifacts.Root
@@ -917,6 +916,10 @@ artifact_types:
     description: Virtual Machine (VM) image in QCOW v2 standard disk format
     mime_type: application/octet-stream
     file_ext: [ qcow2 ]
+
+  tosca.artifacts.template:
+    derived_from: tosca.artifacts.Root
+    description: TOSCA base type for template type artifacts
 
 ##########################################################################
  # Policy Type.
