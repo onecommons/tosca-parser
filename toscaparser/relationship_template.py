@@ -23,9 +23,10 @@ class RelationshipTemplate(EntityTemplate):
     '''Relationship template.'''
 
     SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
-                INTERFACES, TYPE) = \
+                INTERFACES, TYPE, DEFAULT_FOR) = \
                ('derived_from', 'properties', 'requirements', 'interfaces',
-                 'type')
+                 'type', 'default_for')
+    ANY = 'ANY'
 
     def __init__(self, relationship_template, name, custom_def=None,
                  target=None, source=None):
@@ -36,3 +37,26 @@ class RelationshipTemplate(EntityTemplate):
         self.name = name
         self.target = target
         self.source = source
+        self.default_for = self.entity_tpl.get(self.DEFAULT_FOR)
+
+    def validate_target(self, targetNodeTemplate, capability_name=None):
+        capabilitiesDict = targetNodeTemplate.get_capabilities()
+        # if capability_name is set, make sure the target node has a capability
+        # that matching it as a name or or as a type
+        if capability_name:
+            capability = capabilitiesDict.get(capability_name)
+            if capability:
+                # just test the capability that matches the symbolic name
+                capabilities = [capability]
+            else:
+                # name doesn't match a symbolic name, see if its a valid type name
+                capabilities = [cap for cap in capabilitiesDict.values() if cap.is_derived_from(capability_name)]
+        else:
+            capabilities = capabilitiesDict.values()
+
+        # if valid_target_types is set, make sure the matching capabilities are compatible
+        capabilityTypes = self.type_definition.valid_target_types
+        if capabilityTypes:
+            capabilities = [cap for cap in capabilities
+                              if any(cap.is_derived_from(capType) for capType in capabilityTypes)]
+        return capabilities

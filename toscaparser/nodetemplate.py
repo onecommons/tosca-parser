@@ -92,29 +92,6 @@ class NodeTemplate(EntityTemplate):
                         return defaultDef
         return defaultDef
 
-    def _validate_requirements_capability(self, targetTemplate, reqDef, relTpl):
-        capabilities = targetTemplate.get_capabilities()
-        capabilityTypes = relTpl.type_definition.valid_target_types
-        if 'capability' in reqDef:
-            cName = reqDef['capability']
-            capability = capabilities.get(cName)
-            if capability:
-                # just test the capability that matches the symbolic name
-                capabilities = {cName:capability}
-            else:
-                # name doesn't match a symbolic name, see if its a valid type name
-                capabilityTypes = [cName]
-
-        if not capabilityTypes:
-            # nothing specified
-            return True
-
-        for capability in capabilities.values():
-            for capType in capabilityTypes:
-                if capability.is_derived_from(capType):
-                    return True
-        return False
-
     def _get_explicit_relationship(self, req):
         """Handle explicit relationship
 
@@ -174,7 +151,7 @@ class NodeTemplate(EntityTemplate):
         if node:
             related_tpl = self.topology_template.node_templates.get(node)
             if related_tpl:
-                if not self._validate_requirements_capability(related_tpl, reqDef, relTpl):
+                if not relTpl.validate_target(related_tpl, reqDef.get('capability')):
                     if 'capability' in reqDef:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No matching capability "%(cname)%s" found'
@@ -197,7 +174,10 @@ class NodeTemplate(EntityTemplate):
                 found = None
                 # check if node name is node type
                 if not node or nodeTemplate.is_derived_from(node):
-                    if self._validate_requirements_capability(nodeTemplate, reqDef, relTpl):
+                    capability = reqDef.get('capability')
+                    # should have already return an error:
+                    assert node or capability or relTpl.type_definition.valid_target_types
+                    if relTpl.validate_target(nodeTemplate, capability):
                         found = nodeTemplate
 
                 if found:
@@ -230,15 +210,6 @@ class NodeTemplate(EntityTemplate):
     def get_relationship_template(self):
         """Returns a list of RelationshipTemplates that target this node"""
         return self.relationship_tpl
-
-    @property
-    def related_nodes(self):
-        if not self.related:
-            for relation, node in self.type_definition.relationship.items():
-                for tpl in self.templates:
-                    if tpl == node.type:
-                        self.related[NodeTemplate(tpl)] = relation
-        return self.related.keys()
 
     @property
     def artifacts(self):
