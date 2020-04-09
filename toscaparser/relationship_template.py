@@ -23,10 +23,10 @@ class RelationshipTemplate(EntityTemplate):
     '''Relationship template.'''
 
     SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
-                INTERFACES, CAPABILITIES, TYPE) = \
+                INTERFACES, TYPE) = \
                ('derived_from', 'properties', 'requirements', 'interfaces',
-                'capabilities', 'type')
-    
+                 'type')
+
     def __init__(self, relationship_template, name, custom_def=None,
                  target=None, source=None):
         super(RelationshipTemplate, self).__init__(name,
@@ -36,44 +36,3 @@ class RelationshipTemplate(EntityTemplate):
         self.name = name
         self.target = target
         self.source = source
-
-    def get_properties_objects(self):
-        '''Return properties objects for this template.'''
-        if self._properties is None:
-            self._properties = self._create_relationship_properties()
-        return self._properties
-
-    def _create_relationship_properties(self):
-        props = []
-        properties = {}
-        relationship = self.entity_tpl.get('relationship')
-
-        if not relationship:
-            for value in self.entity_tpl.values():
-                if isinstance(value, dict):
-                    relationship = value.get('relationship')
-                    break
-
-        if relationship:
-            properties = self.type_definition.get_value(self.PROPERTIES,
-                                                        relationship) or {}
-        if not properties:
-            properties = self.entity_tpl.get(self.PROPERTIES) or {}
-
-        if properties:
-            for name, value in properties.items():
-                props_def = self.type_definition.get_properties_def()
-                if props_def and name in props_def:
-                    if name in properties.keys():
-                        value = properties.get(name)
-                    prop = Property(name, value,
-                                    props_def[name].schema, self.custom_def)
-                    props.append(prop)
-        for p in self.type_definition.get_properties_def_objects():
-            if p.default is not None and p.name not in properties.keys():
-                prop = Property(p.name, p.default, p.schema, self.custom_def)
-                props.append(prop)
-        return props
-
-    def validate(self):
-        self._validate_properties(self.entity_tpl, self.type_definition)

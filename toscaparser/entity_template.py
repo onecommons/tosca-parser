@@ -17,6 +17,8 @@ from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
 from toscaparser.elements.grouptype import GroupType
 from toscaparser.elements.interfaces import InterfacesDef, INTERFACE_DEF_RESERVED_WORDS
+from toscaparser.elements.interfaces import CONFIGURE, CONFIGURE_SHORTNAME
+from toscaparser.elements.interfaces import LIFECYCLE,  LIFECYCLE_SHORTNAME
 from toscaparser.elements.nodetype import NodeType
 from toscaparser.elements.policytype import PolicyType
 from toscaparser.elements.relationshiptype import RelationshipType
@@ -78,6 +80,11 @@ class EntityTemplate(object):
         metadata = self.type_definition.get_definition('metadata')
         if metadata and 'additionalProperties' in metadata:
             self.additionalProperties = metadata['additionalProperties']
+
+        self._validate_properties()
+        for prop in self.get_properties_objects():
+            prop.validate()
+        self._validate_interfaces()
 
     @property
     def type(self):
@@ -199,9 +206,9 @@ class EntityTemplate(object):
                 ExceptionCollector.appendException(
                     ValidationError(msg))
 
-    def _validate_properties(self, template, entitytype):
-        properties = entitytype.get_value(self.PROPERTIES, template)
-        self._common_validate_properties(entitytype, properties, self.additionalProperties)
+    def _validate_properties(self):
+        properties = self.type_definition.get_value(self.PROPERTIES, self.entity_tpl)
+        self._common_validate_properties(self.type_definition, properties, self.additionalProperties)
 
     def _validate_capabilities(self):
         type_capabilities = self.type_definition.get_capabilities()
@@ -325,25 +332,8 @@ class EntityTemplate(object):
 
     def _create_interfaces(self):
         interfaces = []
-        tpl_interfaces = None
-        if isinstance(self.type_definition, RelationshipType):
-            if isinstance(self.entity_tpl, dict):
-                if self.INTERFACES in self.entity_tpl:
-                    tpl_interfaces = self.entity_tpl[self.INTERFACES]
-                else:
-                    for rel_def, value in self.entity_tpl.items():
-                        if rel_def != 'type':
-                            rel_def = self.entity_tpl.get(rel_def)
-                            rel = None
-                            if isinstance(rel_def, dict):
-                                rel = rel_def.get('relationship')
-                            if rel:
-                                if self.INTERFACES in rel:
-                                    tpl_interfaces = rel[self.INTERFACES]
-                                    break
-        else:
-            tpl_interfaces = self.type_definition.get_value(self.INTERFACES,
-                                                             self.entity_tpl)
+        tpl_interfaces = self.type_definition.get_value(self.INTERFACES,
+                                                         self.entity_tpl)
 
         if self.type_definition.interfaces:
             interfacesDefs = self.type_definition.interfaces.copy()
@@ -425,6 +415,49 @@ class EntityTemplate(object):
                                   inputs=inputs)
             interfaces.append(iface)
         return interfaces
+
+    def _validate_interfaces(self):
+        ifaces = self.type_definition.get_value(self.INTERFACES,
+                                                self.entity_tpl)
+        if ifaces:
+            for name, value in ifaces.items():
+                if name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
+                    self._common_validate_field(
+                        value, INTERFACE_DEF_RESERVED_WORDS + InterfacesDef.
+                        interfaces_node_lifecycle_operations,
+                        'interfaces')
+                elif name in (CONFIGURE, CONFIGURE_SHORTNAME):
+                    self._common_validate_field(
+                        value, INTERFACE_DEF_RESERVED_WORDS + InterfacesDef.
+                        interfaces_relationship_configure_operations,
+                        'interfaces')
+                elif (name in self.type_definition.interfaces
+                      or name in self.type_definition.TOSCA_DEF):
+                      self._common_validate_field(
+                          value,
+                          INTERFACE_DEF_RESERVED_WORDS + self._collect_custom_iface_operations(name),
+                          'interfaces')
+                else:
+                    ExceptionCollector.appendException(
+                        UnknownFieldError(
+                            what='"interfaces" of template "%s"' %
+                            self.name, field=name))
+
+    def _collect_custom_iface_operations(self, name):
+        allowed_operations = []
+        nodetype_iface_def = self.type_definition.interfaces.get(
+                              name, self.type_definition.TOSCA_DEF.get(name))
+        allowed_operations.extend(nodetype_iface_def.keys())
+        if 'type' in nodetype_iface_def:
+            iface_type = nodetype_iface_def['type']
+            if iface_type in self.type_definition.custom_def:
+                iface_type_def = self.type_definition.custom_def[iface_type]
+            else:
+                iface_type_def = self.type_definition.TOSCA_DEF[iface_type]
+            allowed_operations.extend(iface_type_def.keys())
+        allowed_operations = [op for op in allowed_operations if
+                              op not in INTERFACE_DEF_RESERVED_WORDS]
+        return allowed_operations
 
     def get_capability(self, name):
         """Provide named capability
