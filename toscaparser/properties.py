@@ -34,15 +34,11 @@ class Property(object):
         self.name = property_name
         self.value = value
         self.custom_def = custom_def
-        self.schema = Schema(property_name, schema_dict)
+        self.entity = DataEntity(schema_dict['type'], self.value, self.custom_def, self.name)
+        # the value_type will be the simple if the datatype was derived from one
+        self.schema = Schema(property_name, schema_dict, self.entity.datatype.value_type)
         self._entity = None
         self._entry_schema_entity = None
-
-    @property
-    def entity(self):
-        if self._entity is None:
-            self._entity = DataEntity(self.type, self.value, self.custom_def, self.name)
-        return self._entity
 
     @property
     def entry_schema_entity(self):
@@ -88,4 +84,5 @@ class Property(object):
     def _validate_constraints(self):
         if self.constraints:
             for constraint in self.constraints:
-                constraint.validate(self.value)
+                if constraint:
+                    constraint.validate(self.value)

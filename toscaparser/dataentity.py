@@ -24,8 +24,9 @@ from toscaparser.utils.gettextutils import _
 from toscaparser.utils import validateutils
 
 class ValueDataType(object):
-  def __init__(self, type):
+  def __init__(self, type, defs):
     self.value_type = type
+    self.defs = defs
 
 class DataEntity(object):
     '''A complex data value entity.'''
@@ -35,11 +36,15 @@ class DataEntity(object):
         self.custom_def = custom_def
         self.type = datatypename
         if datatypename in Schema.PROPERTY_TYPES:
-            self.datatype = ValueDataType(datatypename)
+            self.datatype = ValueDataType(datatypename, {})
             self.schema = {}
         else:
             self.datatype = DataType(datatypename, custom_def)
-            self.schema = self.datatype.get_all_properties()
+            if self.datatype.value_type:
+                # "type" and "properties" are mutually exclusive
+                self.schema = {}
+            else:
+                self.schema = self.datatype.get_all_properties()
         self.value = value
         self.property_name = prop_name
         self._properties = None

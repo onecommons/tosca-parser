@@ -860,6 +860,14 @@ data_types:
         type: string
         required: false
 
+  tosca.datatypes.json:
+    derived_from: tosca.datatypes.Root
+    type: string
+
+  tosca.datatypes.xml:
+    derived_from: tosca.datatypes.Root
+    type: string
+
 ##########################################################################
  # Artifact Type.
  # An Artifact Type is a reusable entity that defines the type of one or more
