@@ -23,16 +23,17 @@ from toscaparser.elements.scalarunit import ScalarUnit_Time
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils import validateutils
 
+
 class ValueDataType(object):
-  def __init__(self, type, defs):
-    self.value_type = type
-    self.defs = defs
+    def __init__(self, type, defs):
+        self.value_type = type
+        self.defs = defs
+
 
 class DataEntity(object):
-    '''A complex data value entity.'''
+    """A complex data value entity."""
 
-    def __init__(self, datatypename, value, custom_def=None,
-                 prop_name=None):
+    def __init__(self, datatypename, value, custom_def=None, prop_name=None):
         self.custom_def = custom_def
         self.type = datatypename
         if datatypename in Schema.PROPERTY_TYPES:
@@ -53,32 +54,34 @@ class DataEntity(object):
     def properties(self):
         if self._properties is None:
             from toscaparser.properties import Property
+
             values = self.value or {}
             self._properties = {
-              name : Property(name,  values.get(name, aDef.default), aDef.schema, self.custom_def)
-              for name, aDef in self.schema.items()
+                name: Property(
+                    name, values.get(name, aDef.default), aDef.schema, self.custom_def
+                )
+                for name, aDef in self.schema.items()
             }
         return self._properties
 
     def validate(self):
-        '''Validate the value by the definition of the datatype.'''
+        """Validate the value by the definition of the datatype."""
 
         # A datatype can not have both 'type' and 'properties' definitions.
-        # If the datatype has 'type' definition
+        # If the datatype has 'type' definition:
         if self.datatype.value_type:
-            self.value = DataEntity.validate_datatype(self.datatype.value_type,
-                                                      self.value,
-                                                      None,
-                                                      self.custom_def)
+            self.value = DataEntity.validate_datatype(
+                self.datatype.value_type, self.value, None, self.custom_def
+            )
             schema = Schema(self.property_name, self.datatype.defs)
             for constraint in schema.constraints:
                 constraint.validate(self.value)
-        # If the datatype has 'properties' definition
+        # If the datatype has 'properties' definition:
         else:
             if not isinstance(self.value, dict):
                 ExceptionCollector.appendException(
-                    TypeMismatchError(what=self.value,
-                                      type=self.datatype.type))
+                    TypeMismatchError(what=self.value, type=self.datatype.type)
+                )
             allowed_props = []
             required_props = []
             default_props = {}
@@ -94,9 +97,11 @@ class DataEntity(object):
             for value_key in list(self.value.keys()):
                 if value_key not in allowed_props:
                     ExceptionCollector.appendException(
-                        UnknownFieldError(what=(_('Data value of type "%s"')
-                                                % self.datatype.type),
-                                          field=value_key))
+                        UnknownFieldError(
+                            what=(_('Data value of type "%s"') % self.datatype.type),
+                            field=value_key,
+                        )
+                    )
 
             # check default field
             for def_key, def_value in list(default_props.items()):
@@ -111,8 +116,10 @@ class DataEntity(object):
             if missingprop:
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(
-                        what=(_('Data value of type "%s"')
-                              % self.datatype.type), required=missingprop))
+                        what=(_('Data value of type "%s"') % self.datatype.type),
+                        required=missingprop,
+                    )
+                )
 
             # check every field
             for name, value in list(self.value.items()):
@@ -121,9 +128,9 @@ class DataEntity(object):
                     continue
                 prop_schema = Schema(name, schema_name)
                 # check if field value meets type defined
-                DataEntity.validate_datatype(prop_schema.type, value,
-                                             prop_schema.entry_schema,
-                                             self.custom_def)
+                DataEntity.validate_datatype(
+                    prop_schema.type, value, prop_schema.entry_schema, self.custom_def
+                )
                 # check if field value meets constraints defined
                 if prop_schema.constraints:
                     for constraint in prop_schema.constraints:
@@ -140,14 +147,16 @@ class DataEntity(object):
             return self.schema[name].schema
 
     @staticmethod
-    def validate_datatype(type, value, entry_schema=None, custom_def=None,
-                          prop_name=None):
-        '''Validate value with given type.
+    def validate_datatype(
+        type, value, entry_schema=None, custom_def=None, prop_name=None
+    ):
+        """Validate value with given type.
 
         If type is list or map, validate its entry by entry_schema(if defined)
         If type is a user-defined complex datatype, custom_def is required.
-        '''
+        """
         from toscaparser.functions import is_function
+
         if is_function(value):
             return value
         if type == Schema.ANY:
@@ -186,24 +195,24 @@ class DataEntity(object):
                 DataEntity.validate_entry(value, entry_schema, custom_def)
             return value
         elif type == Schema.PORTSPEC:
-            # TODO(TBD) bug 1567063, validate source & target as PortDef type
-            # as complex types not just as integers
-            PortSpec.validate_additional_req(value, prop_name, custom_def)
-            return value
+            ps = PortSpec(value)
+            ps.validate()
+            return ps
         else:
             data = DataEntity(type, value, custom_def)
             return data.validate()
 
     @staticmethod
     def validate_entry(value, entry_schema, custom_def=None):
-        '''Validate entries for map and list.'''
+        """Validate entries for map and list."""
         schema = Schema(None, entry_schema)
         valuelist = value
         if isinstance(value, dict):
             valuelist = list(value.values())
         for v in valuelist:
-            DataEntity.validate_datatype(schema.type, v, schema.entry_schema,
-                                         custom_def)
+            DataEntity.validate_datatype(
+                schema.type, v, schema.entry_schema, custom_def
+            )
             if schema.constraints:
                 for constraint in schema.constraints:
                     constraint.validate(v)

@@ -17,10 +17,11 @@ from toscaparser.common.exception import InvalidTypeAdditionalRequirementsError
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.validateutils as validateutils
 
+
 log = logging.getLogger('tosca')
 
 
-class PortSpec(object):
+class PortSpec(dict):
     '''Parent class for tosca.datatypes.network.PortSpec type.'''
 
     SHORTNAME = 'PortSpec'
@@ -34,10 +35,27 @@ class PortSpec(object):
         'target', 'target_range'
     )
 
-    # TODO(TBD) May want to make this a subclass of DataType
-    # and change init method to set PortSpec's properties
-    def __init__(self):
-        pass
+    def __str__(self):
+        """
+        Translate a `tosca:PortSpec` into a string like "source-range:target-range/udp"
+        or "source:target" or just "source" if target is missing or the same.
+        """
+        if "source_range" in self:
+            source = "{:d}-{:d}".format(*self["source_range"])
+        else:
+            source = "{}".format(self.get("source", ""))
+        if "target_range" in self:
+            target = "{:d}-{:d}".format(*self["target_range"])
+        else:
+            target = "{}".format(self.get("target", ""))
+        if source == target or not target:
+            portSpec = str(source)
+        else:
+            portSpec = "{}:{}".format(target, source)
+        protocol = self.get("protocol", "tcp")
+        if protocol != "tcp":
+            portSpec += "/" + protocol
+        return portSpec
 
     # The following additional requirements MUST be tested:
     # 1) A valid PortSpec MUST have at least one of the following properties:
@@ -48,13 +66,15 @@ class PortSpec(object):
     # 3) A valid PortSpec MUST have a value for the target property that is
     #    within the numeric range specified by the property target_range
     #    when target_range is specified.
-    @staticmethod
-    def validate_additional_req(properties, prop_name, custom_def=None, ):
+    def validate(self):
+        from toscaparser.dataentity import DataEntity
+        # TODO(TBD) bug 1567063, validate source & target as PortDef type
+        # not just as integers
         try:
-            source = properties.get(PortSpec.SOURCE)
-            source_range = properties.get(PortSpec.SOURCE_RANGE)
-            target = properties.get(PortSpec.TARGET)
-            target_range = properties.get(PortSpec.TARGET_RANGE)
+            source = self.get(PortSpec.SOURCE)
+            source_range = self.get(PortSpec.SOURCE_RANGE)
+            target = self.get(PortSpec.TARGET)
+            target_range = self.get(PortSpec.TARGET_RANGE)
 
             # verify one of the specified values is set
             if source is None and source_range is None and \
@@ -63,24 +83,24 @@ class PortSpec(object):
                     InvalidTypeAdditionalRequirementsError(
                         type=PortSpec.TYPE_URI))
             # Validate source value is in specified range
-            if source and source_range:
-                validateutils.validate_value_in_range(source, source_range,
+            if source:
+                if source_range:
+                    validateutils.validate_value_in_range(source, source_range,
                                                       PortSpec.SOURCE)
-            else:
-                from toscaparser.dataentity import DataEntity
-                portdef = DataEntity('PortDef', source, None, PortSpec.SOURCE)
-                portdef.validate()
+                else:
+                    portdef = DataEntity('PortDef', source, None, PortSpec.SOURCE)
+                    portdef.validate()
             # Validate target value is in specified range
-            if target and target_range:
-                validateutils.validate_value_in_range(target, target_range,
+            if target:
+                if target_range:
+                    validateutils.validate_value_in_range(target, target_range,
                                                       PortSpec.TARGET)
-            else:
-                from toscaparser.dataentity import DataEntity
-                portdef = DataEntity('PortDef', source, None, PortSpec.TARGET)
-                portdef.validate()
+                else:
+                    portdef = DataEntity('PortDef', target, None, PortSpec.TARGET)
+                    portdef.validate()
         except Exception:
             msg = _('"%(value)s" do not meet requirements '
                     'for type "%(type)s".') \
-                % {'value': properties, 'type': PortSpec.SHORTNAME}
+                % {'value': self, 'type': PortSpec.SHORTNAME}
             ExceptionCollector.appendException(
                 ValueError(msg))
