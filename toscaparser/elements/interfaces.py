@@ -14,24 +14,44 @@ from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.elements.statefulentitytype import StatefulEntityType
 
-SECTIONS = (LIFECYCLE, CONFIGURE, INSTALL, LIFECYCLE_SHORTNAME,
-            CONFIGURE_SHORTNAME, INSTALL_SHORTNAME) = \
-           ('tosca.interfaces.node.lifecycle.Standard',
-            'tosca.interfaces.relationship.Configure',
-            'unfurl.interfaces.Install',
-            'Standard', 'Configure', 'Install')
+SECTIONS = (
+    LIFECYCLE,
+    CONFIGURE,
+    INSTALL,
+    LIFECYCLE_SHORTNAME,
+    CONFIGURE_SHORTNAME,
+    INSTALL_SHORTNAME,
+) = (
+    "tosca.interfaces.node.lifecycle.Standard",
+    "tosca.interfaces.relationship.Configure",
+    "unfurl.interfaces.Install",
+    "Standard",
+    "Configure",
+    "Install",
+)
 
 OPERATION_DEF_RESERVED_WORDS = (DESCRIPTION, IMPLEMENTATION, INPUTS, OUTPUTS) = (
-                            'description', 'implementation', 'inputs', 'outputs')
+    "description",
+    "implementation",
+    "inputs",
+    "outputs",
+)
 
-INTERFACE_DEF_RESERVED_WORDS = ['type', 'inputs', 'operations', 'notifications']
+INTERFACE_DEF_RESERVED_WORDS = ["type", "inputs", "operations", "notifications"]
 
 # this is kind of misnamed, these are created for each operation defined on a interface definition
 class InterfacesDef(StatefulEntityType):
-    '''TOSCA built-in interfaces type.'''
+    """TOSCA built-in interfaces type."""
 
-    def __init__(self, node_type, interfacetype,
-                 node_template=None, name=None, value=None, inputs=None):
+    def __init__(
+        self,
+        node_type,
+        interfacetype,
+        node_template=None,
+        name=None,
+        value=None,
+        inputs=None,
+    ):
         self.ntype = node_type
         self.node_template = node_template
         self.iname = interfacetype
@@ -39,10 +59,11 @@ class InterfacesDef(StatefulEntityType):
         self.value = value
         self.implementation = None
         self.inputs = inputs
+        self.outputs = {}
         self.defs = {}
-        interfaces = getattr(self.ntype, 'interfaces', None)
-        if 'type' in interfaces.get(interfacetype, {}):
-            interfacetype = interfaces[interfacetype]['type']
+        interfaces = getattr(self.ntype, "interfaces", None)
+        if "type" in interfaces.get(interfacetype, {}):
+            interfacetype = interfaces[interfacetype]["type"]
         elif interfacetype == LIFECYCLE_SHORTNAME:
             interfacetype = LIFECYCLE
         elif interfacetype == CONFIGURE_SHORTNAME:
@@ -51,27 +72,32 @@ class InterfacesDef(StatefulEntityType):
             interfacetype = INSTALL
         self.type = interfacetype
         if node_type:
-            if self.node_template and self.node_template.custom_def \
-               and interfacetype in self.node_template.custom_def:
+            if (
+                self.node_template
+                and self.node_template.custom_def
+                and interfacetype in self.node_template.custom_def
+            ):
                 self.defs = self.node_template.custom_def[interfacetype]
             else:
                 self.defs = self.TOSCA_DEF[interfacetype]
         if value:
             if isinstance(self.value, dict):
-                self._source = self.value.get('_source')
+                self._source = self.value.get("_source")
                 for i, j in self.value.items():
                     if i == IMPLEMENTATION:
                         self.implementation = j
                     elif i == INPUTS:
                         if self.inputs:
-                          self.inputs.update(j)
+                            self.inputs.update(j)
                         else:
-                          self.inputs = j
+                            self.inputs = j
+                    elif i == OUTPUTS:
+                        self.outputs = j
                     elif i not in OPERATION_DEF_RESERVED_WORDS:
-                        what = ('"interfaces" of template "%s"' %
-                                self.node_template.name)
+                        what = '"interfaces" of template "%s"' % self.node_template.name
                         ExceptionCollector.appendException(
-                            UnknownFieldError(what=what, field=i))
+                            UnknownFieldError(what=what, field=i)
+                        )
             else:
                 self.implementation = value
 
