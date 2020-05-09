@@ -46,8 +46,15 @@ node_types:
       Standard:
         type: tosca.interfaces.node.lifecycle.Standard
 
-  tosca.nodes.Compute:
+  tosca.nodes.Abstract.Compute:
     derived_from: tosca.nodes.Root
+    capabilities:
+        host:
+          type: tosca.capabilities.Compute
+          valid_source_types: []
+
+  tosca.nodes.Compute:
+    derived_from: tosca.nodes.Abstract.Compute
     attributes:
       private_address:
         type: string
@@ -63,7 +70,8 @@ node_types:
           type: tosca.datatypes.network.PortInfo
     capabilities:
         host:
-           type: tosca.capabilities.Container
+           type: tosca.capabilities.Compute
+           valid_source_types: [tosca.nodes.SoftwareComponent]
         binding:
            type: tosca.capabilities.network.Bindable
         os:
@@ -93,7 +101,7 @@ node_types:
         required: false
     requirements:
       - host:
-          capability: tosca.capabilities.Container
+          capability: tosca.capabilities.Compute
           node: tosca.nodes.Compute
           relationship: tosca.relationships.HostedOn
 
@@ -112,7 +120,7 @@ node_types:
           The root password for the DBMS service.
     capabilities:
       host:
-        type: tosca.capabilities.Container
+        type: tosca.capabilities.Compute
         valid_source_types: [tosca.nodes.Database]
 
   tosca.nodes.Database:
@@ -141,7 +149,7 @@ node_types:
           The password for the DB user account
     requirements:
       - host:
-          capability: tosca.capabilities.Container
+          capability: tosca.capabilities.Compute
           node: tosca.nodes.DBMS
           relationship: tosca.relationships.HostedOn
     capabilities:
@@ -156,7 +164,7 @@ node_types:
       admin_endpoint:
         type: tosca.capabilities.Endpoint.Admin
       host:
-        type: tosca.capabilities.Container
+        type: tosca.capabilities.Compute
         valid_source_types: [tosca.nodes.WebApplication]
 
   tosca.nodes.WebApplication:
@@ -167,7 +175,7 @@ node_types:
         required: false
     requirements:
       - host:
-          capability: tosca.capabilities.Container
+          capability: tosca.capabilities.Compute
           node: tosca.nodes.WebServer
           relationship: tosca.relationships.HostedOn
     capabilities:
@@ -412,17 +420,30 @@ node_types:
     derived_from: tosca.nodes.Root
     requirements:
       - host:
-          capability: tosca.capabilities.Container
+          capability: tosca.capabilities.Compute
           node: tosca.nodes.Container.Runtime
           relationship: tosca.relationships.HostedOn
+      - storage:
+          capability: tosca.capabilities.Storage
+      - network:
+          capability: tosca.capabilities.Endpoint
 
   tosca.nodes.Container.Runtime:
     derived_from: tosca.nodes.SoftwareComponent
     capabilities:
       host:
-        type: tosca.capabilities.Container
+        type: tosca.capabilities.Compute
+        valid_source_types: [tosca.nodes.Container.Application]
       scalable:
         type: tosca.capabilities.Scalable
+
+  # note: missing from 1.3 spec
+  tosca.nodes.Container.Runtime.Docker:
+    derived_from: tosca.nodes.Container.Runtime
+    capabilities:
+      host:
+        type: tosca.capabilities.Container.Docker
+        valid_source_types: [tosca.nodes.Container.Application.Docker]
 
   tosca.nodes.Container.Application.Docker:
     derived_from: tosca.nodes.Container.Application
@@ -504,7 +525,20 @@ capability_types:
 
   tosca.capabilities.Container:
     derived_from: tosca.capabilities.Root
+
+  tosca.capabilities.Storage:
+    derived_from: tosca.capabilities.Root
     properties:
+      name:
+        type: string
+        required: false
+
+  tosca.capabilities.Compute:
+    derived_from: tosca.capabilities.Container
+    properties:
+      name:
+        type: string
+        required: false
       num_cpus:
         required: false
         type: integer
@@ -715,18 +749,6 @@ capability_types:
         description: >
           The dockerfile VOLUME command which is used to enable access
           from the Docker container to a directory on the host machine.
-      host_id:
-        type: string
-        required: false
-        description: >
-            The optional identifier of an existing host resource
-            that should be used to run this container on.
-      volume_id:
-        type: string
-        required: false
-        description: >
-          The optional identifier of an existing storage volume (resource)
-          that should be used to create the container's mount point(s) on.
 
 ##########################################################################
  # Interfaces Type.
