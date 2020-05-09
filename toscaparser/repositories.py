@@ -13,40 +13,48 @@
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
+from toscaparser.common.exception import TypeMismatchError
 from toscaparser.common.exception import URLException
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
+from six.moves.urllib.parse import urlparse
+from toscaparser.dataentity import DataEntity
 
 SECTIONS = (DESCRIPTION, URL, CREDENTIAL, METADATA) = \
            ('description', 'url', 'credential', 'metadata')
 
 
 class Repository(object):
-    def __init__(self, repositories, values):
-        self.name = repositories
-        self.reposit = values
-        if isinstance(self.reposit, dict):
-            if 'url' not in self.reposit.keys():
+    def __init__(self, name, values):
+        self.name = name
+        self.tpl = values
+        if isinstance(self.tpl, dict):
+            if URL not in self.tpl.keys():
                 ExceptionCollector.appendException(
-                    MissingRequiredFieldError(what=_('Repository "%s"')
+                    MissingRequiredFieldError(what=_('repositories "%s"')
                                               % self.name, required='url'))
-            self.url = self.reposit['url']
-        self.load_and_validate(self.name, self.reposit)
-
-    def load_and_validate(self, val, reposit_def):
-        self.keyname = val
-        if isinstance(reposit_def, dict):
-            for key in reposit_def.keys():
+            for key, value in self.tpl.items():
                 if key not in SECTIONS:
                     ExceptionCollector.appendException(
                         UnknownFieldError(what=_('repositories "%s"')
-                                          % self.keyname, field=key))
+                                          % name, field=key))
+                setattr(self, key, value)
 
-            if URL in reposit_def.keys():
-                reposit_url = reposit_def.get(URL)
-                url_val = toscaparser.utils.urlutils.UrlUtils.\
-                    validate_url(reposit_url)
-                if url_val is not True:
-                    ExceptionCollector.appendException(
-                        URLException(what=_('repositories "%s" Invalid Url')
-                                     % self.keyname))
+            self.validate()
+            self.hostname = urlparse(self.url).hostname
+        else:
+            ExceptionCollector.appendException(
+                TypeMismatchError(what=_('repositories "%s"') % self.name, type="dict"))
+
+    def validate(self):
+        url_val = toscaparser.utils.urlutils.UrlUtils.validate_url(self.url)
+        if url_val is not True:
+            ExceptionCollector.appendException(
+                URLException(what=_('repositories "%s" Invalid Url')
+                             % self.name))
+        if self.credential:
+            self.credential = DataEntity("tosca.datatypes.Credential",
+                                  self.credential, prop_name=CREDENTIAL).validate()
+
+for key in SECTIONS:
+  setattr(Repository, key, None)

@@ -261,11 +261,11 @@ class ToscaTemplateTest(TestCase):
         template = ToscaTemplate(self.tosca_repo_tpl)
         self.assertEqual(
             ['repo_code0', 'repo_code1', 'repo_code2'],
-            sorted([input.name for input in template.repositories]))
+            sorted([input.name for input in template.repositories.values()]))
 
         input_name = "repo_code2"
         expected_url = "https://github.com/nandinivemula/intern/master"
-        for input in template.repositories:
+        for input in template.repositories.values():
             if input.name == input_name:
                 self.assertEqual(input.url, expected_url)
 

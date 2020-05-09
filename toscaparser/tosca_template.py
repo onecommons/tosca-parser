@@ -142,13 +142,8 @@ class ToscaTemplate(object):
         return self.tpl.get(IMPORTS)
 
     def _tpl_repositories(self):
-        repositories = self.tpl.get(REPOSITORIES)
-        reposit = []
-        if repositories:
-            for name, val in repositories.items():
-                reposits = Repository(name, val)
-                reposit.append(reposits)
-        return reposit
+        repositories = self.tpl.get(REPOSITORIES) or {}
+        return {name:Repository(name, val) for name, val in repositories.items()}
 
     def _tpl_relationship_types(self):
         custom_rel, _ = self._get_custom_types(RELATIONSHIP_TYPES)
