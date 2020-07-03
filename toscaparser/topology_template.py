@@ -56,7 +56,6 @@ class TopologyTemplate(object):
             self.inputs = self._inputs()
             self.relationship_templates = self._relationship_templates()
             self.node_templates = self._nodetemplates()
-            self.nodetemplates = list(self.node_templates.values())
             self.outputs = self._outputs()
             self.groups = self._groups()
             self.policies = self._policies()
@@ -88,6 +87,10 @@ class TopologyTemplate(object):
             inputs.append(input)
         return inputs
 
+    @property
+    def nodetemplates(self):
+        return self.node_templates.values()
+
     def _nodetemplates(self):
         nodetemplates = {}
         tpls = self._tpl_nodetemplates()
@@ -108,6 +111,27 @@ class TopologyTemplate(object):
                 tpl.validate(self)
                 nodetemplates[name] = tpl
         return nodetemplates
+
+    def add_template(self, name, tpl):
+        # if name in self.node_templates:
+        #     exception.ExceptionCollector.appendException(
+        #           exception.ValidationError(message=
+        #               'Node template already defined "%s"' % name))
+        #     return None
+
+        self.tpl.setdefault(NODE_TEMPLATES, {})[name] = tpl
+        node = NodeTemplate(
+            name,
+            self,
+            self.custom_defs,
+            self.relationship_templates,
+            self.rel_types,
+        )
+        node.validate(self)
+        node.relationships # this will update the relationship_tpl of the target node
+        self.node_templates[name] = node
+        return node
+
 
     def _relationship_templates(self):
         rel_templates = []

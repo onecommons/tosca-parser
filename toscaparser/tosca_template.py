@@ -103,7 +103,6 @@ class ToscaTemplate(object):
             if self.topology_template.tpl:
                 self.inputs = self._inputs()
                 self.relationship_templates = self._relationship_templates()
-                self.nodetemplates = self._nodetemplates()
                 self.outputs = self._outputs()
                 self.policies = self._policies()
                 self._handle_nested_tosca_templates_with_topology()
@@ -121,7 +120,8 @@ class ToscaTemplate(object):
     def _inputs(self):
         return self.topology_template.inputs
 
-    def _nodetemplates(self):
+    @property
+    def nodetemplates(self):
         return self.topology_template.nodetemplates
 
     def _relationship_templates(self):
