@@ -72,11 +72,15 @@ class EntityTemplate(object):
         if entity_name == 'artifact_type':
             self.type_definition = ArtifactTypeDef(type, custom_def) \
                 if type is not None else None
+        if not self.type_definition:
+            msg = "no type found %s for %s"  % (entity_name, template)
+            raise ValidationError(msg)
 
         self._properties = None
         self._interfaces = None
         self._requirements = None
         self._capabilities = None
+        assert self.type_definition, template
         metadata = self.type_definition.get_definition('metadata')
         if metadata and 'additionalProperties' in metadata:
             self.additionalProperties = metadata['additionalProperties']
