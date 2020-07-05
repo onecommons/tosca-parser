@@ -105,8 +105,9 @@ class NodeTemplate(EntityTemplate):
         If no relationship was either assigned or defined by the node's type definition,
         one with type "tosca.relationships.Root" will be returned.
         """
-        name, value = next(iter(req.items()))
-        reqDef = self._getRequirementDefinition(name)
+        name, value = next(iter(req.items())) # list only has one item
+        typeReqDef = self._getRequirementDefinition(name)
+        reqDef = typeReqDef.copy()
         if isinstance(value, dict):
             # see 3.8.2 Requirement assignment p. 140 for value
             reqDef.update(value)
@@ -142,7 +143,7 @@ class NodeTemplate(EntityTemplate):
 
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == type
-            relTpl = RelationshipTemplate(relationship, type, self.custom_def)
+            relTpl = RelationshipTemplate(relationship, name, self.custom_def)
         relTpl.source = self
 
         # XXX support node_filter
@@ -151,18 +152,18 @@ class NodeTemplate(EntityTemplate):
         if node:
             related_tpl = self.topology_template.node_templates.get(node)
             if related_tpl:
-                if not relTpl.validate_target(related_tpl, reqDef.get('capability')):
+                if not relTpl.get_matching_capabilities(related_tpl, reqDef.get('capability')):
                     if 'capability' in reqDef:
                         ExceptionCollector.appendException(
-                            ValidationError(message = _('No matching capability "%(cname)%s" found'
-                              ' on target node "%(tname)%s" for requirement "%(rname)s" of node "%(nname)s".')
+                            ValidationError(message = _('No matching capability "%(cname)s" found'
+                              ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'cname': reqDef['capability'], 'tname': related_tpl.name}))
                     else:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No capability with a matching target type found'
-                              ' on target node "%(tname)%s" for requirement "%(rname)s" of node "%(nname)s".')
+                              ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'tname': related_tpl.name}))
-                    return reqDef, None
+                        return reqDef, None
         elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types:
             ExceptionCollector.appendException(
               ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
@@ -170,14 +171,15 @@ class NodeTemplate(EntityTemplate):
             return reqDef, None
 
         if not related_tpl:
+            # check if "node" is a node type
             for nodeTemplate in self.topology_template.node_templates.values():
                 found = None
                 # check if node name is node type
                 if not node or nodeTemplate.is_derived_from(node):
                     capability = reqDef.get('capability')
-                    # should have already return an error:
+                    # should have already returned an error if this assertion is false
                     assert node or capability or relTpl.type_definition.valid_target_types
-                    if relTpl.validate_target(nodeTemplate, capability):
+                    if relTpl.get_matching_capabilities(nodeTemplate, capability):
                         found = nodeTemplate
 
                 if found:

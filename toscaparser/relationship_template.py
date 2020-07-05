@@ -39,7 +39,7 @@ class RelationshipTemplate(EntityTemplate):
         self.source = source
         self.default_for = self.entity_tpl.get(self.DEFAULT_FOR)
 
-    def validate_target(self, targetNodeTemplate, capability_name=None):
+    def get_matching_capabilities(self, targetNodeTemplate, capability_name=None):
         capabilitiesDict = targetNodeTemplate.get_capabilities()
         # if capability_name is set, make sure the target node has a capability
         # that matching it as a name or or as a type
