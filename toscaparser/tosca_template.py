@@ -79,10 +79,13 @@ class ToscaTemplate(object):
         self.nested_tosca_templates_with_topology = []
         if path:
             self.input_path = path
-            self.path = self._get_path(path)
-            # ignore if yaml_dict_tpl was set
-            if self.path and not yaml_dict_tpl:
+            # don't validate or load if yaml_dict_tpl was set
+            if yaml_dict_tpl:
+                self.path = path
+            else:
+                self.path = self._get_path(path)
                 self.tpl = YAML_LOADER(self.path, self.a_file)
+
         if yaml_dict_tpl:
             self.tpl = yaml_dict_tpl
 

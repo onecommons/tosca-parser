@@ -183,7 +183,8 @@ class ImportsLoader(object):
         """
         path, a_file, fragment = self._resolve_import_template(import_name, import_uri_def)
         if path is not None:
-            return path, YAML_LOADER(path, a_file, self, fragment)
+            doc = YAML_LOADER(path, a_file, self, fragment)
+            return getattr(doc, "path", path), doc
         else:
             return None, None
 
@@ -229,6 +230,7 @@ class ImportsLoader(object):
                         return None, None
                     import_template = toscaparser.utils.urlutils.UrlUtils.\
                         join_url(self.path, file_name)
+                    assert import_template
                     a_file = False
                 else:
                     a_file = True
@@ -280,8 +282,6 @@ class ImportsLoader(object):
                     return None, None, None
 
             if not import_template:
-                log.error(_('Import "%(name)s" is not valid.') %
-                          {'name': import_uri_def})
                 ExceptionCollector.appendException(
                     ImportError(_('Import "%s" is not valid.') %
                                 import_uri_def))
