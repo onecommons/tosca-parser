@@ -24,10 +24,15 @@ class StatefulEntityType(EntityType):
                                             'configure', 'start',
                                             'stop', 'delete']
 
-    interfaces_relationship_configure_operations = ['post_configure_source',
+    interfaces_relationship_configure_operations = ['pre_configure_source',
+                                                    'pre_configure_target',
+                                                    'post_configure_source',
                                                     'post_configure_target',
                                                     'add_target',
-                                                    'remove_target']
+                                                    'remove_target',
+                                                    'add_source',
+                                                    'remove_source',
+                                                    'target_changed']
 
     def __init__(self, entitytype, prefix, custom_def=None):
         entire_entitytype = entitytype
