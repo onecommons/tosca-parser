@@ -217,11 +217,18 @@ class NodeTemplate(EntityTemplate):
     def artifacts(self):
         if self._artifacts is None:
             # node templates can't be imported so we don't need to track their source
-            artifacts = {name: Artifact(name, value, self.custom_def)
-                for name, value in self.entity_tpl.get(self.ARTIFACTS, {}).items()}
+            artifacts_tpl = self.entity_tpl.get(self.ARTIFACTS)
+            if artifacts_tpl:
+                artifacts = {name: Artifact(name, value, self.custom_def)
+                    for name, value in artifacts_tpl.items()}
+            else:
+                artifacts = {}
+
             # but types can, so we do
             for parent_type in reversed(self.types):
-                for name, value in parent_type.defs.get(self.ARTIFACTS, {}).items():
+                if not parent_type.defs.get(self.ARTIFACTS):
+                    continue
+                for name, value in parent_type.defs[self.ARTIFACTS].items():
                     artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
             self._artifacts = artifacts
         return self._artifacts
@@ -237,6 +244,7 @@ class NodeTemplate(EntityTemplate):
         self._validate_capabilities()
         self._validate_requirements()
         self._validate_instancekeys()
+        self.artifacts
 
     def _validate_requirements(self):
         type_requires = self.type_definition.get_all_requirements()
@@ -263,7 +271,7 @@ class NodeTemplate(EntityTemplate):
                         if isinstance(value, dict):
                             self._validate_requirements_keys(value)
                             self._validate_requirements_properties(value)
-                            allowed_reqs.append(r1)
+                        allowed_reqs.append(r1)
                     self._common_validate_field(req, allowed_reqs,
                                                 'requirements')
 

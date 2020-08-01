@@ -232,7 +232,7 @@ class EntityTemplate(object):
                 continue
             capabilitydef = capability.type_definition
             self._common_validate_properties(capabilitydef,
-                                             props[self.PROPERTIES])
+                                             props.get(self.PROPERTIES) or {})
 
             # validating capability properties values
             for prop in self.get_capability(cap).get_properties_objects():
@@ -342,12 +342,11 @@ class EntityTemplate(object):
         if self.type_definition.interfaces:
             interfacesDefs = self.type_definition.interfaces.copy()
             if tpl_interfaces:
-                # merge the interfaces defined on the type with the template interface definition
+                # merge the interfaces defined on the type with the template's interface definitions
                 for iName, defs in tpl_interfaces.items():
                     defs = defs.copy()
                     # for each interface, see if base defines it too
-                    inputs = defs.get('inputs')
-                    iDefs = defs
+                    inputs = defs.get('inputs', {})
                     if 'operations' in defs:
                         defs = defs.get('operations', {})
                     baseDefs = interfacesDefs.get(iName)
@@ -356,8 +355,8 @@ class EntityTemplate(object):
                         baseInputs = baseDefs.get('inputs')
                         if 'operations' in baseDefs:
                             baseDefs = baseDefs.get('operations', {})
-                        if inputs and baseInputs:
-                            iDefs['inputs'] = dict(baseInputs, **inputs)
+                        if baseInputs: # merge shared inputs
+                            inputs = dict(baseInputs, **inputs)
 
                         for op, iDef in baseDefs.items():
                             if op in ['inputs', 'notifications', '_source']:
@@ -375,6 +374,8 @@ class EntityTemplate(object):
                                       defs[op]['inputs'] = dict(iDef['inputs'], **currentiDef['inputs'])
                             else:
                                 defs[op] = iDef
+                    if inputs: # shared inputs
+                        defs['inputs'] = inputs
                     # add or replace:
                     interfacesDefs[iName] = defs
         else:
