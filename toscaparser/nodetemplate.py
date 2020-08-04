@@ -226,7 +226,7 @@ class NodeTemplate(EntityTemplate):
 
             # but types can, so we do
             for parent_type in reversed(self.types):
-                if not parent_type.defs.get(self.ARTIFACTS):
+                if not parent_type.defs or not parent_type.defs.get(self.ARTIFACTS):
                     continue
                 for name, value in parent_type.defs[self.ARTIFACTS].items():
                     artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
@@ -237,10 +237,12 @@ class NodeTemplate(EntityTemplate):
     def instance_keys(self):
         if self._instance_keys is None:
           self._instance_keys = map(lambda k: [k] if isinstance(k, str) else k,
-            self.type_definition.get_value(self.INSTANCE_KEYS, self.entity_tpl, True) or [])
+            self.type_definition.get_value(self.INSTANCE_KEYS, self.entity_tpl, parent=True) or [])
         return self._instance_keys
 
     def validate(self, tosca_tpl=None):
+        if not self.type_definition:
+            return
         self._validate_capabilities()
         self._validate_requirements()
         self._validate_instancekeys()
@@ -305,17 +307,17 @@ class NodeTemplate(EntityTemplate):
     def _validate_instancekeys(self):
         template = self.entity_tpl
         msg = (_('keys definition of "%s" must be a list of containing strings or lists') % self.name)
-        keys = self.type_definition.get_value(self.INSTANCE_KEYS, template, True) or []
+        keys = self.type_definition.get_value(self.INSTANCE_KEYS, template, parent=True) or []
         if not isinstance(keys, list):
             ExceptionCollector.appendException(
-                ValidationError(msg))
+                ValidationError(message=msg))
         for key in keys:
             if isinstance(key, list):
                 for item in key:
                   if not isinstance(item, str):
                       compoundKeyMsg = _("individual keys in compound keys must be strings")
                       ExceptionCollector.appendException(
-                        ValidationError(compoundKeyMsg))
+                        ValidationError(message=compoundKeyMsg))
             elif not isinstance(key, str):
                 ExceptionCollector.appendException(
-                    ValidationError(msg))
+                    ValidationError(message=msg))

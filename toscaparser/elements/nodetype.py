@@ -117,10 +117,6 @@ class NodeType(StatefulEntityType):
         return self.requirements
 
     @property
-    def interfaces(self):
-        return self.get_value(self.INTERFACES, None, True, True)
-
-    @property
     def lifecycle_inputs(self):
         '''Return inputs to life cycle operations if found.'''
         inputs = []

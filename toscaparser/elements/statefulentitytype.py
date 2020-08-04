@@ -97,3 +97,7 @@ class StatefulEntityType(EntityType):
         attrs_def = self.get_attributes_def()
         if attrs_def and name in attrs_def.keys():
             return attrs_def[name].value
+
+    @property
+    def interfaces(self):
+        return self.get_value(self.INTERFACES, None, True, True) or {}

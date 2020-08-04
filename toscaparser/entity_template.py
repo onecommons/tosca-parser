@@ -64,7 +64,7 @@ class EntityTemplate(object):
                 msg = (_('Policy definition of "%(pname)s" must have'
                        ' a "type" ''attribute.') % dict(pname=name))
                 ExceptionCollector.appendException(
-                    ValidationError(msg))
+                    ValidationError(message=msg))
             self.type_definition = PolicyType(type, custom_def)
         if entity_name == 'group_type':
             self.type_definition = GroupType(type, custom_def) \
@@ -72,15 +72,15 @@ class EntityTemplate(object):
         if entity_name == 'artifact_type':
             self.type_definition = ArtifactTypeDef(type, custom_def) \
                 if type is not None else None
-        if not self.type_definition:
-            msg = "no type found %s for %s"  % (entity_name, template)
-            raise ValidationError(msg)
 
         self._properties = None
         self._interfaces = None
         self._requirements = None
         self._capabilities = None
-        assert self.type_definition, template
+        if not self.type_definition:
+            msg = "no type found %s for %s"  % (entity_name, template)
+            ExceptionCollector.appendException(ValidationError(message=msg))
+            return
         metadata = self.type_definition.get_definition('metadata')
         if metadata and 'additionalProperties' in metadata:
             self.additionalProperties = metadata['additionalProperties']
@@ -173,7 +173,7 @@ class EntityTemplate(object):
     def _create_capabilities(self):
         capability = []
         caps = self.type_definition.get_value(self.CAPABILITIES,
-                                              self.entity_tpl, True)
+                                              self.entity_tpl, parent=True)
         if caps:
             for name, props in caps.items():
                 ctype = props.get('type')
@@ -204,11 +204,11 @@ class EntityTemplate(object):
         keys = template.get("directives", [])
         if not isinstance(keys, list):
             ExceptionCollector.appendException(
-                ValidationError(msg))
+                ValidationError(message=msg))
         for key in keys:
             if not isinstance(key, str):
                 ExceptionCollector.appendException(
-                    ValidationError(msg))
+                    ValidationError(message=msg))
 
     def _validate_properties(self):
         properties = self.type_definition.get_value(self.PROPERTIES, self.entity_tpl)

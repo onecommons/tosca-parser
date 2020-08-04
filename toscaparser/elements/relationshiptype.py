@@ -37,10 +37,6 @@ class RelationshipType(StatefulEntityType):
             return RelationshipType(prel, self.custom_def)
 
     @property
-    def interfaces(self):
-        return self.get_value(self.INTERFACES, None, True)
-
-    @property
     def valid_target_types(self):
         return self.entity_value(self.defs, 'valid_target_types') or []
 
