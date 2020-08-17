@@ -44,6 +44,7 @@ class EntityTemplate(object):
     SPECIAL_SECTIONS = (METADATA) = ('metadata')
 
     additionalProperties = True
+    _source = None
 
     def __init__(self, name, template, entity_name, custom_def=None):
         self.name = name

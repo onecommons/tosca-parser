@@ -101,6 +101,7 @@ class EntityType(object):
         '''
         If set, `defs` should be from the template otherwise uses defs from this type
         `parent` merges in defs from this type and ancestors
+        `addPath` adds a `_source` key to the value if the parent type has a `_source` attribute
         '''
         value = None
         if defs is None:
