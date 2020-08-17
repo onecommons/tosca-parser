@@ -34,11 +34,12 @@ class ImportsLoader(object):
                        'namespace_prefix')
 
     def __init__(self, importslist, path, type_definition_list=None,
-                 tpl=None):
+                 tpl=None, yaml_loader=None):
         self.importslist = importslist
         self.custom_defs = {}
         self.nested_tosca_tpls = []
         self.nested_imports = {}
+        self.yaml_loader = yaml_loader or YAML_LOADER
         if not path and not tpl:
             msg = _('Input tosca template is not provided.')
             log.warning(msg)
@@ -55,7 +56,7 @@ class ImportsLoader(object):
             else:
                 self.type_definition_list.append(type_definition_list)
         if importslist is not None:
-          self._validate_and_load_imports()
+            self._validate_and_load_imports()
 
     def get_custom_defs(self):
         return self.custom_defs
@@ -183,7 +184,7 @@ class ImportsLoader(object):
         """
         path, a_file, fragment = self._resolve_import_template(import_name, import_uri_def)
         if path is not None:
-            doc = YAML_LOADER(path, a_file, self, fragment)
+            doc = self.yaml_loader(path, a_file, self, fragment)
             return getattr(doc, "path", path), doc
         else:
             return None, None
@@ -205,7 +206,7 @@ class ImportsLoader(object):
             repository = None
             short_import_notation = True
 
-        if not file_name:
+        if file_name is None:
             msg = (_('A template file name is not provided with import '
                      'definition "%(import_name)s".')
                    % {'import_name': import_name})
