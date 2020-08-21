@@ -37,7 +37,7 @@ OPERATION_DEF_RESERVED_WORDS = (DESCRIPTION, IMPLEMENTATION, INPUTS, OUTPUTS) = 
     "outputs",
 )
 
-INTERFACE_DEF_RESERVED_WORDS = ["type", "inputs", "operations", "notifications"]
+INTERFACE_DEF_RESERVED_WORDS = ["type", "inputs", "operations", "notifications", "description", "implementation"]
 
 # this is kind of misnamed, these are created for each operation defined on a interface definition
 class InterfacesDef(StatefulEntityType):
@@ -59,6 +59,7 @@ class InterfacesDef(StatefulEntityType):
         self.value = value
         self.implementation = None
         self.inputs = inputs
+        self._source = None
         self.outputs = {}
         self.defs = {}
         interfaces = getattr(self.ntype, "interfaces", None)
@@ -82,9 +83,10 @@ class InterfacesDef(StatefulEntityType):
                 self.defs = self.TOSCA_DEF[interfacetype]
         if value:
             if isinstance(self.value, dict):
-                self._source = self.value.get("_source")
                 for i, j in self.value.items():
-                    if i == IMPLEMENTATION:
+                    if i == '_source':
+                        self._source = j
+                    elif i == IMPLEMENTATION:
                         self.implementation = j
                     elif i == INPUTS:
                         if self.inputs:

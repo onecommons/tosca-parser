@@ -345,8 +345,8 @@ class EntityTemplate(object):
             if tpl_interfaces:
                 # merge the interfaces defined on the type with the template's interface definitions
                 for iName, defs in tpl_interfaces.items():
-                    defs = defs.copy()
                     # for each interface, see if base defines it too
+                    defs = defs.copy()
                     inputs = defs.get('inputs', {})
                     if 'operations' in defs:
                         defs = defs.get('operations', {})
@@ -354,57 +354,74 @@ class EntityTemplate(object):
                     if baseDefs:
                         # add in base's ops and merge interface-level inputs
                         baseInputs = baseDefs.get('inputs')
-                        if 'operations' in baseDefs:
-                            baseDefs = baseDefs.get('operations', {})
                         if baseInputs: # merge shared inputs
                             inputs = dict(baseInputs, **inputs)
+                            defs['inputs'] = inputs
 
-                        for op, iDef in baseDefs.items():
+                        implementation = baseDefs.get('implementation')
+                        # set shared implementation
+                        if implementation and 'implementation' not in defs:
+                            defs['implementation'] = implementation
+                            if isinstance(implementation, dict) and self.type_definition.path:
+                                # if implementation might be an inline artifact, save the baseDir of the source
+                                implementation['_source'] = self.type_definition.path
+
+                        if 'operations' in baseDefs:
+                            baseDefs = baseDefs.get('operations') or {}
+
+                        for op, baseDef in baseDefs.items():
                             if op in ['inputs', 'notifications', '_source']:
                                 continue
                             if op in defs:
                                 # op in both, merge
                                 currentiDef = defs[op]
-                                if isinstance(iDef.get('implementation'), dict) and self.type_definition.path:
-                                    # if implementation might be an inline artifact, save the baseDir of the source
-                                    iDef.get['implementation']['_source'] = self.type_definition.path
-                                if isinstance(iDef, dict) and isinstance(currentiDef, dict):
-                                  defs[op] = dict(iDef, **currentiDef)
-                                  if 'inputs' in iDef and 'inputs' in currentiDef:
-                                      # merge inputs
-                                      defs[op]['inputs'] = dict(iDef['inputs'], **currentiDef['inputs'])
+                                if isinstance(baseDef, dict):
+                                    if not isinstance(currentiDef, dict):
+                                        currentiDef = dict(implementation = currentiDef)
+                                    if isinstance(baseDef.get('implementation'), dict) and self.type_definition.path:
+                                        # if implementation might be an inline artifact, save the baseDir of the source
+                                        baseDef['implementation']['_source'] = self.type_definition.path
+                                    defs[op] = dict(baseDef, **currentiDef)
+                                    if 'inputs' in baseDef and 'inputs' in currentiDef:
+                                        # merge inputs
+                                        defs[op]['inputs'] = dict(baseDef['inputs'], **currentiDef['inputs'])
                             else:
-                                defs[op] = iDef
-                    if inputs: # shared inputs
-                        defs['inputs'] = inputs
+                                defs[op] = baseDef
+
                     # add or replace:
                     interfacesDefs[iName] = defs
         else:
             interfacesDefs = tpl_interfaces
             if not interfacesDefs:
               return []
-        # XXX should also merge interface type definition too
 
+        defaults = interfacesDefs.pop('defaults', {})
         for interface_type, value in interfacesDefs.items():
-            inputs = value.get('inputs') # shared inputs
+            # shared inputs
+            inputs = value.get('inputs')
+            defaultInputs = defaults.get('inputs')
+            if inputs and defaultInputs: # merge shared inputs
+                inputs = dict(defaultInputs, **inputs)
+            else:
+                inputs = inputs or defaultInputs
+
+            # shared implementation
+            implementation = value.get('implementation') or defaults.get('implementation')
             _source = value.pop('_source', None)
-            for op, op_def in value.items():
-                if op == 'operations':
-                    for op, op_def in op_def.items():
-                        if _source:
-                          op_def['_source'] = _source
-                        iface = InterfacesDef(self.type_definition,
-                                              interfacetype=interface_type,
-                                              node_template=self,
-                                              name=op,
-                                              value=op_def,
-                                              inputs=inputs.copy() if inputs else None)
-                        interfaces.append(iface)
-                    break
+            if 'operations' in value:
+                defs = value.get('operations') or {}
+            else:
+                defs = value
+
+            for op, op_def in defs.items():
                 if op in INTERFACE_DEF_RESERVED_WORDS:
                     continue
+                if not isinstance(op_def, dict):
+                    op_def = dict(implementation = op_def or implementation)
+                elif implementation and not op_def.get('implementation'):
+                    op_def['implementation'] = implementation
                 if _source:
-                  op_def['_source'] = _source
+                    op_def['_source'] = _source
                 iface = InterfacesDef(self.type_definition,
                                       interfacetype=interface_type,
                                       node_template=self,
@@ -412,12 +429,14 @@ class EntityTemplate(object):
                                       value=op_def,
                                       inputs=inputs.copy() if inputs else None)
                 interfaces.append(iface)
-            # add a "default" operation that has the shared inputs
+
+            # add a "default" operation that has the shared inputs and implementation
             iface = InterfacesDef(self.type_definition,
                                   interfacetype=interface_type,
                                   node_template=self,
                                   name='default',
-                                  value={},
+                                  value=dict(implementation=implementation,
+                                              _source=_source),
                                   inputs=inputs)
             interfaces.append(iface)
         return interfaces
@@ -427,7 +446,12 @@ class EntityTemplate(object):
                                                 self.entity_tpl)
         if ifaces:
             for name, value in ifaces.items():
-                if name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
+                if name == 'defaults':
+                  self._common_validate_field(
+                      value,
+                      ['implementation', 'inputs'],
+                      'interfaces')
+                elif name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
                     self._common_validate_field(
                         value, INTERFACE_DEF_RESERVED_WORDS + InterfacesDef.
                         interfaces_node_lifecycle_operations,
