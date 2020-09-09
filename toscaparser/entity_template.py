@@ -362,9 +362,9 @@ class EntityTemplate(object):
                         # set shared implementation
                         if implementation and 'implementation' not in defs:
                             defs['implementation'] = implementation
-                            if isinstance(implementation, dict) and self.type_definition.path:
+                            if isinstance(implementation, dict) and self.type_definition._source:
                                 # if implementation might be an inline artifact, save the baseDir of the source
-                                implementation['_source'] = self.type_definition.path
+                                implementation['_source'] = self.type_definition._source
 
                         if 'operations' in baseDefs:
                             baseDefs = baseDefs.get('operations') or {}
@@ -378,9 +378,9 @@ class EntityTemplate(object):
                                 if isinstance(baseDef, dict):
                                     if not isinstance(currentiDef, dict):
                                         currentiDef = dict(implementation = currentiDef)
-                                    if isinstance(baseDef.get('implementation'), dict) and self.type_definition.path:
+                                    if isinstance(baseDef.get('implementation'), dict) and self.type_definition._source:
                                         # if implementation might be an inline artifact, save the baseDir of the source
-                                        baseDef['implementation']['_source'] = self.type_definition.path
+                                        baseDef['implementation']['_source'] = self.type_definition._source
                                     defs[op] = dict(baseDef, **currentiDef)
                                     if 'inputs' in baseDef and 'inputs' in currentiDef:
                                         # merge inputs
