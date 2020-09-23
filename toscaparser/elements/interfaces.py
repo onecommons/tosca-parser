@@ -51,6 +51,7 @@ class InterfacesDef(StatefulEntityType):
         name=None,
         value=None,
         inputs=None,
+        outputs=None
     ):
         self.ntype = node_type
         self.node_template = node_template
@@ -60,7 +61,7 @@ class InterfacesDef(StatefulEntityType):
         self.implementation = None
         self.inputs = inputs
         self._source = None
-        self.outputs = {}
+        self.outputs = outputs
         self.defs = {}
         interfaces = getattr(self.ntype, "interfaces", None)
         if "type" in interfaces.get(interfacetype, {}):
@@ -94,7 +95,10 @@ class InterfacesDef(StatefulEntityType):
                         else:
                             self.inputs = j
                     elif i == OUTPUTS:
-                        self.outputs = j
+                        if self.outputs:
+                            self.outputs.update(j)
+                        else:
+                            self.outputs = j
                     elif i not in OPERATION_DEF_RESERVED_WORDS:
                         what = '"interfaces" of template "%s"' % self.node_template.name
                         ExceptionCollector.appendException(

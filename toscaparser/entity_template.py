@@ -405,6 +405,14 @@ class EntityTemplate(object):
             else:
                 inputs = inputs or defaultInputs
 
+            # shared outputs
+            outputs = value.get('outputs')
+            defaultOutputs = defaults.get('outputs')
+            if outputs and defaultOutputs: # merge shared inputs
+                outputs = dict(defaultOutputs, **outputs)
+            else:
+                outputs = outputs or defaultOutputs
+
             # shared implementation
             implementation = value.get('implementation') or defaults.get('implementation')
             _source = value.pop('_source', None)
@@ -427,7 +435,8 @@ class EntityTemplate(object):
                                       node_template=self,
                                       name=op,
                                       value=op_def,
-                                      inputs=inputs.copy() if inputs else None)
+                                      inputs=inputs.copy() if inputs else None,
+                                      outputs=outputs.copy() if outputs else None)
                 interfaces.append(iface)
 
             # add a "default" operation that has the shared inputs and implementation
@@ -437,7 +446,7 @@ class EntityTemplate(object):
                                   name='default',
                                   value=dict(implementation=implementation,
                                               _source=_source),
-                                  inputs=inputs)
+                                  inputs=inputs, outputs=outputs)
             interfaces.append(iface)
         return interfaces
 
@@ -449,7 +458,7 @@ class EntityTemplate(object):
                 if name == 'defaults':
                   self._common_validate_field(
                       value,
-                      ['implementation', 'inputs'],
+                      ['implementation', 'inputs', 'outputs'],
                       'interfaces')
                 elif name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
                     self._common_validate_field(
