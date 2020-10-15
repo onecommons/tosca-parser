@@ -237,11 +237,11 @@ class ImportsLoader(object):
                     a_file = True
                     main_a_file = os.path.isfile(self.path)
                     if '#' in file_name:
-                      file_name, sep, fragment = file_name.rpartition('#')
+                        file_name, sep, fragment = file_name.rpartition('#')
                     if os.path.isabs(file_name):
-                      import_template = file_name
+                        import_template = file_name
                     elif os.path.isdir(self.path):
-                      import_template = os.path.join(self.path, file_name)
+                        import_template = os.path.join(self.path, file_name)
                     elif main_a_file:
                         if os.path.isfile(file_name):
                             import_template = file_name
@@ -300,10 +300,11 @@ class ImportsLoader(object):
             if self.repositories:
                 for repo_name, repo_def in self.repositories.items():
                     if repo_name == repository:
-                        # Remove leading, ending spaces and strip
-                        # the last character if "/"
-                        repo_url = ((repo_def['url']).strip()).rstrip("//")
-                        full_url = repo_url + "/" + file_name
+                        repo_url = repo_def['url'].strip()
+                        if file_name:
+                            full_url = repo_url.rstrip("/") + "/" + file_name
+                        else:
+                            full_url = repo_url
 
             if not full_url:
                 msg = (_('referenced repository "%(n_uri)s" in import '
@@ -315,11 +316,11 @@ class ImportsLoader(object):
 
             parsed = urlparse(full_url)
             if parsed.scheme == 'file':
-              isFile = True
-              path = parsed.path
-              if self.path:
-                path = os.path.join(self.path, path)
-              return path, isFile, parsed.fragment
+                isFile = True
+                path = parsed.path
+                if self.path:
+                    path = os.path.join(self.path, path)
+                return path, isFile, parsed.fragment
 
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
             return full_url, False, fragment
