@@ -28,6 +28,10 @@ YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
 class ImportResolver(object):
+    def start(self, importsLoader, repository_name, file_name):
+        """Set/reset state if necessary"""
+        # (because get_url isn't always called before load_yaml)
+
     def get_url(self, importsLoader, repo_def, file_name):
         full_url = repo_def['url'].strip()
         if file_name:
@@ -219,6 +223,7 @@ class ImportsLoader(object):
                     ExceptionCollector.appendException(
                         InvalidPropertyValueError(
                             what=_('Repository is not found in "%s"') % repos))
+                    return None, None, None
         else:
             file_name = import_uri_def
             repository = None
@@ -232,7 +237,9 @@ class ImportsLoader(object):
             ExceptionCollector.appendException(ValidationError(message=msg))
             return None, None, None
 
+        self.resolver.start(self, repository, file_name)
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
+            # it's an absolute URL
             return file_name, False, None
         elif not repository:
             fragment = None
