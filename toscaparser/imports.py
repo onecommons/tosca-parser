@@ -27,6 +27,26 @@ from six.moves.urllib.parse import urlparse
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
+class ImportResolver(object):
+    def get_url(self, importsLoader, repo_def, file_name):
+        full_url = repo_def['url'].strip()
+        if file_name:
+            full_url = full_url.rstrip("/") + "/" + file_name
+        parsed = urlparse(full_url)
+        if parsed.scheme == 'file':
+            isFile = True
+            path = parsed.path
+            if importsLoader.path:
+                path = os.path.join(importsLoader.path, path)
+            return path, isFile, parsed.fragment
+        if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
+            return full_url, False, None
+        else:
+            return None
+
+    def load_yaml(self, importsLoader, path, isFile=True, fragment=None):
+        return YAML_LOADER(path, isFile, importsLoader, fragment)
+
 class ImportsLoader(object):
 
     IMPORTS_SECTION = (FILE, REPOSITORY, NAMESPACE_URI, NAMESPACE_PREFIX) = \
@@ -34,20 +54,18 @@ class ImportsLoader(object):
                        'namespace_prefix')
 
     def __init__(self, importslist, path, type_definition_list=None,
-                 tpl=None, yaml_loader=None):
+                 tpl=None, resolver=None):
         self.importslist = importslist
         self.custom_defs = {}
         self.nested_tosca_tpls = []
         self.nested_imports = {}
-        self.yaml_loader = yaml_loader or YAML_LOADER
+        self.resolver = resolver or ImportResolver()
         if not path and not tpl:
             msg = _('Input tosca template is not provided.')
             log.warning(msg)
             ExceptionCollector.appendException(ValidationError(message=msg))
         self.path = path
-        self.repositories = {}
-        if tpl and tpl.get('repositories'):
-            self.repositories = tpl.get('repositories')
+        self.repositories = (tpl and tpl.get('repositories')) or {}
         self.tpl = tpl
         self.type_definition_list = []
         if type_definition_list:
@@ -184,7 +202,7 @@ class ImportsLoader(object):
         """
         path, a_file, fragment = self._resolve_import_template(import_name, import_uri_def)
         if path is not None:
-            doc = self.yaml_loader(path, a_file, self, fragment)
+            doc = self.resolver.load_yaml(self, path, a_file, fragment)
             return getattr(doc, "path", path), doc
         else:
             return None, None
@@ -214,10 +232,10 @@ class ImportsLoader(object):
             ExceptionCollector.appendException(ValidationError(message=msg))
             return None, None, None
 
-        fragment = None
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
             return file_name, False, None
         elif not repository:
+            fragment = None
             import_template = None
             if self.path:
                 if toscaparser.utils.urlutils.UrlUtils.validate_url(self.path):
@@ -295,39 +313,25 @@ class ImportsLoader(object):
                 ImportError(_('Import "%s" is not valid.') % import_uri_def))
             return None, None, None
 
-        full_url = ""
-        if repository:
-            if self.repositories:
-                for repo_name, repo_def in self.repositories.items():
-                    if repo_name == repository:
-                        repo_url = repo_def['url'].strip()
-                        if file_name:
-                            full_url = repo_url.rstrip("/") + "/" + file_name
-                        else:
-                            full_url = repo_url
+        assert repository
+        return self._resolve_from_repository(repository, import_name, file_name)
 
-            if not full_url:
-                msg = (_('referenced repository "%(n_uri)s" in import '
-                         'definition "%(tpl)s" not found.')
-                       % {'n_uri': repository, 'tpl': import_name})
-                log.error(msg)
-                ExceptionCollector.appendException(ImportError(msg))
-                return None, None, None
-
-            parsed = urlparse(full_url)
-            if parsed.scheme == 'file':
-                isFile = True
-                path = parsed.path
-                if self.path:
-                    path = os.path.join(self.path, path)
-                return path, isFile, parsed.fragment
-
-        if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
-            return full_url, False, fragment
-        else:
-            msg = (_('repository url "%(n_uri)s" is not valid in import '
-                     'definition "%(tpl)s".')
-                   % {'n_uri': repo_url, 'tpl': import_name})
+    def _resolve_from_repository(self, repository, import_name, file_name):
+        repo_def = self.repositories.get(repository)
+        if not repo_def:
+            msg = (_('referenced repository "%(n_uri)s" in import '
+                     'definition "%(tpl)s" not found.')
+                   % {'n_uri': repository, 'tpl': import_name})
             log.error(msg)
             ExceptionCollector.appendException(ImportError(msg))
             return None, None, None
+
+        url_info = self.resolver.get_url(self, repo_def, file_name)
+        if not url_info:
+            msg = (_('repository url "%(n_uri)s" is not valid in import '
+                     'definition "%(tpl)s".')
+                   % {'n_uri': repo_def['url'], 'tpl': import_name})
+            log.error(msg)
+            ExceptionCollector.appendException(ImportError(msg))
+            return None, None, None
+        return url_info

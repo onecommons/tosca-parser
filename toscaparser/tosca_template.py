@@ -68,13 +68,14 @@ class ToscaTemplate(object):
 
     '''Load the template data.'''
     def __init__(self, path=None, parsed_params=None, a_file=True,
-                 yaml_dict_tpl=None):
+                 yaml_dict_tpl=None, import_resolver=None):
 
         ExceptionCollector.start()
         self.a_file = a_file
         self.input_path = None
         self.path = None
         self.tpl = None
+        self.import_resolver = import_resolver
         self.nested_tosca_tpls = {}
         self.nested_tosca_templates_with_topology = []
         if path:
@@ -204,7 +205,7 @@ class ToscaTemplate(object):
             if path is None:
                 path = getattr(imports, "baseDir", self.path)
             custom_service = toscaparser.imports.\
-                ImportsLoader(imports, path, type_defs, self.tpl)
+                ImportsLoader(imports, path, type_defs, self.tpl, self.import_resolver)
 
             nested_tosca_tpls = custom_service.get_nested_tosca_tpls()
             self._update_nested_tosca_tpls(nested_tosca_tpls)
