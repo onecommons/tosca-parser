@@ -28,21 +28,23 @@ YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
 class ImportResolver(object):
-    def start(self, importsLoader, repository_name, file_name):
-        """Set/reset state if necessary"""
-        # (because get_url isn't always called before load_yaml)
+    def get_url(self, importsLoader, repository_name, file_name, isFile=None):
+        if repository_name:
+            repo_def = importsLoader.repositories[repository_name]
+            full_url = repo_def['url'].strip()
+            if file_name:
+                full_url = full_url.rstrip("/") + "/" + file_name
+        else:
+            full_url = file_name
+        if isFile:
+            return full_url, True, None
 
-    def get_url(self, importsLoader, repo_def, file_name):
-        full_url = repo_def['url'].strip()
-        if file_name:
-            full_url = full_url.rstrip("/") + "/" + file_name
         parsed = urlparse(full_url)
         if parsed.scheme == 'file':
-            isFile = True
             path = parsed.path
             if importsLoader.path:
                 path = os.path.join(importsLoader.path, path)
-            return path, isFile, parsed.fragment
+            return path, True, parsed.fragment
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
             return full_url, False, None
         else:
@@ -237,10 +239,9 @@ class ImportsLoader(object):
             ExceptionCollector.appendException(ValidationError(message=msg))
             return None, None, None
 
-        self.resolver.start(self, repository, file_name)
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
             # it's an absolute URL
-            return file_name, False, None
+            return self.resolver.get_url(self, repository, file_name, False)
         elif not repository:
             fragment = None
             import_template = None
@@ -312,10 +313,17 @@ class ImportsLoader(object):
                     ImportError(_('Import "%s" is not valid.') %
                                 import_uri_def))
                 return None, None, None
-            return import_template, a_file, fragment
+
+            url_info = self.resolver.get_url(self, repository, import_template, a_file)
+            if not url_info:
+                log.error(_('Import "%s" is not valid.') % import_uri_def)
+                ExceptionCollector.appendException(
+                    ImportError(_('Import "%s" is not valid.') % import_uri_def))
+                return None, None, None
+            return url_info[0], url_info[1], fragment
 
         if short_import_notation:
-            log.error(_('Import "%(name)s" is not valid.') % import_uri_def)
+            log.error(_('Import "%s" is not valid.') % import_uri_def)
             ExceptionCollector.appendException(
                 ImportError(_('Import "%s" is not valid.') % import_uri_def))
             return None, None, None
@@ -324,20 +332,11 @@ class ImportsLoader(object):
         return self._resolve_from_repository(repository, import_name, file_name)
 
     def _resolve_from_repository(self, repository, import_name, file_name):
-        repo_def = self.repositories.get(repository)
-        if not repo_def:
-            msg = (_('referenced repository "%(n_uri)s" in import '
-                     'definition "%(tpl)s" not found.')
-                   % {'n_uri': repository, 'tpl': import_name})
-            log.error(msg)
-            ExceptionCollector.appendException(ImportError(msg))
-            return None, None, None
-
-        url_info = self.resolver.get_url(self, repo_def, file_name)
+        url_info = self.resolver.get_url(self, repository, file_name)
         if not url_info:
             msg = (_('repository url "%(n_uri)s" is not valid in import '
                      'definition "%(tpl)s".')
-                   % {'n_uri': repo_def['url'], 'tpl': import_name})
+                   % {'n_uri': self.repositories[repository]['url'], 'tpl': import_name})
             log.error(msg)
             ExceptionCollector.appendException(ImportError(msg))
             return None, None, None
