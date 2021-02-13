@@ -11,40 +11,54 @@
 #    under the License.
 
 from toscaparser.elements.statefulentitytype import StatefulEntityType
+from toscaparser.common.exception import ExceptionCollector
+from toscaparser.common.exception import UnknownFieldError
 
 
 class ArtifactTypeDef(StatefulEntityType):
-    '''TOSCA built-in artifacts type.'''
+    """TOSCA built-in artifacts type."""
+
+    SECTIONS = (DERIVED_FROM, INTERFACES,
+                ATTRIBUTES, PROPERTIES, DESCRIPTION, VERSION,
+                _SOURCE) = ('derived_from',
+                               'interfaces', 'attributes', 'properties',
+                               'description', 'version', '_source')
 
     def __init__(self, atype, custom_def=None):
-        super(ArtifactTypeDef, self).__init__(atype, self.ARTIFACT_PREFIX,
-                                              custom_def)
-        self.type = atype
+        super(ArtifactTypeDef, self).__init__(atype, self.ARTIFACT_PREFIX, custom_def)
         self.custom_def = custom_def
-        self.properties =  self.defs.get(self.PROPERTIES)
+        self.properties = self.defs.get(self.PROPERTIES)
         self.parent_artifacts = self._get_parent_artifacts()
-        self.mime_type = self.defs.get('mime_type')
-        self.file_ext = self.defs.get('file_ext',[])
+        self.mime_type = self.defs.get("mime_type")
+        self.file_ext = self.defs.get("file_ext", [])
+        self._validate_keys()
+
+    def _validate_keys(self):
+        for key in self.defs.keys():
+            if key not in self.SECTIONS:
+                ExceptionCollector.appendException(
+                    UnknownFieldError(what='Artifacttype "%s"' % self.type,
+                                      field=key))
 
     def _get_parent_artifacts(self):
         artifacts = {}
         parent_artif = self.parent_type.type if self.parent_type else None
         if parent_artif:
-            while parent_artif != 'tosca.artifacts.Root':
+            while parent_artif != "tosca.artifacts.Root":
                 artifacts[parent_artif] = self.TOSCA_DEF[parent_artif]
-                parent_artif = artifacts[parent_artif]['derived_from']
+                parent_artif = artifacts[parent_artif]["derived_from"]
         return artifacts
 
     @property
     def parent_type(self):
-        '''Return a artifact entity from which this entity is derived.'''
-        if not hasattr(self, 'defs'):
+        """Return a artifact entity from which this entity is derived."""
+        if not hasattr(self, "defs"):
             return None
         partifact_entity = self.derived_from(self.defs)
         if partifact_entity:
             return ArtifactTypeDef(partifact_entity, self.custom_def)
 
     def get_artifact(self, name):
-        '''Return the definition of an artifact field by name.'''
+        """Return the definition of an artifact field by name."""
         if name in self.defs:
             return self.defs[name]

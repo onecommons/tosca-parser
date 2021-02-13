@@ -31,12 +31,12 @@ class Repository(object):
         if isinstance(self.tpl, dict):
             if URL not in self.tpl.keys():
                 ExceptionCollector.appendException(
-                    MissingRequiredFieldError(what=_('repositories "%s"')
+                    MissingRequiredFieldError(what=_('repository "%s"')
                                               % self.name, required='url'))
             for key, value in self.tpl.items():
                 if key not in SECTIONS:
                     ExceptionCollector.appendException(
-                        UnknownFieldError(what=_('repositories "%s"')
+                        UnknownFieldError(what=_('repository "%s"')
                                           % name, field=key))
                 setattr(self, key, value)
 
@@ -44,14 +44,14 @@ class Repository(object):
             self.hostname = urlparse(self.url).hostname
         else:
             ExceptionCollector.appendException(
-                TypeMismatchError(what=_('repositories "%s"') % self.name, type="dict"))
+                TypeMismatchError(what=_('repository "%s"') % self.name, type="dict"))
 
     def validate(self):
         url_val = toscaparser.utils.urlutils.UrlUtils.validate_url(self.url)
         if url_val is not True:
             ExceptionCollector.appendException(
-                URLException(what=_('repositories "%s" Invalid Url')
-                             % self.name))
+                URLException(what=_('repository "%s": Invalid Url "%s"')
+                             % (self.name, self.url)))
         if self.credential:
             self.credential = DataEntity("tosca.datatypes.Credential",
                                   self.credential, prop_name=CREDENTIAL).validate()
