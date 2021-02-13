@@ -70,19 +70,21 @@ class TopologyTemplate(object):
 
     def _inputs(self):
         inputs = []
+        parsed_params = self.parsed_params or {}
         for name, attrs in self._tpl_inputs().items():
             input = Input(name, attrs)
-            if self.parsed_params and name in self.parsed_params:
-                input.validate(self.parsed_params[name])
+            if name in parsed_params:
+                input.validate(parsed_params[name])
             else:
                 default = input.default
                 if default:
                     input.validate(default)
-            if (self.parsed_params and input.name not in self.parsed_params
-                or self.parsed_params is None) and input.required \
-                    and input.default is None:
-                log.warning(_('The required parameter %s '
-                              'is not provided') % input.name)
+            if (input.name not in parsed_params and input.required
+                                        and input.default is None):
+                  exception.ExceptionCollector.appendException(
+                    exception.MissingRequiredInputError(
+                        what=_('Topology template'),
+                        input_name=input.name))
 
             inputs.append(input)
         return inputs
