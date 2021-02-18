@@ -847,7 +847,7 @@ data_types:
         required: true
         default: tcp
         constraints:
-          - valid_values: [ udp, tcp, igmp ]
+          - valid_values: [ udp, tcp, icmp ]
       target:
         type: tosca.datatypes.network.PortDef
         required: false
