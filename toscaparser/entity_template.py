@@ -337,11 +337,13 @@ class EntityTemplate(object):
 
     def _create_interfaces(self):
         interfaces = []
+        # get a copy of the interfaces directy defined on the entity template
         tpl_interfaces = self.type_definition.get_value(self.INTERFACES,
                                                          self.entity_tpl)
-
+        _source = None
         if self.type_definition.interfaces:
             interfacesDefs = self.type_definition.interfaces.copy()
+            _source = self.type_definition._source
             if tpl_interfaces:
                 # merge the interfaces defined on the type with the template's interface definitions
                 for iName, defs in tpl_interfaces.items():
@@ -362,9 +364,9 @@ class EntityTemplate(object):
                         # set shared implementation
                         if implementation and 'implementation' not in defs:
                             defs['implementation'] = implementation
-                            if isinstance(implementation, dict) and self.type_definition._source:
+                            if isinstance(implementation, dict) and _source:
                                 # if implementation might be an inline artifact, save the baseDir of the source
-                                implementation['_source'] = self.type_definition._source
+                                implementation['_source'] = _source
 
                         if 'operations' in baseDefs:
                             baseDefs = baseDefs.get('operations') or {}
@@ -378,9 +380,9 @@ class EntityTemplate(object):
                                 if isinstance(baseDef, dict):
                                     if not isinstance(currentiDef, dict):
                                         currentiDef = dict(implementation = currentiDef)
-                                    if isinstance(baseDef.get('implementation'), dict) and self.type_definition._source:
+                                    if isinstance(baseDef.get('implementation'), dict) and _source:
                                         # if implementation might be an inline artifact, save the baseDir of the source
-                                        baseDef['implementation']['_source'] = self.type_definition._source
+                                        baseDef['implementation']['_source'] = _source
                                     defs[op] = dict(baseDef, **currentiDef)
                                     if 'inputs' in baseDef and 'inputs' in currentiDef:
                                         # merge inputs
@@ -397,6 +399,7 @@ class EntityTemplate(object):
 
         defaults = interfacesDefs.pop('defaults', {})
         for interface_type, value in interfacesDefs.items():
+            # merge in shared:
             # shared inputs
             inputs = value.get('inputs')
             defaultInputs = defaults.get('inputs')
@@ -415,6 +418,8 @@ class EntityTemplate(object):
 
             # shared implementation
             implementation = value.get('implementation') or defaults.get('implementation')
+
+            # create an InterfacesDef for each operation
             _source = value.pop('_source', None)
             if 'operations' in value:
                 defs = value.get('operations') or {}

@@ -125,21 +125,22 @@ class ImportsLoader(object):
                         self.NAMESPACE_PREFIX)
                 if custom_type:
                     TypeValidation(custom_type, import_def)
-                    self._update_custom_def(custom_type, namespace_prefix)
+                    self._update_custom_def(custom_type, namespace_prefix, full_file_name)
             else:  # import_def is just the uri string
                 full_file_name, custom_type = self._load_import_template(
                     None, import_def)
                 if custom_type:
                     TypeValidation(
                         custom_type, import_def)
-                    self._update_custom_def(custom_type, None)
+                    self._update_custom_def(custom_type, None, full_file_name)
 
             if custom_type and 'imports' in custom_type.keys():
                 self.nested_imports.update(
                     {full_file_name: custom_type['imports']})
             self._update_nested_tosca_tpls(full_file_name, custom_type)
 
-    def _update_custom_def(self, custom_type, namespace_prefix):
+    def _update_custom_def(self, custom_type, namespace_prefix, path):
+        path = os.path.normpath(path)
         for type_def in self.type_definition_list:
             outer_custom_types = custom_type.get(type_def)
             if outer_custom_types:
@@ -151,7 +152,7 @@ class ImportsLoader(object):
                 else:
                     if type_def in ['node_types', 'relationship_types']:
                         for custom_def in outer_custom_types.values():
-                            custom_def['_source'] = self.path
+                            custom_def['_source'] = path
                     if namespace_prefix:
                         prefix_custom_types = {}
                         for type_def_key in outer_custom_types:
@@ -223,8 +224,8 @@ class ImportsLoader(object):
             if repository is not None:
                 if repository not in repos:
                     ExceptionCollector.appendException(
-                        InvalidPropertyValueError(
-                            what=_('Repository is not found in "%s"') % repos))
+                        ValidationError(message=
+                            _('Repository not found: "%s"') % repository))
                     return None, None, None
         else:
             file_name = import_uri_def
