@@ -36,7 +36,7 @@ class ToscaGraph(object):
 
     def _create(self):
         for node in self.nodetemplates:
-            for relTpl, req in node.relationships:
+            for relTpl, req, reqDef in node.relationships:
                 for tpl in self.nodetemplates:
                     if tpl.name == relTpl.target.name:
                         self._create_edge(node, tpl, relTpl.type_definition)

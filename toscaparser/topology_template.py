@@ -355,7 +355,7 @@ class TopologyTemplate(object):
                                         if p == prop.name:
                                             cap._properties[p] = propvalue
 
-                for rel_tpl, req in node_template.relationships:
+                for rel_tpl, req, reqDef in node_template.relationships:
                     # XXX should use something like findProps to recursively validate properties
                     for prop in rel_tpl.get_properties_objects():
                         prop.value = functions.get_function(self, req, prop.value)
@@ -400,7 +400,7 @@ class TopologyTemplate(object):
                                     node_template,
                                     prop.value)
 
-                for rel_tpl, req in node_template.relationships:
+                for rel_tpl, req, reqDef in node_template.relationships:
                     # XXX should use something like findProps to recursively validate properties
                     for prop in rel_tpl.get_properties_objects():
                         functions.get_function(self, req, prop.value)

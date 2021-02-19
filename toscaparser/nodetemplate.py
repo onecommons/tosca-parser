@@ -61,7 +61,7 @@ class NodeTemplate(EntityTemplate):
                 for r in requires:
                     reqDef, relTpl = self._get_explicit_relationship(r)
                     if relTpl:
-                        self._relationships.append( (relTpl, r) )
+                        self._relationships.append( (relTpl, r, reqDef) )
         return self._relationships
 
     def _getRequirementDefinition(self, requirementName):
@@ -100,7 +100,7 @@ class NodeTemplate(EntityTemplate):
             node: DBMS
             relationship: tosca.relationships.HostedOn
 
-        Returns RelationshipTemplate or None if there was a validation error.
+        Returns a requirements dict and either RelationshipTemplate or None if there was a validation error.
 
         If no relationship was either assigned or defined by the node's type definition,
         one with type "tosca.relationships.Root" will be returned.
@@ -148,29 +148,32 @@ class NodeTemplate(EntityTemplate):
 
         # XXX support node_filter
         node = reqDef.get('node')
-        related_tpl = None
+        related_node = None
+        related_capability = None
         if node:
-            related_tpl = self.topology_template.node_templates.get(node)
-            if related_tpl:
-                if not relTpl.get_matching_capabilities(related_tpl, reqDef.get('capability')):
+            related_node = self.topology_template.node_templates.get(node)
+            if related_node:
+                capabilities = relTpl.get_matching_capabilities(related_node, reqDef.get('capability'))
+                if not capabilities:
                     if 'capability' in reqDef:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No matching capability "%(cname)s" found'
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
-                            % {'rname': name, 'nname': self.name, 'cname': reqDef['capability'], 'tname': related_tpl.name}))
+                            % {'rname': name, 'nname': self.name, 'cname': reqDef['capability'], 'tname': related_node.name}))
                     else:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No capability with a matching target type found'
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
-                            % {'rname': name, 'nname': self.name, 'tname': related_tpl.name}))
+                            % {'rname': name, 'nname': self.name, 'tname': related_node.name}))
                         return reqDef, None
+                related_capability = capabilities[0] # choose best match
         elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types:
             ExceptionCollector.appendException(
               ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
                               (name, self.name)))
             return reqDef, None
 
-        if not related_tpl:
+        if not related_node:
             # check if "node" is a node type
             for nodeTemplate in self.topology_template.node_templates.values():
                 found = None
@@ -179,28 +182,31 @@ class NodeTemplate(EntityTemplate):
                     capability = reqDef.get('capability')
                     # should have already returned an error if this assertion is false
                     assert node or capability or relTpl.type_definition.valid_target_types
-                    if relTpl.get_matching_capabilities(nodeTemplate, capability):
+                    capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
+                    if capabilities:
                         found = nodeTemplate
+                        related_capability = capabilities[0] # first is best match
 
                 if found:
-                    if related_tpl:
+                    if related_node:
                         if "default" in found.directives:
                             continue
-                        elif "default" in related_tpl.directives:
-                            related_tpl = found
+                        elif "default" in related_node.directives:
+                            related_node = found
                         else:
                             ExceptionCollector.appendException(
                           ValidationError(message=
       'requirement "%s" of node ""%s" is ambiguous, targets more than one template: "%s" and "%s"' %
-                                        (name, self.name, related_tpl.name, found.name)))
+                                        (name, self.name, related_node.name, found.name)))
                             return reqDef, None
                     else:
-                        related_tpl = found
+                        related_node = found
 
-        if related_tpl:
+        if related_node:
             # if relTpl is in available_rel_tpls what if target and source are already assigned?
-            relTpl.target = related_tpl
-            related_tpl.relationship_tpl.append(relTpl)
+            relTpl.target = related_node
+            relTpl.capability = related_capability
+            related_node.relationship_tpl.append(relTpl)
         else:
             ExceptionCollector.appendException(
                 ValidationError(message = _('No matching target template found'

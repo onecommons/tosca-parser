@@ -147,7 +147,7 @@ class EntityTemplate(object):
 
     def get_capabilities_objects(self):
         '''Return capabilities objects for this template.'''
-        if not self._capabilities:
+        if self._capabilities is None:
             self._capabilities = self._create_capabilities()
         return self._capabilities
 

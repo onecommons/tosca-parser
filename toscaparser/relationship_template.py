@@ -37,6 +37,7 @@ class RelationshipTemplate(EntityTemplate):
         self.name = name
         self.target = target
         self.source = source
+        self.capability = None
         self.default_for = self.entity_tpl.get(self.DEFAULT_FOR)
 
     def get_matching_capabilities(self, targetNodeTemplate, capability_name=None):
