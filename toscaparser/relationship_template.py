@@ -53,11 +53,16 @@ class RelationshipTemplate(EntityTemplate):
                 # name doesn't match a symbolic name, see if its a valid type name
                 capabilities = [cap for cap in capabilitiesDict.values() if cap.is_derived_from(capability_name)]
         else:
-            capabilities = capabilitiesDict.values()
+            capabilities = list(capabilitiesDict.values())
 
         # if valid_target_types is set, make sure the matching capabilities are compatible
         capabilityTypes = self.type_definition.valid_target_types
         if capabilityTypes:
             capabilities = [cap for cap in capabilities
                               if any(cap.is_derived_from(capType) for capType in capabilityTypes)]
+        if not capability_name and len(capabilities) > 1:
+            # if no capability was specified and there are more than one to choose from, choose the most generic
+            featureCap = capabilitiesDict.get("feature")
+            if featureCap:
+                return [featureCap]
         return capabilities

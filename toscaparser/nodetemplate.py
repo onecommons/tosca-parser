@@ -177,6 +177,7 @@ class NodeTemplate(EntityTemplate):
             # check if "node" is a node type
             for nodeTemplate in self.topology_template.node_templates.values():
                 found = None
+                found_cap = None
                 # check if node name is node type
                 if not node or nodeTemplate.is_derived_from(node):
                     capability = reqDef.get('capability')
@@ -185,7 +186,7 @@ class NodeTemplate(EntityTemplate):
                     capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
                     if capabilities:
                         found = nodeTemplate
-                        related_capability = capabilities[0] # first is best match
+                        found_cap = capabilities[0] # first is best match
 
                 if found:
                     if related_node:
@@ -193,6 +194,7 @@ class NodeTemplate(EntityTemplate):
                             continue
                         elif "default" in related_node.directives:
                             related_node = found
+                            related_capability = found_cap
                         else:
                             ExceptionCollector.appendException(
                           ValidationError(message=
@@ -201,6 +203,7 @@ class NodeTemplate(EntityTemplate):
                             return reqDef, None
                     else:
                         related_node = found
+                        related_capability = found_cap
 
         if related_node:
             # if relTpl is in available_rel_tpls what if target and source are already assigned?
