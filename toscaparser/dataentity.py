@@ -200,7 +200,10 @@ class DataEntity(object):
             return ps
         else:
             data = DataEntity(type, value, custom_def)
-            return data.validate()
+            if not data.datatype.value_type:
+                return data.validate()
+            else:
+                return value
 
     @staticmethod
     def validate_entry(value, entry_schema, custom_def=None):

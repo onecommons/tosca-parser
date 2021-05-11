@@ -18,11 +18,27 @@ from toscaparser.common.exception import UnknownFieldError
 class ArtifactTypeDef(StatefulEntityType):
     """TOSCA built-in artifacts type."""
 
-    SECTIONS = (DERIVED_FROM, INTERFACES,
-                ATTRIBUTES, PROPERTIES, DESCRIPTION, VERSION,
-                _SOURCE) = ('derived_from',
-                               'interfaces', 'attributes', 'properties',
-                               'description', 'version', '_source')
+    SECTIONS = (
+        DERIVED_FROM,
+        INTERFACES,
+        ATTRIBUTES,
+        PROPERTIES,
+        DESCRIPTION,
+        VERSION,
+        _SOURCE,
+        MIME_TYPE,
+        FILE_EXT,
+    ) = (
+        "derived_from",
+        "interfaces",
+        "attributes",
+        "properties",
+        "description",
+        "version",
+        "_source",
+        "mime_type",
+        "file_ext",
+    )
 
     def __init__(self, atype, custom_def=None):
         super(ArtifactTypeDef, self).__init__(atype, self.ARTIFACT_PREFIX, custom_def)
@@ -37,8 +53,8 @@ class ArtifactTypeDef(StatefulEntityType):
         for key in self.defs.keys():
             if key not in self.SECTIONS:
                 ExceptionCollector.appendException(
-                    UnknownFieldError(what='Artifacttype "%s"' % self.type,
-                                      field=key))
+                    UnknownFieldError(what='Artifacttype "%s"' % self.type, field=key)
+                )
 
     def _get_parent_artifacts(self):
         artifacts = {}
