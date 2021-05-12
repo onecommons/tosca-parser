@@ -412,9 +412,3 @@ class TopologyTemplate(object):
                                                        value)
         for output in self.outputs:
             functions.get_function(self, self.outputs, output.value)
-
-    @classmethod
-    def get_sub_mapping_node_type(cls, topology_tpl):
-        if topology_tpl and isinstance(topology_tpl, dict):
-            submap_tpl = topology_tpl.get(SUBSTITUION_MAPPINGS)
-            return SubstitutionMappings.get_node_type(submap_tpl)

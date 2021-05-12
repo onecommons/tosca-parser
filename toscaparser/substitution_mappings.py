@@ -35,6 +35,9 @@ class SubstitutionMappings(object):
     SECTIONS = (NODE_TYPE, REQUIREMENTS, CAPABILITIES, PROPERTIES) = \
                ('node_type', 'requirements', 'capabilities', 'properties')
 
+    # XXX added in 1.3: substitution_filter, attributes, interfaces,
+    # XXX this doesn't support mappings at all
+
     OPTIONAL_OUTPUTS = ['tosca_id', 'tosca_name', 'state']
 
     def __init__(self, sub_mapping_def, nodetemplates, inputs, outputs,
@@ -45,6 +48,7 @@ class SubstitutionMappings(object):
         self.outputs = outputs or []
         self.sub_mapped_node_template = sub_mapped_node_template
         self.custom_defs = custom_defs or {}
+        self.node_definition = NodeType(self.node_type, self.custom_defs)
         self._validate()
 
         self._capabilities = None
@@ -55,11 +59,6 @@ class SubstitutionMappings(object):
     def type(self):
         if self.sub_mapping_def:
             return self.sub_mapping_def.get(self.NODE_TYPE)
-
-    @classmethod
-    def get_node_type(cls, sub_mapping_def):
-        if isinstance(sub_mapping_def, dict):
-            return sub_mapping_def.get(cls.NODE_TYPE)
 
     @property
     def node_type(self):
@@ -76,10 +75,6 @@ class SubstitutionMappings(object):
     @property
     def properties(self):
         return self.sub_mapping_def.get(self.PROPERTIES)
-
-    @property
-    def node_definition(self):
-        return NodeType(self.node_type, self.custom_defs)
 
     def _validate(self):
         # Basic validation

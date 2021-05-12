@@ -116,6 +116,7 @@ class NodeTemplate(EntityTemplate):
 
         relationship = reqDef['relationship']
         relTpl = None
+        type = None
         if isinstance(relationship, dict):
           type = relationship.get('type')
           if not type:
