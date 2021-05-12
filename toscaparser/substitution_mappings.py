@@ -48,7 +48,7 @@ class SubstitutionMappings(object):
         self.outputs = outputs or []
         self.sub_mapped_node_template = sub_mapped_node_template
         self.custom_defs = custom_defs or {}
-        self.node_definition = NodeType(self.node_type, self.custom_defs)
+        self.node_definition = None
         self._validate()
 
         self._capabilities = None
@@ -79,7 +79,8 @@ class SubstitutionMappings(object):
     def _validate(self):
         # Basic validation
         self._validate_keys()
-        self._validate_type()
+        if not self._validate_type():
+            return
 
         # SubstitutionMapping class syntax validation
         self._validate_inputs()
@@ -104,11 +105,16 @@ class SubstitutionMappings(object):
                 MissingRequiredFieldError(
                     what=_('SubstitutionMappings used in topology_template'),
                     required=self.NODE_TYPE))
+            return False
 
         node_type_def = self.custom_defs.get(node_type)
         if not node_type_def:
             ExceptionCollector.appendException(
                 InvalidNodeTypeError(what=node_type))
+            return False
+        self.node_definition = NodeType(self.node_type, self.custom_defs)
+        return True
+
 
     def _validate_inputs(self):
         """validate the inputs of substitution mappings.

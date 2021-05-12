@@ -17,6 +17,7 @@ from toscaparser.common.exception import TypeMismatchError
 from toscaparser.common.exception import URLException
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
+import six
 from six.moves.urllib.parse import urlparse
 from toscaparser.dataentity import DataEntity
 
@@ -28,12 +29,17 @@ class Repository(object):
     def __init__(self, name, values):
         self.name = name
         self.tpl = values
-        if isinstance(self.tpl, dict):
-            if URL not in self.tpl.keys():
+        # TOSCA 1.0 backwards compatibility:
+        if isinstance(self.tpl, six.string_types):
+            tpl = dict(url=self.tpl)
+        else:
+            tpl = self.tpl
+        if isinstance(tpl, dict):
+            if URL not in tpl.keys():
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(what=_('repository "%s"')
                                               % self.name, required='url'))
-            for key, value in self.tpl.items():
+            for key, value in tpl.items():
                 if key not in SECTIONS:
                     ExceptionCollector.appendException(
                         UnknownFieldError(what=_('repository "%s"')

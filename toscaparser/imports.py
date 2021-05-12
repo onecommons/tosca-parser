@@ -255,7 +255,7 @@ class ImportsLoader(object):
                                % {'name': file_name, 'template': self.path})
                         log.error(msg)
                         ExceptionCollector.appendException(ImportError(msg))
-                        return None, None
+                        return None, None, None
                     import_template = toscaparser.utils.urlutils.UrlUtils.\
                         join_url(self.path, file_name)
                     assert import_template

@@ -238,13 +238,12 @@ class ToscaTemplateTest(TestCase):
             if node_tpl.name == 'logstash':
                 config_interface = 'Configure'
                 artifact = 'logstash/configure_elasticsearch.py'
-                relation = node_tpl.relationships
-                for key in relation.keys():
-                    rel_tpl = relation.get(key).get_relationship_template()
+                for relations in node_tpl.relationships:
+                    rel_tpl = relations[0]
                     if rel_tpl:
-                        self.assertTrue(rel_tpl[0].is_derived_from(
+                        self.assertTrue(rel_tpl.is_derived_from(
                             "tosca.relationships.Root"))
-                        interfaces = rel_tpl[0].interfaces
+                        interfaces = rel_tpl.interfaces
                         for interface in interfaces:
                             self.assertEqual(config_interface,
                                              interface.type)
@@ -264,10 +263,10 @@ class ToscaTemplateTest(TestCase):
                 self.assertEqual(len(node_tpl.relationships), 2)
                 self.assertEqual(
                     expected_relationships,
-                    sorted([k.type for k in node_tpl.relationships.keys()]))
+                    sorted([k[0].type for k in node_tpl.relationships]))
                 self.assertEqual(
                     expected_hosts,
-                    sorted([v.type for v in node_tpl.relationships.values()]))
+                    sorted([v[0].target.type for v in node_tpl.relationships]))
 
     def test_repositories(self):
         template = ToscaTemplate(self.tosca_repo_tpl)
@@ -311,21 +310,19 @@ class ToscaTemplateTest(TestCase):
                     ('tosca.relationships.ConnectsTo', 'mysql_database'),
                     ('tosca.relationships.HostedOn', 'my_webserver')]
                 actual_relationship = sorted([
-                    (relation.type, node.name) for
-                    relation, node in node_tpl.relationships.items()])
+                    (relations[0].type, relations[0].target.name) for
+                    relations in node_tpl.relationships])
                 self.assertEqual(expected_relationship, actual_relationship)
             if node_tpl.name == 'mysql_database':
                     self.assertEqual(
                         [('tosca.relationships.HostedOn', 'my_dbms')],
-                        [(relation.type, node.name) for
-                         relation,
-                         node in node_tpl.relationships.items()])
+                        [(relations[0].type, relations[0].target.name) for
+                         relations in node_tpl.relationships])
             if node_tpl.name == 'my_server':
                     self.assertEqual(
                         [('tosca.relationships.AttachesTo', 'my_storage')],
-                        [(relation.type, node.name) for
-                         relation,
-                         node in node_tpl.relationships.items()])
+                        [(relations[0].type, relations[0].target.name) for
+                         relations in node_tpl.relationships])
 
     def test_template_requirements_not_implemented(self):
         # TODO(spzala): replace this test with new one once TOSCA types look up
@@ -389,7 +386,7 @@ class ToscaTemplateTest(TestCase):
     def _requirements_not_implemented(self, tpl_snippet, tpl_name):
         self.assertRaises(
             NotImplementedError,
-            lambda: _get_nodetemplate(tpl_name, tpl_snippet).relationships)
+            lambda: _get_nodetemplate(tpl_snippet, tpl_name).relationships)
 
     # Test the following:
     # 1. Custom node type derived from 'WebApplication' named 'TestApp'
@@ -434,8 +431,6 @@ class ToscaTemplateTest(TestCase):
             test_cap:
                type: tosca.capabilities.TestCapability
         '''
-        custom_def = (toscaparser.utils.yamlparser.
-                      simple_parse(custom_def))
         tpl = _get_nodetemplate(tpl_snippet, None, custom_def)
         err = self.assertRaises(
             exception.InvalidTypeError,
@@ -474,7 +469,7 @@ class ToscaTemplateTest(TestCase):
         self.assertEqual(expected_description, tosca.description)
         self.assertEqual(
             expected_nodetemplates,
-            tosca.nodetemplates[0].templates,
+            tosca.topology_template._tpl_nodetemplates,
         )
 
     def test_local_template_with_local_relpath_import(self):
@@ -668,9 +663,9 @@ class ToscaTemplateTest(TestCase):
             "data/test_available_rel_tpls.yaml")
         tosca = ToscaTemplate(tosca_tpl)
         for node in tosca.nodetemplates:
-            for relationship, target in node.relationships.items():
+            for relations in node.relationships:
                 try:
-                    target.relationships
+                    relations[0].target.relationships
                 except TypeError as error:
                     self.fail(error)
 

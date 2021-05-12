@@ -163,7 +163,7 @@ class ToscaTemplateValidationTest(TestCase):
         tpl2 = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet2))
         err2 = self.assertRaises(KeyError,
                                  TopologyTemplate, tpl2, None)
-        expectedmessage2 = _('\'Node template "front_end1" was not found.\'')
+        expectedmessage2 = _('\'template "front_end1" was not found.\'')
         self.assertEqual(expectedmessage2, err2.__str__())
         # test case 3
         tpl_snippet3 = '''
@@ -541,13 +541,13 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               url: https://github.com/nandinivemula/intern
               credential:
                  user: nandini
-                 password: tcs@12345
+                 token: tcs@12345
            repo_code2:
               description: My Project's code Repository in github.
               url: https://github.com/nandinivemula/intern
               credential:
                  user: xyzw
-                 password: xyz@123
+                 token: xyz@123
         '''
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         repoobject = self._repo_content(tpl)
@@ -568,13 +568,13 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               description: My project's code Repository in github usercontent.
               credential:
                  user: nandini
-                 password: tcs@12345
+                 token: tcs@12345
            repo_code2:
               description: My Project's code Repository in github.
               url: https://github.com/nandinivemula/intern
               credential:
                  user: xyzw
-                 password: xyz@123
+                 token: xyz@123
         '''
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         err = self.assertRaises(exception.MissingRequiredFieldError,
@@ -592,13 +592,13 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               url: https://github.com/nandinivemula/intern
               credential:
                  user: nandini
-                 password: tcs@12345
+                 token: tcs@12345
            repo_code2:
               descripton: My Project's code Repository in github.
               url: https://github.com/nandinivemula/intern
               credential:
                  user: xyzw
-                 password: xyz@123
+                 token: xyz@123
         '''
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         err = self.assertRaises(exception.UnknownFieldError,
@@ -617,13 +617,13 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               url: h
               credential:
                  user: nandini
-                 password: tcs@12345
+                 token: tcs@12345
            repo_code2:
               description: My Project's code Repository in github.
               url: https://github.com/nandinivemula/intern
               credential:
                  user: xyzw
-                 password: xyz@123
+                 token: xyz@123
         '''
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         err = self.assertRaises(exception.URLException,
@@ -821,7 +821,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               root_password: aaa
               port: 3376
         '''
-        expectedmessage = _('Node template "mysql_dbms" contains unknown '
+        expectedmessage = _('template "mysql_dbms" contains unknown '
                             'field "propertiessss". Refer to the definition '
                             'to verify valid values.')
         err = self.assertRaises(
@@ -841,7 +841,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
             requirement:
               - host: server
         '''
-        expectedmessage = _('Node template "mysql_dbms" contains unknown '
+        expectedmessage = _('template "mysql_dbms" contains unknown '
                             'field "requirement". Refer to the definition to '
                             'verify valid values.')
         err = self.assertRaises(
@@ -864,7 +864,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               Standard:
                 configure: mysql_database_configure.sh
         '''
-        expectedmessage = _('Node template "mysql_dbms" contains unknown '
+        expectedmessage = _('template "mysql_dbms" contains unknown '
                             'field "interfac". Refer to the definition to '
                             'verify valid values.')
         err = self.assertRaises(
@@ -887,7 +887,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                 properties:
                   port: { get_input: db_port }
         '''
-        expectedmessage = _('Node template "mysql_database" contains unknown '
+        expectedmessage = _('template "mysql_database" contains unknown '
                             'field "capabilitiis". Refer to the definition to '
                             'verify valid values.')
         err = self.assertRaises(
@@ -906,7 +906,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                 implementation: files/my_db_content.txt
                 type: tosca.artifacts.File
         '''
-        expectedmessage = _('Node template "mysql_database" contains unknown '
+        expectedmessage = _('template "mysql_database" contains unknown '
                             'field "artifactsss". Refer to the definition to '
                             'verify valid values.')
         err = self.assertRaises(
@@ -929,7 +929,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               Standard:
                 configure: mysql_database_configure.sh
         '''
-        expectedmessage = _('Node template "mysql_dbms" contains unknown '
+        expectedmessage = _('template "mysql_dbms" contains unknown '
                             'field "propertieees". Refer to the definition to '
                             'verify valid values.')
         err = self.assertRaises(
@@ -957,7 +957,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                  configure: mysql_database_configure.sh
 
         '''
-        expectedmessage = _('Node template "mysql_database" contains unknown '
+        expectedmessage = _('template "mysql_database" contains unknown '
                             'field "capabilitiiiies". Refer to the definition '
                             'to verify valid values.')
         err = self.assertRaises(

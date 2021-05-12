@@ -119,7 +119,7 @@ class DataTypeTest(TestCase):
                           value.get('portspec_invalid'))
         err = self.assertRaises(exception.ValidationError, data.validate)
         self.assertEqual(_('The value "xyz" of property "protocol" is not '
-                           'valid. Expected a value from "[udp, tcp, igmp]".'
+                           'valid. Expected a value from "[udp, tcp, icmp]".'
                            ),
                          err.__str__())
 

@@ -125,7 +125,7 @@ class ScalarUnitPositiveTest(TestCase):
     def test_scenario_scalar_unit_positive(self):
         tpl = self.tpl_snippet
         nodetemplates = yamlparser.simple_parse(tpl)
-        topology = TopologyTemplate({'node_templates':nodetemplates})
+        topology = TopologyTemplate({'node_templates':nodetemplates}, [])
         nodetemplate = NodeTemplate('server', topology)
         props = nodetemplate.get_capability('host').get_properties()
         prop_name = self.property

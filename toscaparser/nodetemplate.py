@@ -51,7 +51,7 @@ class NodeTemplate(EntityTemplate):
     @property
     def relationships(self):
         """
-        returns [(RelationshipTemplate: requires_tpl_dict)]
+        returns [(RelationshipTemplate, original_tpl, requires_tpl_dict)]
         """
         if self._relationships is None:
             self._relationships = []
@@ -143,7 +143,7 @@ class NodeTemplate(EntityTemplate):
                 return reqDef, None
 
         if not relTpl:
-            assert isinstance(relationship, dict) and relationship['type'] == type
+            assert isinstance(relationship, dict) and relationship['type'] == type, relationship
             relTpl = RelationshipTemplate(relationship, name, self.custom_def)
         relTpl.source = self
 
@@ -161,6 +161,7 @@ class NodeTemplate(EntityTemplate):
                             ValidationError(message = _('No matching capability "%(cname)s" found'
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'cname': reqDef['capability'], 'tname': related_node.name}))
+                        return reqDef, None
                     else:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No capability with a matching target type found'
