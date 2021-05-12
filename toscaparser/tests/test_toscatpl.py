@@ -19,10 +19,22 @@ from toscaparser.elements.portspectype import PortSpec
 from toscaparser.functions import GetInput
 from toscaparser.functions import GetProperty
 from toscaparser.nodetemplate import NodeTemplate
+from toscaparser.topology_template import TopologyTemplate
 from toscaparser.tests.base import TestCase
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.yamlparser
+
+def _get_nodetemplate(tpl_snippet, name, custom_def_snippet=None):
+    tpl = toscaparser.utils.yamlparser.simple_parse(tpl_snippet)
+    nodetemplates = tpl['node_templates']
+    custom_def = []
+    if custom_def_snippet:
+        custom_def = toscaparser.utils.yamlparser.simple_parse(custom_def_snippet)
+    topology = TopologyTemplate(tpl, custom_def)
+    if not name:
+        name = list(nodetemplates.keys())[0]
+    return NodeTemplate(name, topology, custom_def)
 
 
 class ToscaTemplateTest(TestCase):
@@ -375,11 +387,9 @@ class ToscaTemplateTest(TestCase):
         self._requirements_not_implemented(tpl_snippet_3, 'my_webserver2')
 
     def _requirements_not_implemented(self, tpl_snippet, tpl_name):
-        nodetemplates = (toscaparser.utils.yamlparser.
-                         simple_parse(tpl_snippet))['node_templates']
         self.assertRaises(
             NotImplementedError,
-            lambda: NodeTemplate(tpl_name, nodetemplates).relationships)
+            lambda: _get_nodetemplate(tpl_name, tpl_snippet).relationships)
 
     # Test the following:
     # 1. Custom node type derived from 'WebApplication' named 'TestApp'
@@ -411,12 +421,7 @@ class ToscaTemplateTest(TestCase):
               required: false
         '''
         expected_capabilities = ['app_endpoint', 'feature', 'test_cap']
-        nodetemplates = (toscaparser.utils.yamlparser.
-                         simple_parse(tpl_snippet))['node_templates']
-        custom_def = (toscaparser.utils.yamlparser.
-                      simple_parse(custom_def))
-        name = list(nodetemplates.keys())[0]
-        tpl = NodeTemplate(name, nodetemplates, custom_def)
+        tpl = _get_nodetemplate(tpl_snippet, None, custom_def)
         self.assertEqual(
             expected_capabilities,
             sorted(tpl.get_capabilities().keys()))
@@ -431,11 +436,10 @@ class ToscaTemplateTest(TestCase):
         '''
         custom_def = (toscaparser.utils.yamlparser.
                       simple_parse(custom_def))
-        tpl = NodeTemplate(name, nodetemplates, custom_def)
+        tpl = _get_nodetemplate(tpl_snippet, None, custom_def)
         err = self.assertRaises(
             exception.InvalidTypeError,
-            lambda: NodeTemplate(name, nodetemplates,
-                                 custom_def).get_capabilities_objects())
+            lambda: tpl.get_capabilities_objects())
         self.assertEqual('Type "tosca.capabilities.TestCapability" is not '
                          'a valid type.', six.text_type(err))
 

@@ -702,7 +702,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         '''
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         expectedmessage = _('"Target member "serv" is not found in '
-                            'node_templates"')
+                            'node_templates or groups"')
         err = self.assertRaises(exception.InvalidGroupTargetException,
                                 TopologyTemplate, tpl, None)
         self.assertEqual(expectedmessage, err.__str__())
@@ -775,10 +775,11 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         return custom_types
 
     def _single_node_template_content_test(self, tpl_snippet):
-        nodetemplates = (toscaparser.utils.yamlparser.
-                         simple_ordered_parse(tpl_snippet))['node_templates']
+        tpl = toscaparser.utils.yamlparser.simple_parse(tpl_snippet)
+        nodetemplates = tpl['node_templates']
         name = list(nodetemplates.keys())[0]
-        nodetemplate = NodeTemplate(name, nodetemplates,
+        topology = TopologyTemplate(tpl, self._custom_types())
+        nodetemplate = NodeTemplate(name, topology,
                                     self._custom_types())
         nodetemplate.validate()
         nodetemplate.requirements

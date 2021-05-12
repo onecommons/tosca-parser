@@ -15,6 +15,7 @@ from toscaparser.elements.scalarunit import ScalarUnit_Frequency
 from toscaparser.elements.scalarunit import ScalarUnit_Size
 from toscaparser.elements.scalarunit import ScalarUnit_Time
 from toscaparser.nodetemplate import NodeTemplate
+from toscaparser.topology_template import TopologyTemplate
 from toscaparser.tests.base import TestCase
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils import yamlparser
@@ -124,7 +125,8 @@ class ScalarUnitPositiveTest(TestCase):
     def test_scenario_scalar_unit_positive(self):
         tpl = self.tpl_snippet
         nodetemplates = yamlparser.simple_parse(tpl)
-        nodetemplate = NodeTemplate('server', nodetemplates)
+        topology = TopologyTemplate({'node_templates':nodetemplates})
+        nodetemplate = NodeTemplate('server', topology)
         props = nodetemplate.get_capability('host').get_properties()
         prop_name = self.property
         if props and prop_name in props.keys():
@@ -316,7 +318,8 @@ class ScalarUnitNegativeTest(TestCase):
             mem_size: 1 QB
         '''
         nodetemplates = yamlparser.simple_parse(tpl_snippet)
-        nodetemplate = NodeTemplate('server', nodetemplates, self.custom_def)
+        topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
+        nodetemplate = NodeTemplate('server', topology, self.custom_def)
         for p in nodetemplate.get_properties_objects():
             self.assertRaises(ValueError, p.validate)
 
@@ -332,7 +335,8 @@ class ScalarUnitNegativeTest(TestCase):
             mem_size: 1 MB
         '''
         nodetemplates = yamlparser.simple_parse(tpl_snippet)
-        nodetemplate = NodeTemplate('server', nodetemplates, self.custom_def)
+        topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
+        nodetemplate = NodeTemplate('server', topology, self.custom_def)
         props = nodetemplate.get_properties()
         if 'cpu_frequency' in props.keys():
             error = self.assertRaises(exception.ValidationError,

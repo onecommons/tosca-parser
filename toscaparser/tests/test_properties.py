@@ -15,6 +15,7 @@ from testtools import matchers
 from toscaparser.common import exception
 from toscaparser.elements.property_definition import PropertyDef
 from toscaparser.nodetemplate import NodeTemplate
+from toscaparser.topology_template import TopologyTemplate
 from toscaparser.properties import Property
 from toscaparser.tests.base import TestCase
 from toscaparser.utils.gettextutils import _
@@ -323,14 +324,16 @@ class PropertyTest(TestCase):
         self.assertIsNone(tpl2.validate())
 
     def _get_nodetemplate(self, tpl_snippet,
-                          custom_def_snippet=None):
-        nodetemplates = yamlparser.\
-            simple_parse(tpl_snippet)['node_templates']
+                          custom_def_snippet=None, name=None):
+        tpl = yamlparser.simple_parse(tpl_snippet)
+        nodetemplates =  tpl['node_templates']
         custom_def = []
         if custom_def_snippet:
             custom_def = yamlparser.simple_parse(custom_def_snippet)
-        name = list(nodetemplates.keys())[0]
-        tpl = NodeTemplate(name, nodetemplates, custom_def)
+        if not name:
+            name = list(nodetemplates.keys())[0]
+        topology = TopologyTemplate(tpl, custom_def)
+        tpl = NodeTemplate(name, topology, custom_def)
         return tpl
 
     def test_explicit_relationship_proprety(self):
@@ -356,9 +359,7 @@ class PropertyTest(TestCase):
 
         expected_properties = ['location']
 
-        nodetemplates = yamlparser.\
-            simple_parse(tosca_node_template)['node_templates']
-        tpl = NodeTemplate('client_node', nodetemplates, [])
+        tpl = self._get_nodetemplate(tosca_node_template, [], 'client_node')
 
         self.assertIsNone(tpl.validate())
         rel_tpls = []
