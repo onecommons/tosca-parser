@@ -43,13 +43,12 @@ class TopologyTemplate(object):
 
     '''Load the template data.'''
     def __init__(self, template, custom_defs,
-                 rel_types=None, parsed_params=None,
+                 parsed_params=None,
                  sub_mapped_node_template=None):
         self.tpl = template
         self.sub_mapped_node_template = sub_mapped_node_template
         if self.tpl:
-            self.custom_defs = custom_defs
-            self.rel_types = rel_types
+            self.custom_defs = custom_defs or {}
             self.parsed_params = parsed_params
             self._validate_field()
             self.description = self._tpl_description()
@@ -102,8 +101,7 @@ class TopologyTemplate(object):
                     name,
                     self,
                     self.custom_defs,
-                    self.relationship_templates,
-                    self.rel_types,
+                    self.relationship_templates
                 )
                 # why these tests? defeats validation
                 # if (tpl.type_definition and
@@ -126,9 +124,7 @@ class TopologyTemplate(object):
             name,
             self,
             self.custom_defs,
-            self.relationship_templates,
-            self.rel_types,
-        )
+            self.relationship_templates)
         node.validate(self)
         node.relationships # this will update the relationship_tpl of the target node
         self.node_templates[name] = node

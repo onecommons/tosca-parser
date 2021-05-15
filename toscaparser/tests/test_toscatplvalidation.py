@@ -163,7 +163,7 @@ class ToscaTemplateValidationTest(TestCase):
         tpl2 = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet2))
         err2 = self.assertRaises(KeyError,
                                  TopologyTemplate, tpl2, None)
-        expectedmessage2 = _('\'template "front_end1" was not found.\'')
+        expectedmessage2 = _('\'Node template "front_end1" was not found.\'')
         self.assertEqual(expectedmessage2, err2.__str__())
         # test case 3
         tpl_snippet3 = '''
@@ -579,7 +579,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         err = self.assertRaises(exception.MissingRequiredFieldError,
                                 self._repo_content, tpl)
-        expectedmessage = _('Repository "repo_code1" is missing '
+        expectedmessage = _('repository "repo_code1" is missing '
                             'required field "url".')
         self.assertEqual(expectedmessage, err.__str__())
 
@@ -603,7 +603,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         err = self.assertRaises(exception.UnknownFieldError,
                                 self._repo_content, tpl)
-        expectedmessage = _('repositories "repo_code2" contains unknown field'
+        expectedmessage = _('repository "repo_code2" contains unknown field'
                             ' "descripton". Refer to the definition to verify'
                             ' valid values.')
         self.assertEqual(expectedmessage, err.__str__())
@@ -628,7 +628,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         tpl = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         err = self.assertRaises(exception.URLException,
                                 self._repo_content, tpl)
-        expectedmessage = _('repsositories "repo_code1" Invalid Url')
+        expectedmessage = _('repository "repo_code1": Invalid Url "h"')
         self.assertEqual(expectedmessage, err.__str__())
 
     def test_groups(self):
@@ -1605,7 +1605,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                     simple_parse(tpl_snippet))['policies'][0]
         name = list(policies.keys())[0]
 
-        expectedmessage = _('Policy "servers_placement" contains '
+        expectedmessage = _('template "servers_placement" contains '
                             'unknown field "testkey". Refer to the '
                             'definition to verify valid values.')
         err = self.assertRaises(

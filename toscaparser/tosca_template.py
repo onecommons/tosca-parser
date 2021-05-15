@@ -33,14 +33,14 @@ import toscaparser.utils.yamlparser
 # TOSCA template key names
 SECTIONS = (DEFINITION_VERSION, DEFAULT_NAMESPACE, TEMPLATE_NAME,
             TOPOLOGY_TEMPLATE, TEMPLATE_AUTHOR, TEMPLATE_VERSION,
-            DESCRIPTION, IMPORTS, DSL_DEFINITIONS, NODE_TYPES,
+            DESCRIPTION, IMPORTS, DSL_DEFINITIONS, TYPES, NODE_TYPES,
             RELATIONSHIP_TYPES, RELATIONSHIP_TEMPLATES,
             CAPABILITY_TYPES, ARTIFACT_TYPES, DATA_TYPES, INTERFACE_TYPES,
             POLICY_TYPES, GROUP_TYPES, REPOSITORIES) = \
            ('tosca_definitions_version', 'tosca_default_namespace',
             'template_name', 'topology_template', 'template_author',
             'template_version', 'description', 'imports', 'dsl_definitions',
-            'node_types', 'relationship_types', 'relationship_templates',
+            'types', 'node_types', 'relationship_types', 'relationship_templates',
             'capability_types', 'artifact_types', 'data_types',
             'interface_types', 'policy_types', 'group_types', 'repositories')
 # Sections that are specific to individual template definitions
@@ -100,7 +100,6 @@ class ToscaTemplate(object):
             self._validate_field()
             self.version = self._tpl_version()
             # XXX causes imports to be loaded twice
-            self.relationship_types = self._tpl_relationship_types()
             self.description = self._tpl_description()
             self.topology_template = self._topology_template()
             self.repositories = self._tpl_repositories()
@@ -118,7 +117,6 @@ class ToscaTemplate(object):
     def _topology_template(self):
         return TopologyTemplate(self._tpl_topology_template(),
                                 self._get_all_custom_defs(),
-                                self.relationship_types,
                                 self.parsed_params,
                                 None)
 
@@ -150,10 +148,6 @@ class ToscaTemplate(object):
         repositories = self.tpl.get(REPOSITORIES) or {}
         return {name:Repository(name, val) for name, val in repositories.items()}
 
-    def _tpl_relationship_types(self):
-        custom_rel, _ = self._get_custom_types(RELATIONSHIP_TYPES)
-        return custom_rel
-
     def _tpl_relationship_templates(self):
         topology_template = self._tpl_topology_template()
         return topology_template.get(RELATIONSHIP_TEMPLATES)
@@ -165,7 +159,7 @@ class ToscaTemplate(object):
         return self.topology_template.policies
 
     def _get_all_custom_defs(self, imports=None, path=None):
-        types = [IMPORTS, NODE_TYPES, CAPABILITY_TYPES, RELATIONSHIP_TYPES,
+        types = [IMPORTS, TYPES, NODE_TYPES, CAPABILITY_TYPES, RELATIONSHIP_TYPES,
                  DATA_TYPES, ARTIFACT_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
         custom_defs_final = {}
 
@@ -237,10 +231,8 @@ class ToscaTemplate(object):
             if topology_tpl:
                 custom_types = self._get_all_custom_defs().copy()
                 custom_types.update(tosca_tpl.get('node_types', {}))
-                rel_types = self.relationship_types.copy()
-                rel_types.update(tosca_tpl.get('relationship_types', {}))
                 self.nested_topologies[filename] = TopologyTemplate(
-                                topology_tpl, custom_types, rel_types)
+                                topology_tpl, custom_types)
 
         # if a nodetemplate should be substituted, set its sub_mapping_tosca_template
         for nodetemplate in self.nodetemplates:

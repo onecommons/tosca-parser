@@ -31,7 +31,7 @@ log = logging.getLogger('tosca')
 class NodeTemplate(EntityTemplate):
     '''Node template from a Tosca profile.'''
     def __init__(self, name, topology_template, custom_def=None,
-                 available_rel_tpls=None, available_rel_types=None):
+                 available_rel_tpls=None):
         node_templates = topology_template._tpl_nodetemplates()
         super(NodeTemplate, self).__init__(name, node_templates[name],
                                            'node_type',
@@ -42,7 +42,6 @@ class NodeTemplate(EntityTemplate):
         self.related = {}
         self.relationship_tpl = []
         self.available_rel_tpls = available_rel_tpls or []
-        self.available_rel_types = available_rel_types or []
         self._relationships = None
         self.sub_mapping_tosca_template = None
         self._artifacts = None
@@ -126,7 +125,8 @@ class NodeTemplate(EntityTemplate):
                              '"%s"') % self.name,
                       required=self.TYPE))
               return reqDef, None
-        elif relationship in self.available_rel_types:
+        elif relationship in self.custom_def:
+            type = relationship
             relationship = dict(type = relationship) # it's the name of a type
         else:
             # it's the name of a relationship template
@@ -143,7 +143,7 @@ class NodeTemplate(EntityTemplate):
                 return reqDef, None
 
         if not relTpl:
-            assert isinstance(relationship, dict) and relationship['type'] == type, relationship
+            assert isinstance(relationship, dict) and relationship['type'] == type, (relationship, type)
             relTpl = RelationshipTemplate(relationship, name, self.custom_def)
         relTpl.source = self
 
