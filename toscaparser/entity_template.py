@@ -300,13 +300,19 @@ class EntityTemplate(object):
                     what='Template "%s"' % self.name, required=self.TYPE))
 
     def _common_validate_field(self, schema, allowedlist, section):
-        for name in schema:
-            if name not in allowedlist:
-                ExceptionCollector.appendException(
-                    UnknownFieldError(
-                        what=('"%(section)s" of template "%(nodename)s"'
-                              % {'section': section, 'nodename': self.name}),
-                        field=name))
+        if schema is None:
+            ExceptionCollector.appendException(
+                ValidationError(
+                    message=('Missing value for "%s". Must contain one of: "%s"'
+                             % (section, ", ".join(allowedlist)))))
+        else:
+            for name in schema:
+                if name not in allowedlist:
+                    ExceptionCollector.appendException(
+                        UnknownFieldError(
+                            what=('"%(section)s" of template "%(nodename)s"'
+                                  % {'section': section, 'nodename': self.name}),
+                            field=name))
 
     def _validate_fields(self, template):
         for name in template.keys():
