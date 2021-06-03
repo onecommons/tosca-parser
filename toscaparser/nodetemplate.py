@@ -125,7 +125,8 @@ class NodeTemplate(EntityTemplate):
                              '"%s"') % self.name,
                       required=self.TYPE))
               return reqDef, None
-        elif relationship in self.custom_def:
+        elif (relationship in self.custom_def
+                or relationship in self.type_definition.RELATIONSHIP_TYPE):
             type = relationship
             relationship = dict(type = relationship) # it's the name of a type
         else:

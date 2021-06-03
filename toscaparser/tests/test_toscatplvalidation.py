@@ -20,6 +20,7 @@ from toscaparser.parameters import Input
 from toscaparser.parameters import Output
 from toscaparser.policy import Policy
 from toscaparser.relationship_template import RelationshipTemplate
+from toscaparser.entity_template import EntityTemplate
 from toscaparser.repositories import Repository
 from toscaparser.reservation import Reservation
 from toscaparser.tests.base import TestCase
@@ -478,13 +479,12 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         imports:
           - some_definitions: abc.com/tests/data/tosca_elk.yaml
         '''
-        errormsg = _('Import "abc.com/tests/data/tosca_elk.yaml" is not '
-                     'valid.')
+        errormsg = "No such file or directory"
         path = 'toscaparser/tests/data/tosca_elk.yaml'
-        err = self.assertRaises(ImportError,
+        err = self.assertRaises(FileNotFoundError,
                                 self._imports_content_test,
                                 tpl_snippet, path, None)
-        self.assertEqual(errormsg, err.__str__())
+        self.assertIn(errormsg, err.__str__())
 
     def test_outputs(self):
         tpl_snippet = '''
@@ -636,9 +636,6 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         node_templates:
           server:
             type: tosca.nodes.Compute
-            requirements:
-              - log_endpoint:
-                  capability: log_endpoint
 
           mysql_dbms:
             type: tosca.nodes.DBMS
@@ -774,11 +771,11 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
             custom_types[name] = defintion
         return custom_types
 
-    def _single_node_template_content_test(self, tpl_snippet):
+    def _single_node_template_content_test(self, tpl_snippet, inputs=None):
         tpl = toscaparser.utils.yamlparser.simple_parse(tpl_snippet)
         nodetemplates = tpl['node_templates']
         name = list(nodetemplates.keys())[0]
-        topology = TopologyTemplate(tpl, self._custom_types())
+        topology = TopologyTemplate(tpl, self._custom_types(), inputs)
         nodetemplate = NodeTemplate(name, topology,
                                     self._custom_types())
         nodetemplate.validate()
@@ -1011,17 +1008,20 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         self.assertEqual(expectedmessage, err.__str__())
 
         tpl_snippet = '''
+        inputs:
+          db_test:
+            type: string
         node_templates:
           mysql_database:
             type: tosca.nodes.Database
             properties:
-              db_name: { get_input: db_name }
-              db_user: { get_input: db_user }
-              db_password: { get_input: db_pwd }
+              db_name: { get_input: db_test }
+              db_user: { get_input: db_test }
+              db_password: { get_input: db_test }
             capabilities:
               database_endpoint:
                 properties:
-                  port: { get_input: db_port }
+                  port: { get_input: db_test }
             requirements:
               - host: mysql_dbms
               - database_endpoint: mysql_database
@@ -1029,12 +1029,10 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               Standard:
                  configure: mysql_database_configure.sh
         '''
-        expectedmessage = _('"requirements" of template "mysql_database" '
-                            'contains unknown field "database_endpoint". '
-                            'Refer to the definition to verify valid values.')
+        expectedmessage = 'No matching target template found for requirement "host" of node "mysql_database".'
         err = self.assertRaises(
-            exception.UnknownFieldError,
-            lambda: self._single_node_template_content_test(tpl_snippet))
+            exception.ValidationError,
+            lambda: self._single_node_template_content_test(tpl_snippet, dict(db_test="test")))
         self.assertEqual(expectedmessage, err.__str__())
 
     def test_node_template_requirements_with_wrong_node_keyname(self):
@@ -1272,7 +1270,12 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                   capability: log_endpoint
                   occurrences: [2, 2]
         '''
-        self._single_node_template_content_test(tpl_snippet)
+        expectedmessage = 'No matching target template found for requirement "log_endpoint" of node "server".'
+        err = self.assertRaises(
+            exception.ValidationError,
+            lambda: self._single_node_template_content_test(tpl_snippet))
+        self.assertEqual(expectedmessage, err.__str__())
+
 
     def test_node_template_capabilities(self):
         tpl_snippet = '''
@@ -1303,6 +1306,10 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
 
     def test_node_template_properties(self):
         tpl_snippet = '''
+        inputs:
+          cpus:
+            type: integer
+            default: 1
         node_templates:
           server:
             type: tosca.nodes.Compute
@@ -1321,6 +1328,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                   distribution: Fedora
                   version: 18.0
         '''
+        EntityTemplate.additionalProperties = False
         expectedmessage = _('"properties" of template "server" contains '
                             'unknown field "os_image". Refer to the '
                             'definition to verify valid values.')
@@ -1427,9 +1435,8 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         rel_template = (toscaparser.utils.yamlparser.
                         simple_parse(tpl_snippet))['relationship_templates']
         name = list(rel_template.keys())[0]
-        rel_template = RelationshipTemplate(rel_template[name], name)
         err = self.assertRaises(exception.MissingRequiredFieldError,
-                                rel_template.validate)
+                                lambda: RelationshipTemplate(rel_template[name], name))
         self.assertEqual(expectedmessage, six.text_type(err))
 
     def test_invalid_template_version(self):

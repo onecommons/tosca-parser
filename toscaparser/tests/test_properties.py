@@ -363,7 +363,7 @@ class PropertyTest(TestCase):
 
         self.assertIsNone(tpl.validate())
         rel_tpls = []
-        for relationship, trgt in tpl.relationships.items():
-            rel_tpls.extend(trgt.get_relationship_template())
+        for relationship in tpl.relationships:
+            rel_tpls.extend(relationship[0].target.get_relationship_template())
         self.assertEqual(expected_properties,
                          sorted(rel_tpls[0].get_properties().keys()))

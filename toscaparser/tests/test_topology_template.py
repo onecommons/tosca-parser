@@ -119,10 +119,10 @@ class TopologyTemplateTest(TestCase):
                 '''
                 self.assertEqual(
                     expected_relationshp,
-                    [x.type for x in tpl.relationships.keys()])
+                    [r[0].type for r in tpl.relationships])
                 self.assertEqual(
                     expected_host,
-                    [y.name for y in tpl.relationships.values()])
+                    [r[0].target.name for r in tpl.relationships])
                 '''Test interfaces.'''
                 # TODO(hurf) add interface test when new template is available
 
