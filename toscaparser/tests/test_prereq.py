@@ -113,7 +113,7 @@ class CSARPrereqTest(TestCase):
         path = os.path.join(self.base_path,
                             "data/CSAR/csar_wordpress_invalid_import_path.zip")
         csar = CSAR(path)
-        error = self.assertRaises(ImportError, csar.validate)
+        error = self.assertRaises(URLException, csar.validate)
         self.assertEqual(_('Import "Invalid_import_path/wordpress.yaml" is'
                            ' not valid.'), str(error))
         self.assertTrue(csar.temp_dir is None or
@@ -124,11 +124,11 @@ class CSARPrereqTest(TestCase):
                             "data/CSAR/csar_wordpress_invalid_import_url.zip")
         csar = CSAR(path)
         error = self.assertRaises(URLException, csar.validate)
-        self.assertEqual(_('Failed to reach server '
+        self.assertEqual(_('Import '
                            '"https://raw.githubusercontent.com/openstack/'
                            'tosca-parser/master/toscaparser/tests/data/CSAR/'
                            'tosca_single_instance_wordpress/Definitions/'
-                           'wordpress1.yaml". Reason is: Not Found.'),
+                           'wordpress1.yaml" is not valid.'),
                          str(error))
         self.assertTrue(csar.temp_dir is None or
                         not os.path.exists(csar.temp_dir))

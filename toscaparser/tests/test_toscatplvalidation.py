@@ -300,20 +300,21 @@ class ToscaTemplateValidationTest(TestCase):
         loader = ImportsLoader(imports, path, custom_type_def)
         return loader.get_custom_defs()
 
-    def test_imports_without_templates(self):
-        tpl_snippet = '''
-        imports:
-          # omitted here for brevity
-        '''
-        path = 'toscaparser/tests/data/tosca_elk.yaml'
-        errormsg = _('"imports" keyname is defined without including '
-                     'templates.')
-        err = self.assertRaises(exception.ValidationError,
-                                self._imports_content_test,
-                                tpl_snippet,
-                                path,
-                                "node_types")
-        self.assertEqual(errormsg, err.__str__())
+    # no longer an error
+    # def test_imports_without_templates(self):
+    #     tpl_snippet = '''
+    #     imports:
+    #       # omitted here for brevity
+    #     '''
+    #     path = 'toscaparser/tests/data/tosca_elk.yaml'
+    #     errormsg = _('"imports" keyname is defined without including '
+    #                  'templates.')
+    #     err = self.assertNotRaises(exception.ValidationError,
+    #                             self._imports_content_test,
+    #                             tpl_snippet,
+    #                             path,
+    #                             "node_types")
+    #     self.assertEqual(errormsg, err.__str__())
 
     def test_imports_with_name_without_templates(self):
         tpl_snippet = '''
@@ -470,7 +471,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
              namespace_uri: http://docs.oasis-open.org/tosca/ns/simple/yaml/1.0
         '''
         path = 'toscaparser/tests/data/tosca_elk.yaml'
-        self.assertRaises(ImportError,
+        self.assertRaises(exception.URLException,
                           self._imports_content_test,
                           tpl_snippet, path, None)
 
@@ -479,9 +480,9 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         imports:
           - some_definitions: abc.com/tests/data/tosca_elk.yaml
         '''
-        errormsg = "No such file or directory"
+        errormsg = "is not valid."
         path = 'toscaparser/tests/data/tosca_elk.yaml'
-        err = self.assertRaises(FileNotFoundError,
+        err = self.assertRaises(exception.URLException,
                                 self._imports_content_test,
                                 tpl_snippet, path, None)
         self.assertIn(errormsg, err.__str__())

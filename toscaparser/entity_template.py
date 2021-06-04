@@ -451,14 +451,15 @@ class EntityTemplate(object):
                 interfaces.append(iface)
 
             # add a "default" operation that has the shared inputs and implementation
-            iface = InterfacesDef(self.type_definition,
-                                  interfacetype=interface_type,
-                                  node_template=self,
-                                  name='default',
-                                  value=dict(implementation=implementation,
-                                              _source=_source),
-                                  inputs=inputs, outputs=outputs)
-            interfaces.append(iface)
+            if inputs or implementation:
+                iface = InterfacesDef(self.type_definition,
+                                      interfacetype=interface_type,
+                                      node_template=self,
+                                      name='default',
+                                      value=dict(implementation=implementation,
+                                                  _source=_source),
+                                      inputs=inputs, outputs=outputs)
+                interfaces.append(iface)
         return interfaces
 
     def _validate_interfaces(self):

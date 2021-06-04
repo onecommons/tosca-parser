@@ -35,7 +35,8 @@ class PortSpec(dict):
         'target', 'target_range'
     )
 
-    def __str__(self):
+    @property
+    def spec(self):
         """
         Translate a `tosca:PortSpec` into a string like "source-range:target-range/udp"
         or "source:target" or just "source" if target is missing or the same.
@@ -75,6 +76,13 @@ class PortSpec(dict):
             source_range = self.get(PortSpec.SOURCE_RANGE)
             target = self.get(PortSpec.TARGET)
             target_range = self.get(PortSpec.TARGET_RANGE)
+
+            # # use setdefault() to make sure attributes exist
+            # source = self.setdefault(PortSpec.SOURCE, None)
+            # source_range = self.setdefault(PortSpec.SOURCE_RANGE, None)
+            # target = self.setdefault(PortSpec.TARGET, None)
+            # target_range = self.setdefault(PortSpec.TARGET_RANGE, None)
+            # self.setdefault(PortSpec.PROTOCOL, None)
 
             # verify one of the specified values is set
             if source is None and source_range is None and \

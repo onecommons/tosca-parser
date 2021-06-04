@@ -25,9 +25,12 @@ from toscaparser.utils import validateutils
 
 
 class ValueDataType(object):
-    def __init__(self, type, defs):
+    def __init__(self, type):
         self.value_type = type
-        self.defs = defs
+        if type == "PortDef":
+            self.defs = DataType.TOSCA_DEF["tosca.datatypes.network.PortDef"]
+        else:
+            self.defs = dict(type=type)
 
 
 class DataEntity(object):
@@ -37,7 +40,7 @@ class DataEntity(object):
         self.custom_def = custom_def
         self.type = datatypename
         if datatypename in Schema.PROPERTY_TYPES:
-            self.datatype = ValueDataType(datatypename, {})
+            self.datatype = ValueDataType(datatypename)
             self.schema = {}
         else:
             self.datatype = DataType(datatypename, custom_def)

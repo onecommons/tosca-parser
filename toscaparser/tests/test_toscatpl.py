@@ -88,7 +88,7 @@ class ToscaTemplateTest(TestCase):
         expected_relationshp = ['tosca.relationships.HostedOn']
         expected_host = ['mysql_dbms']
         '''
-        expected_interface = [ifaces.LIFECYCLE_SHORTNAME]
+        expected_interface = [ifaces.LIFECYCLE]
 
         for tpl in self.tosca.nodetemplates:
             if tpl_name == tpl.name:
@@ -170,16 +170,16 @@ class ToscaTemplateTest(TestCase):
             node for node in self.tosca.nodetemplates
             if node.name == 'wordpress'][0]
         interfaces = wordpress_node.interfaces
-        self.assertEqual(2, len(interfaces))
+        self.assertEqual(3, len(interfaces), [i.name for i in interfaces])
         for interface in interfaces:
             if interface.name == 'create':
-                self.assertEqual(ifaces.LIFECYCLE_SHORTNAME,
+                self.assertEqual(ifaces.LIFECYCLE,
                                  interface.type)
                 self.assertEqual('wordpress/wordpress_install.sh',
                                  interface.implementation)
-                self.assertIsNone(interface.inputs)
+                # self.assertIsNone(interface.inputs)
             elif interface.name == 'configure':
-                self.assertEqual(ifaces.LIFECYCLE_SHORTNAME,
+                self.assertEqual(ifaces.LIFECYCLE,
                                  interface.type)
                 self.assertEqual('wordpress/wordpress_configure.sh',
                                  interface.implementation)
@@ -194,7 +194,7 @@ class ToscaTemplateTest(TestCase):
                                  wp_db_port.args)
                 result = wp_db_port.result()
                 self.assertIsInstance(result, GetInput)
-            else:
+            elif interface.name != 'default':
                 raise AssertionError(
                     'Unexpected interface: {0}'.format(interface.name))
 
@@ -211,7 +211,7 @@ class ToscaTemplateTest(TestCase):
         for tpl in tosca_tpl.nodetemplates:
             compute_type = NodeType(tpl.type)
             self.assertEqual(
-                sorted(['tosca.capabilities.Container',
+                sorted(['tosca.capabilities.Compute',
                         'tosca.capabilities.Endpoint.Admin',
                         'tosca.capabilities.Node',
                         'tosca.capabilities.OperatingSystem',
@@ -236,7 +236,7 @@ class ToscaTemplateTest(TestCase):
         template = ToscaTemplate(self.tosca_elk_tpl)
         for node_tpl in template.nodetemplates:
             if node_tpl.name == 'logstash':
-                config_interface = 'Configure'
+                config_interface = 'tosca.interfaces.relationship.Configure'
                 artifact = 'logstash/configure_elasticsearch.py'
                 for relations in node_tpl.relationships:
                     rel_tpl = relations[0]
@@ -340,7 +340,7 @@ class ToscaTemplateTest(TestCase):
           mysql_database:
             type: tosca.nodes.Database
             description: Requires a particular node type and relationship.
-                        To be full-filled via lookup into node repository.
+                        To be fullfilled via lookup into node repository.
             requirements:
               - req1:
                   node: tosca.nodes.DBMS
@@ -352,11 +352,11 @@ class ToscaTemplateTest(TestCase):
           my_webserver:
             type: tosca.nodes.WebServer
             description: Requires a particular node type with a filter.
-                         To be full-filled via lookup into node repository.
+                         To be fullfilled via lookup into node repository.
             requirements:
               - req1:
                   node: tosca.nodes.Compute
-                  target_filter:
+                  node_filter:
                     properties:
                       num_cpus: { in_range: [ 1, 4 ] }
                       mem_size: { greater_or_equal: 2 }
@@ -372,7 +372,7 @@ class ToscaTemplateTest(TestCase):
           my_webserver2:
             type: tosca.nodes.WebServer
             description: Requires a node type with a particular capability.
-                         To be full-filled via lookup into node repository.
+                         To be fullfilled via lookup into node repository.
             requirements:
               - req1:
                   node: tosca.nodes.Compute
@@ -385,7 +385,7 @@ class ToscaTemplateTest(TestCase):
 
     def _requirements_not_implemented(self, tpl_snippet, tpl_name):
         self.assertRaises(
-            NotImplementedError,
+            exception.ValidationError,
             lambda: _get_nodetemplate(tpl_snippet, tpl_name).relationships)
 
     # Test the following:
@@ -579,9 +579,10 @@ class ToscaTemplateTest(TestCase):
         exception.ExceptionCollector.assertExceptionMessage(
             exception.InvalidTemplateVersion, err1_msg)
 
-        err2_msg = _('Import "custom_types/not_there.yaml" is not valid.')
+        path = os.path.abspath(os.path.join(os.path.dirname(tosca_tpl), "custom_types/not_there.yaml"))
+        err2_msg = _('Import "%s" is not valid.') % path
         exception.ExceptionCollector.assertExceptionMessage(
-            ImportError, err2_msg)
+            exception.URLException, err2_msg)
 
         err3_msg = _('Type "tosca.nodes.WebApplication.WordPress" is not a '
                      'valid type.')
@@ -873,7 +874,7 @@ class ToscaTemplateTest(TestCase):
         self.assertEqual(rel.type, "tosca.relationships.HostedOn")
         self.assertTrue(rel.is_derived_from("tosca.relationships.Root"))
         self.assertEqual(len(rel.interfaces), 1)
-        self.assertEqual(rel.interfaces[0].type, "Configure")
+        self.assertEqual(rel.interfaces[0].type, "tosca.interfaces.relationship.Configure")
 
     def test_various_portspec_errors(self):
         tosca_tpl = os.path.join(
@@ -949,4 +950,4 @@ class ToscaTemplateTest(TestCase):
         csar_archive = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             'data/CSAR/csar_relative_path_import_check.zip')
-        self.assertTrue(ToscaTemplate(csar_archive))
+        self.assertTrue(ToscaTemplate(csar_archive, parsed_params=dict(selected_flavour="")))

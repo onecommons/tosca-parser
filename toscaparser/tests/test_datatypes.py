@@ -195,7 +195,7 @@ class DataTypeTest(TestCase):
         input = Input(name, attrs)
         self.assertIsNone(input.validate(3360))
         err = self.assertRaises(exception.ValidationError, input.validate,
-                                336000)
+                                3336000)
         self.assertEqual(_('The value "336000" of property "None" is out of '
                            'range "(min:1, max:65535)".'),
                          err.__str__())

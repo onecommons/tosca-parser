@@ -175,7 +175,8 @@ class IntrinsicFunctionsTest(TestCase):
                               parsed_params={'db_root_pwd': '1234'})
 
         for node in tosca.nodetemplates:
-            for relationship, trgt in node.relationships.items():
+            for relationship in node.relationships:
+                trgt = relationship[0].target
                 rel_template = trgt.get_relationship_template()[0]
                 break
 
@@ -319,7 +320,8 @@ class GetAttributeTest(TestCase):
                               parsed_params={'db_root_pwd': '12345678'})
 
         for node in tosca.nodetemplates:
-            for relationship, trgt in node.relationships.items():
+            for relationship in node.relationships:
+                trgt = relationship[0].target
                 rel_template = trgt.get_relationship_template()[0]
                 break
 

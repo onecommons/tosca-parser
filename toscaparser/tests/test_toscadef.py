@@ -54,7 +54,7 @@ class ToscaDefTest(TestCase):
         self.assertEqual(network_port_type.type, "tosca.nodes.network.Port")
 
     def test_parent_type(self):
-        self.assertEqual(compute_type.parent_type.type, "tosca.nodes.Root")
+        self.assertEqual(compute_type.parent_type.type, "tosca.nodes.Abstract.Compute")
         self.assertEqual(network_type.parent_type.type, "tosca.nodes.Root")
         self.assertEqual(network_port_type.parent_type.type,
                          "tosca.nodes.Root")
@@ -155,7 +155,7 @@ class ToscaDefTest(TestCase):
 
     def test_requirements(self):
         self.assertEqual(
-            [{'host': {'capability': 'tosca.capabilities.Container',
+            [{'host': {'capability': 'tosca.capabilities.Compute',
                        'node': 'tosca.nodes.Compute',
                        'relationship': 'tosca.relationships.HostedOn'}},
              {'dependency': {'capability': 'tosca.capabilities.Node',
@@ -186,9 +186,10 @@ class ToscaDefTest(TestCase):
              relation, node in network_port_type.relationship.items()])
 
     def test_interfaces(self):
-        self.assertIsNone(compute_type.interfaces)
+        standard = {'Standard': {'type': 'tosca.interfaces.node.lifecycle.Standard'}}
+        self.assertEqual(standard, compute_type.interfaces)
         root_node = NodeType('tosca.nodes.Root')
-        self.assertIn(ifaces.LIFECYCLE_SHORTNAME, root_node.interfaces)
+        self.assertEqual(standard, root_node.interfaces)
 
     def test_artifacts(self):
         self.assertIsNone(artif_root_type.parent_type)

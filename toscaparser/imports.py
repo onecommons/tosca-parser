@@ -18,6 +18,7 @@ from toscaparser.common.exception import InvalidPropertyValueError
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
+from toscaparser.common.exception import URLException
 from toscaparser.elements.tosca_type_validation import TypeValidation
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
@@ -104,7 +105,7 @@ class ImportsLoader(object):
         for import_def in self.importslist:
             if isinstance(import_def, dict):
                 if len(import_def) == 1 and 'file' not in import_def:
-                    # old style
+                    # old style {name: uri}
                     import_name, import_uri = list(import_def.items())[0]
                     if import_name in imports_names:
                         msg = (_('Duplicate import name "%s" was found.') %
@@ -113,26 +114,25 @@ class ImportsLoader(object):
                         ExceptionCollector.appendException(
                             ValidationError(message=msg))
                     imports_names.add(import_name)
-                else:
+                else: # new style {"file": uri}
                     import_name = None
                     import_uri = import_def
 
-                full_file_name, custom_type = self._load_import_template(
-                    import_name, import_uri)
-                namespace_prefix = None
-                if isinstance(import_uri, dict):
-                    namespace_prefix = import_uri.get(
-                        self.NAMESPACE_PREFIX)
-                if custom_type:
-                    TypeValidation(custom_type, import_def)
-                    self._update_custom_def(custom_type, namespace_prefix, full_file_name)
             else:  # import_def is just the uri string
-                full_file_name, custom_type = self._load_import_template(
-                    None, import_def)
-                if custom_type:
-                    TypeValidation(
-                        custom_type, import_def)
-                    self._update_custom_def(custom_type, None, full_file_name)
+                import_name = None
+                import_uri = import_def
+
+            full_file_name, custom_type = self._load_import_template(import_name, import_uri)
+            if full_file_name is None:
+                return
+
+            namespace_prefix = None
+            if isinstance(import_uri, dict):
+                namespace_prefix = import_uri.get(
+                    self.NAMESPACE_PREFIX)
+            if custom_type:
+                TypeValidation(custom_type, import_def)
+                self._update_custom_def(custom_type, namespace_prefix, full_file_name)
 
             if custom_type and 'imports' in custom_type.keys():
                 self.nested_imports.update(
@@ -209,7 +209,13 @@ class ImportsLoader(object):
         """
         path, a_file, fragment = self._resolve_import_template(import_name, import_uri_def)
         if path is not None:
-            doc = self.resolver.load_yaml(self, path, a_file, fragment)
+            try:
+                doc = self.resolver.load_yaml(self, path, a_file, fragment)
+            except:
+                msg = _('Import "%s" is not valid.') % path
+                ExceptionCollector.appendException(URLException(what=msg))
+                return None, None
+
             return getattr(doc, "path", path), doc
         else:
             return None, None
