@@ -55,6 +55,16 @@ def validate_integer(value):
                 ValueError(_('"%s" is not an integer.') % value))
     return value
 
+def validate_portdef(value, prop_name="PortDef"):
+    if not isinstance(value, int):
+        try:
+            value = int(value)
+        except Exception:
+            ExceptionCollector.appendException(
+                ValueError(_('"%s" is not an integer.') % value))
+    validate_value_in_range(value, [1, 65535], prop_name)
+    return value
+
 
 def validate_float(value):
     if not isinstance(value, float):

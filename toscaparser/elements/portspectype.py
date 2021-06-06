@@ -68,47 +68,30 @@ class PortSpec(dict):
     #    within the numeric range specified by the property target_range
     #    when target_range is specified.
     def validate(self):
-        from toscaparser.dataentity import DataEntity
-        # TODO(TBD) bug 1567063, validate source & target as PortDef type
-        # not just as integers
-        try:
-            source = self.get(PortSpec.SOURCE)
-            source_range = self.get(PortSpec.SOURCE_RANGE)
-            target = self.get(PortSpec.TARGET)
-            target_range = self.get(PortSpec.TARGET_RANGE)
+        # use setdefault() to make sure attributes exist
+        source = self.setdefault(PortSpec.SOURCE, None)
+        source_range = self.setdefault(PortSpec.SOURCE_RANGE, None)
+        target = self.setdefault(PortSpec.TARGET, None)
+        target_range = self.setdefault(PortSpec.TARGET_RANGE, None)
+        self.setdefault(PortSpec.PROTOCOL, None)
 
-            # # use setdefault() to make sure attributes exist
-            # source = self.setdefault(PortSpec.SOURCE, None)
-            # source_range = self.setdefault(PortSpec.SOURCE_RANGE, None)
-            # target = self.setdefault(PortSpec.TARGET, None)
-            # target_range = self.setdefault(PortSpec.TARGET_RANGE, None)
-            # self.setdefault(PortSpec.PROTOCOL, None)
-
-            # verify one of the specified values is set
-            if source is None and source_range is None and \
-                    target is None and target_range is None:
-                ExceptionCollector.appendException(
-                    InvalidTypeAdditionalRequirementsError(
-                        type=PortSpec.TYPE_URI))
-            # Validate source value is in specified range
-            if source:
-                if source_range:
-                    validateutils.validate_value_in_range(source, source_range,
-                                                      PortSpec.SOURCE)
-                else:
-                    portdef = DataEntity('PortDef', source, None, PortSpec.SOURCE)
-                    portdef.validate()
-            # Validate target value is in specified range
-            if target:
-                if target_range:
-                    validateutils.validate_value_in_range(target, target_range,
-                                                      PortSpec.TARGET)
-                else:
-                    portdef = DataEntity('PortDef', target, None, PortSpec.TARGET)
-                    portdef.validate()
-        except Exception:
-            msg = _('"%(value)s" do not meet requirements '
-                    'for type "%(type)s".') \
-                % {'value': self, 'type': PortSpec.SHORTNAME}
+        # verify one of the specified values is set
+        if source is None and source_range is None and \
+                target is None and target_range is None:
             ExceptionCollector.appendException(
-                ValueError(msg))
+                InvalidTypeAdditionalRequirementsError(
+                    type=PortSpec.TYPE_URI))
+        # Validate source value is in specified range
+        if source is not None:
+            if source_range:
+                validateutils.validate_value_in_range(source, source_range,
+                                                  PortSpec.SOURCE)
+            else:
+                validateutils.validate_portdef(source,PortSpec.SOURCE)
+        # Validate target value is in specified range
+        if target is not None:
+            if target_range:
+                validateutils.validate_value_in_range(target, target_range,
+                                                  PortSpec.TARGET)
+            else:
+                validateutils.validate_portdef( target, PortSpec.TARGET)

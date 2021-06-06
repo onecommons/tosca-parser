@@ -318,10 +318,7 @@ class ScalarUnitNegativeTest(TestCase):
             mem_size: 1 QB
         '''
         nodetemplates = yamlparser.simple_parse(tpl_snippet)
-        topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
-        nodetemplate = NodeTemplate('server', topology, self.custom_def)
-        for p in nodetemplate.get_properties_objects():
-            self.assertRaises(ValueError, p.validate)
+        self.assertRaises(ValueError, lambda: TopologyTemplate({'node_templates':nodetemplates}, self.custom_def))
 
     # disk_size is less than 1 GB, mem_size is not in the required range.
     # Note: in the spec, the minimum value of mem_size is 1 MiB (> 1 MB)
@@ -335,25 +332,26 @@ class ScalarUnitNegativeTest(TestCase):
             mem_size: 1 MB
         '''
         nodetemplates = yamlparser.simple_parse(tpl_snippet)
-        topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
-        nodetemplate = NodeTemplate('server', topology, self.custom_def)
-        props = nodetemplate.get_properties()
-        if 'cpu_frequency' in props.keys():
-            error = self.assertRaises(exception.ValidationError,
-                                      props['cpu_frequency'].validate)
-            self.assertEqual(_('The value "0.05 GHz" of property '
-                               '"cpu_frequency" must be greater than or equal '
-                               'to "0.1 GHz".'), error.__str__())
-        if 'disk_size' in props.keys():
-            error = self.assertRaises(exception.ValidationError,
-                                      props['disk_size'].validate)
-            self.assertEqual(_('The value "500 MB" of property "disk_size" '
-                               'must be greater than or equal to "1 GB".'),
-                             error.__str__())
-
-        if 'mem_size' in props.keys():
-            error = self.assertRaises(exception.ValidationError,
-                                      props['mem_size'].validate)
-            self.assertEqual(_('The value "1 MB" of property "mem_size" is '
-                               'out of range "(min:1 MiB, max:1 GiB)".'),
-                             error.__str__())
+        self.assertRaises(exception.ValidationError, lambda: TopologyTemplate({'node_templates':nodetemplates}, self.custom_def))
+        # topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
+        # nodetemplate = NodeTemplate('server', topology, self.custom_def)
+        # props = nodetemplate.get_properties()
+        # if 'cpu_frequency' in props.keys():
+        #     error = self.assertRaises(exception.ValidationError,
+        #                               props['cpu_frequency'].validate)
+        #     self.assertEqual(_('The value "0.05 GHz" of property '
+        #                        '"cpu_frequency" must be greater than or equal '
+        #                        'to "0.1 GHz".'), error.__str__())
+        # if 'disk_size' in props.keys():
+        #     error = self.assertRaises(exception.ValidationError,
+        #                               props['disk_size'].validate)
+        #     self.assertEqual(_('The value "500 MB" of property "disk_size" '
+        #                        'must be greater than or equal to "1 GB".'),
+        #                      error.__str__())
+        #
+        # if 'mem_size' in props.keys():
+        #     error = self.assertRaises(exception.ValidationError,
+        #                               props['mem_size'].validate)
+        #     self.assertEqual(_('The value "1 MB" of property "mem_size" is '
+        #                        'out of range "(min:1 MiB, max:1 GiB)".'),
+        #                      error.__str__())

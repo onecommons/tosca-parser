@@ -891,7 +891,7 @@ class ToscaTemplateTest(TestCase):
                     vmin='1',
                     vmax='65535'))
         exception.ExceptionCollector.assertExceptionMessage(
-            exception.ValidationError, msg)
+            exception.RangeValueError, msg)
 
         # Test value below range min.
         msg = (_('The value "%(pvalue)s" of property "%(pname)s" is out of '

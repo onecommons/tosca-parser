@@ -71,7 +71,7 @@ class ToscaDefTest(TestCase):
         # TODO(Matt) - since Compute IS a normative node type
         # we SHOULD test symbolic capability names as well
         self.assertEqual(
-            ['tosca.capabilities.Container',
+            ['tosca.capabilities.Compute',
              'tosca.capabilities.Endpoint.Admin',
              'tosca.capabilities.Node',
              'tosca.capabilities.OperatingSystem',
@@ -112,10 +112,10 @@ class ToscaDefTest(TestCase):
 
         host_props = self._get_capability_properties_def_objects(
             compute_type.get_capabilities_objects(),
-            'tosca.capabilities.Container')
+            'tosca.capabilities.Compute')
         self.assertEqual(
             [('cpu_frequency', False), ('disk_size', False),
-             ('mem_size', False), ('num_cpus', False)],
+             ('mem_size', False), ('name', False), ('num_cpus', False)],
             sorted([(p.name, p.required) for p in host_props]))
         endpoint_admin_properties = 'secure'
         endpoint_admin_props_def_objects = \
@@ -164,26 +164,6 @@ class ToscaDefTest(TestCase):
                              'relationship': 'tosca.relationships.DependsOn'}}
              ],
             [r for r in component_type.requirements])
-
-    def test_relationship(self):
-        self.assertEqual(
-            [('tosca.relationships.DependsOn', 'tosca.nodes.Root'),
-             ('tosca.relationships.HostedOn', 'tosca.nodes.Compute')],
-            sorted([(relation.type, node.type) for
-                   relation, node in component_type.relationship.items()]))
-        self.assertIn(
-            ('tosca.relationships.HostedOn', ['tosca.capabilities.Container']),
-            [(relation.type, relation.valid_target_types) for
-             relation in list(component_type.relationship.keys())])
-        self.assertIn(
-            ('tosca.relationships.network.BindsTo', 'tosca.nodes.Compute'),
-            [(relation.type, node.type) for
-             relation, node in network_port_type.relationship.items()])
-        self.assertIn(
-            ('tosca.relationships.network.LinksTo',
-             'tosca.nodes.network.Network'),
-            [(relation.type, node.type) for
-             relation, node in network_port_type.relationship.items()])
 
     def test_interfaces(self):
         standard = {'Standard': {'type': 'tosca.interfaces.node.lifecycle.Standard'}}

@@ -32,10 +32,9 @@ class PropertyTest(TestCase):
 
     def test_type_invalid(self):
         test_property_schema = {'type': 'Fish'}
-        propertyInstance = Property('test_property', 'Hughes',
-                                    test_property_schema)
         error = self.assertRaises(exception.InvalidTypeError,
-                                  propertyInstance.validate)
+                                  lambda: Property('test_property', 'Hughes',
+                                    test_property_schema))
         self.assertEqual(_('Type "Fish" is not a valid type.'), str(error))
 
     def test_list(self):
