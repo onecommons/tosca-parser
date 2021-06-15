@@ -71,7 +71,7 @@ class DataEntity(object):
         # If the datatype has 'type' definition:
         if self.datatype.value_type:
             self.value = DataEntity.validate_datatype(
-                self.datatype.value_type, self.value, None, self.custom_def
+                self.datatype.value_type, self.value, None, self.custom_def, None, self
             )
             schema = Schema(self.property_name, self.datatype.defs)
             for constraint in schema.constraints:
@@ -148,7 +148,7 @@ class DataEntity(object):
 
     @staticmethod
     def validate_datatype(
-        type, value, entry_schema=None, custom_def=None, prop_name=None
+        type, value, entry_schema=None, custom_def=None, prop_name=None, self=None
     ):
         """Validate value with given type.
 
@@ -200,12 +200,10 @@ class DataEntity(object):
             return ps
         elif type == Schema.PORTDEF:
             return validateutils.validate_portdef(value, prop_name)
-        else:
-            data = DataEntity(type, value, custom_def)
-            if not data.datatype.value_type:
-                return data.validate()
-            else:
-                return value
+        elif not self:
+            return DataEntity(type, value, custom_def).validate()
+        else:  # avoid infinite recursion
+            return value
 
     @staticmethod
     def validate_entry(value, entry_schema, custom_def=None):
