@@ -100,7 +100,7 @@ policy_types:
     properties:
       name:
         type: string
-        required: true
+        required: false
       parameters:
         type: map
         entry_schema:
@@ -110,7 +110,7 @@ policy_types:
         type: map
         entry_schema:
           type: string
-        required: true
+        required: false
 
   tosca.policies.tacker.Monitoring.NoOp:
     derived_from: tosca.policies.tacker.Monitoring
@@ -162,7 +162,7 @@ policy_types:
         type: list
         entry_schema:
           type: string
-        required: true
+        required: false
         description: List of Scaling nodes.
       min_instances:
         type: integer

@@ -26,6 +26,7 @@ import toscaparser.imports
 from toscaparser.prereq.csar import CSAR
 from toscaparser.repositories import Repository
 from toscaparser.topology_template import TopologyTemplate
+from toscaparser.substitution_mappings import SubstitutionMappings
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.yamlparser
 
@@ -44,7 +45,7 @@ SECTIONS = (DEFINITION_VERSION, DEFAULT_NAMESPACE, TEMPLATE_NAME,
             'capability_types', 'artifact_types', 'data_types',
             'interface_types', 'policy_types', 'group_types', 'repositories')
 # Sections that are specific to individual template definitions
-SPECIAL_SECTIONS = (METADATA) = ('metadata')
+SPECIAL_SECTIONS = (METADATA, DECORATORS) = ('metadata', 'decorators')
 
 log = logging.getLogger("tosca.model")
 

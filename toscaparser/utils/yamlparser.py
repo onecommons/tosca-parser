@@ -46,7 +46,11 @@ def load_yaml(path, a_file=True, ctx=None, fragment=None):
             ExceptionCollector.appendException(URLException(what=msg))
             return
     except Exception as e:
-        raise
+        msg = (_('Unexpected error opening "%(path)s". Error: '
+                 '%(reason)s.')
+               % {'path': path, 'reason': str(type(e))})
+        ExceptionCollector.appendException(URLException(what=msg))
+        return
     with f:
       return yaml.load(f.read(), Loader=yaml_loader)
 

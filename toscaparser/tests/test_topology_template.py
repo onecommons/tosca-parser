@@ -175,7 +175,7 @@ class TopologyTemplateTest(TestCase):
         system_tosca_template = ToscaTemplate(tpl_path)
         self.assertIsNotNone(system_tosca_template)
         self.assertEqual(
-            len(system_tosca_template.nested_topologies), 4)
+            len(system_tosca_template.nested_topologies), 3)
 
     def test_invalid_keyname(self):
         tpl_snippet = '''
