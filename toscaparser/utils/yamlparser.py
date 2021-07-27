@@ -45,6 +45,10 @@ def load_yaml(path, a_file=True, ctx=None, fragment=None):
                    % {'path': path, 'code': e.code})
             ExceptionCollector.appendException(URLException(what=msg))
             return
+    except FileNotFoundError:
+        msg = (_('Could not find file "%(path)s".') % {'path': path})
+        ExceptionCollector.appendException(URLException(what=msg))
+        return
     except Exception as e:
         msg = (_('Unexpected error opening "%(path)s". Error: '
                  '%(reason)s.')
@@ -52,7 +56,7 @@ def load_yaml(path, a_file=True, ctx=None, fragment=None):
         ExceptionCollector.appendException(URLException(what=msg))
         return
     with f:
-      return yaml.load(f.read(), Loader=yaml_loader)
+        return yaml.load(f.read(), Loader=yaml_loader)
 
 
 def simple_parse(tmpl_str):

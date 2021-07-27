@@ -579,7 +579,7 @@ class ToscaTemplateTest(TestCase):
             exception.InvalidTemplateVersion, err1_msg)
 
         path = os.path.abspath(os.path.join(os.path.dirname(tosca_tpl), "custom_types/not_there.yaml"))
-        err2_msg = _('Import "%s" is not valid.') % path
+        err2_msg = _('Could not find file "%s".') % path
         exception.ExceptionCollector.assertExceptionMessage(
             exception.URLException, err2_msg)
 
