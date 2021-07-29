@@ -43,19 +43,12 @@ INTERFACE_DEF_RESERVED_WORDS = ["type", "inputs", "operations", "notifications",
 class InterfacesDef(StatefulEntityType):
     """TOSCA built-in interfaces type."""
 
-    def __init__(
-        self,
-        node_type,
-        interfacetype,
-        node_template=None,
-        name=None,
-        value=None,
-        inputs=None,
-        outputs=None
-    ):
+    def __init__(self, node_type, interfacename,
+                 node_template=None, name=None, value=None,
+                 inputs=None, outputs=None):
         self.ntype = node_type
         self.node_template = node_template
-        self.iname = interfacetype
+        self.interfacename = interfacename
         self.name = name
         self.value = value
         self.implementation = None
@@ -63,25 +56,33 @@ class InterfacesDef(StatefulEntityType):
         self._source = None
         self.outputs = outputs
         self.defs = {}
-        interfaces = getattr(self.ntype, "interfaces", None)
-        if "type" in interfaces.get(interfacetype, {}):
-            interfacetype = interfaces[interfacetype]["type"]
-        elif interfacetype == LIFECYCLE_SHORTNAME:
-            interfacetype = LIFECYCLE
-        elif interfacetype == CONFIGURE_SHORTNAME:
-            interfacetype = CONFIGURE
-        elif interfacetype == INSTALL_SHORTNAME:
-            interfacetype = INSTALL
-        self.type = interfacetype
+        if interfacename == LIFECYCLE_SHORTNAME:
+            self.interfacetype = LIFECYCLE
+        elif interfacename == CONFIGURE_SHORTNAME:
+            self.interfacetype = CONFIGURE
+        elif interfacename == INSTALL_SHORTNAME:
+            self.interfacetype = INSTALL
+        elif hasattr(self.ntype, 'interfaces') \
+                and self.ntype.interfaces \
+                and interfacename in self.ntype.interfaces:
+            self.interfacetype = self.ntype.interfaces[interfacename]['type']
+        if not self.interfacetype:
+            ExceptionCollector.appendException(
+                TypeError("Interface type for interface \"{0}\" not found"
+                          .format(self.interfacename))
+            )
+        self.type = self.interfacetype
         if node_type:
-            if (
-                self.node_template
-                and self.node_template.custom_def
-                and interfacetype in self.node_template.custom_def
-            ):
-                self.defs = self.node_template.custom_def[interfacetype]
-            else:
-                self.defs = self.TOSCA_DEF[interfacetype]
+            if self.node_template and self.node_template.custom_def \
+               and self.interfacetype in self.node_template.custom_def:
+                self.defs = self.node_template.custom_def[self.interfacetype]
+            elif self.interfacetype in self.TOSCA_DEF:
+                self.defs = self.TOSCA_DEF[self.interfacetype]
+        if not self.defs:
+            ExceptionCollector.appendException(
+                TypeError("Interface type definition for interface \"{0}\" "
+                          "not found".format(self.interfacetype))
+            )
         if value:
             if isinstance(self.value, dict):
                 for i, j in self.value.items():

@@ -43,10 +43,10 @@ class ScalarUnit(object):
         else:
             for key in self.SCALAR_UNIT_DICT.keys():
                 if key.upper() == input_unit.upper():
-                    log.warning(_('The unit "%(unit)s" does not follow '
-                                  'scalar unit standards; using "%(key)s" '
-                                  'instead.') % {'unit': input_unit,
-                                                 'key': key})
+                    log.warning('The unit "%(unit)s" does not follow '
+                                'scalar unit standards; using "%(key)s" '
+                                'instead.' % {'unit': input_unit,
+                                              'key': key})
                     return key
             msg = (_('The unit "%(unit)s" is not valid. Valid units are '
                      '"%(valid_units)s".') %
@@ -55,7 +55,7 @@ class ScalarUnit(object):
             ExceptionCollector.appendException(ValueError(msg))
 
     def validate_scalar_unit(self):
-        regex = re.compile('([0-9.]+)\s*(\w+)')
+        regex = re.compile(r'([0-9.]+)\s*(\w+)')
         try:
             result = regex.match(str(self.value)).groups()
             validateutils.str_to_num(result[0])
@@ -75,14 +75,17 @@ class ScalarUnit(object):
             unit = self.SCALAR_UNIT_DEFAULT
         self.validate_scalar_unit()
 
-        regex = re.compile('([0-9.]+)\s*(\w+)')
-        result = regex.match(str(self.value)).groups()
-        converted = (float(validateutils.str_to_num(result[0]))
-                     * self.SCALAR_UNIT_DICT[result[1]]
-                     / self.SCALAR_UNIT_DICT[unit])
-        if converted - int(converted) < 0.0000000000001:
-            converted = int(converted)
-        return converted
+        regex = re.compile(r'([0-9.]+)\s*(\w+)')
+        if regex.match(str(self.value)):
+            result = regex.match(str(self.value)).groups()
+            converted = (float(validateutils.str_to_num(result[0]))
+                         * self.SCALAR_UNIT_DICT[result[1]]
+                         / self.SCALAR_UNIT_DICT[unit])
+            if converted - int(converted) < 0.0000000000001:
+                converted = int(converted)
+            return converted
+        else:
+            return None
 
 
 class ScalarUnit_Size(ScalarUnit):
@@ -112,7 +115,7 @@ scalarunit_mapping = {
     ScalarUnit.SCALAR_UNIT_FREQUENCY: ScalarUnit_Frequency,
     ScalarUnit.SCALAR_UNIT_SIZE: ScalarUnit_Size,
     ScalarUnit.SCALAR_UNIT_TIME: ScalarUnit_Time,
-    }
+}
 
 
 def get_scalarunit_class(type):

@@ -81,3 +81,15 @@ class Policy(EntityTemplate):
             reservationObj = Reservation(reservation)
             reservationObjs.append(reservationObj)
         return reservationObjs
+
+    def _validate_keys(self):
+        for key in self.entity_tpl.keys():
+            if key not in SECTIONS:
+                ExceptionCollector.appendException(
+                    UnknownFieldError(what='Policy "%s"' % self.name,
+                                      field=key))
+
+    def validate(self):
+        self._validate_properties()
+        for prop in self.get_properties_objects():
+            prop.validate()

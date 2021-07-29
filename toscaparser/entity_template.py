@@ -37,7 +37,8 @@ class EntityTemplate(object):
                ('derived_from', 'properties', 'requirements', 'interfaces',
                 'capabilities', 'type', 'description', 'directives', "instance_keys",
                 'attributes', 'artifacts', 'node_filter', 'copy')
-    REQUIREMENTS_SECTION = (NODE, CAPABILITY, RELATIONSHIP, OCCURRENCES, NODE_FILTER) = \
+    REQUIREMENTS_SECTION = (NODE, CAPABILITY, RELATIONSHIP, OCCURRENCES,
+                            NODE_FILTER) = \
                            ('node', 'capability', 'relationship',
                             'occurrences', 'node_filter')
     # Special key names
@@ -442,7 +443,7 @@ class EntityTemplate(object):
                 if _source:
                     op_def['_source'] = _source
                 iface = InterfacesDef(self.type_definition,
-                                      interfacetype=interface_type,
+                                      interface_type,
                                       node_template=self,
                                       name=op,
                                       value=op_def,
@@ -453,7 +454,7 @@ class EntityTemplate(object):
             # add a "default" operation that has the shared inputs and implementation
             if inputs or implementation:
                 iface = InterfacesDef(self.type_definition,
-                                      interfacetype=interface_type,
+                                      interface_type,
                                       node_template=self,
                                       name='default',
                                       value=dict(implementation=implementation,
