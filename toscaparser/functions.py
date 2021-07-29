@@ -13,8 +13,6 @@
 
 
 import abc
-import six
-import toscaparser.elements.interfaces
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownInputError
@@ -42,8 +40,7 @@ SOURCE = 'SOURCE'
 HOSTED_ON = 'tosca.relationships.HostedOn'
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Function(object):
+class Function(object, metaclass=abc.ABCMeta):
     """An abstract type for representing a Tosca template function."""
 
     def __init__(self, tosca_tpl, context, name, args):
@@ -297,7 +294,7 @@ class GetAttribute(Function):
         ExceptionCollector.appendException(
             KeyError(_(
                 'Node template "{0}" was not found.'
-                ).format(node_template_name)))
+            ).format(node_template_name)))
 
     def _find_req_or_cap_attribute(self, req_or_cap, attr_name):
         node_tpl = self._find_node_template(self.args[0])
@@ -542,8 +539,8 @@ class GetProperty(Function):
             KeyError(_(
                 'Node template "{0}" was not found.'
                 ' referenced from node template {1}'
-                ).format(node_template_name,
-                         self.context.name)))
+            ).format(node_template_name,
+                     self.context.name)))
 
     def _get_index_value(self, value, index):
         if isinstance(value, list):
@@ -676,9 +673,36 @@ class GetProperty(Function):
 class GetOperationOutput(Function):
     def validate(self):
         if len(self.args) == 4:
-            self._find_node_template(self.args[0])
-            interface_name = self._find_interface_name(self.args[1])
-            self._find_operation_name(interface_name, self.args[2])
+            template_name = self.args[0]
+            interface_name = self.args[1]
+            operation_name = self.args[2]
+            template = None
+            node_template = self._find_node_template(template_name)
+            if node_template:
+                template = node_template
+            else:
+                relationship_template = \
+                    self._find_relationship_template(template_name)
+                if relationship_template:
+                    template = relationship_template
+            if not template:
+                ExceptionCollector.appendException(
+                    KeyError(_(
+                        'Node or relationship template "{0}" was not found.'
+                    ).format(template_name)))
+                return
+            if hasattr(template, template.INTERFACES):
+                operation = self._find_operation_name(interface_name,
+                                                      operation_name,
+                                                      template.interfaces)
+                if operation:
+                    return
+            ExceptionCollector.appendException(
+                ValueError(_(
+                    'Node or relationship template "{0}" has not '
+                    'interface "{1}" or operation "{2}".'
+                ).format(template_name, interface_name, operation_name)))
+
         else:
             ExceptionCollector.appendException(
                 ValueError(_('Illegal arguments for function "{0}". Expected '
@@ -687,16 +711,8 @@ class GetOperationOutput(Function):
                              ).format(GET_OPERATION_OUTPUT)))
             return
 
-    def _find_interface_name(self, interface_name):
-        if interface_name in toscaparser.elements.interfaces.SECTIONS:
-            return interface_name
-        else:
-            ExceptionCollector.appendException(
-                ValueError(_('Enter a valid interface name'
-                             ).format(GET_OPERATION_OUTPUT)))
-            return
-
-    def _find_operation_name(self, interface_name, operation_name):
+    def _find_operation_name(self, interface_name, operation_name,
+                             interfaces=None):
         if(interface_name == 'Configure' or
            interface_name == 'tosca.interfaces.node.relationship.Configure'):
             if(operation_name in
@@ -718,6 +734,11 @@ class GetOperationOutput(Function):
                     ValueError(_('Enter an operation of Standard interface'
                                  ).format(GET_OPERATION_OUTPUT)))
                 return
+        elif interfaces:
+            for interface_obj in interfaces:
+                if interface_obj.name == operation_name and \
+                        interface_obj.type == interface_name:
+                    return operation_name
         else:
             ExceptionCollector.appendException(
                 ValueError(_('Enter a valid operation name'
@@ -746,10 +767,11 @@ class GetOperationOutput(Function):
         for node_template in self.tosca_tpl.nodetemplates:
             if node_template.name == name or node_template.is_derived_from(name):
                 return node_template
-        ExceptionCollector.appendException(
-            KeyError(_(
-                'Node template "{0}" was not found.'
-                ).format(node_template_name)))
+
+    def _find_relationship_template(self, relationship_template_name):
+        for rel_template in self.tosca_tpl.relationship_templates:
+            if rel_template.name == relationship_template_name:
+                return rel_template
 
     def result(self):
         return self
@@ -828,6 +850,7 @@ class Token(Function):
 
     def result(self):
         return self
+
 
 function_mappings = {
     GET_PROPERTY: GetProperty,

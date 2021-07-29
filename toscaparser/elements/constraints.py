@@ -10,7 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
+import collections.abc
 import datetime
 import re
 import json
@@ -26,7 +26,7 @@ from toscaparser.utils.gettextutils import _
 from toscaparser.utils import yamlparser
 
 
-class Schema(collections.Mapping):
+class Schema(collections.abc.Mapping):
 
     KEYS = (TYPE, REQUIRED, DESCRIPTION, DEFAULT, CONSTRAINTS, ENTRYSCHEMA, STATUS) = (
         "type",
@@ -89,10 +89,9 @@ class Schema(collections.Mapping):
 
     def __init__(self, name, schema_dict, datatype=None):
         self.name = name
-        if not isinstance(schema_dict, collections.Mapping):
-            msg = _('Schema definition of "%(pname)s" must be a dict.') % dict(
-                pname=name
-            )
+        if not isinstance(schema_dict, collections.abc.Mapping):
+            msg = (_('Schema definition of "%(pname)s" must be a dict.')
+                   % dict(pname=name))
             ExceptionCollector.appendException(InvalidSchemaError(message=msg))
 
         try:
@@ -191,7 +190,8 @@ class Constraint(object):
         if cls is not Constraint:
             return super(Constraint, cls).__new__(cls)
 
-        if not isinstance(constraint, collections.Mapping) or len(constraint) != 1:
+        if(not isinstance(constraint, collections.abc.Mapping) or
+           len(constraint) != 1):
             ExceptionCollector.appendException(
                 InvalidSchemaError(message=_("Invalid constraint schema: %s") % constraint)
             )
@@ -351,7 +351,8 @@ class GreaterOrEqual(Constraint):
             )
 
     def _is_valid(self, value):
-        if toscaparser.functions.is_function(value) or value >= self.constraint_value:
+        if value is not None and (toscaparser.functions.is_function(value) or
+                                  value >= self.constraint_value):
             return True
         return False
 
@@ -485,9 +486,8 @@ class InRange(Constraint):
 
     def __init__(self, property_name, property_type, constraint):
         super(InRange, self).__init__(property_name, property_type, constraint)
-        if not isinstance(self.constraint_value, collections.Sequence) or (
-            len(constraint[self.IN_RANGE]) != 2
-        ):
+        if(not isinstance(self.constraint_value, collections.abc.Sequence) or
+           (len(constraint[self.IN_RANGE]) != 2)):
             ExceptionCollector.appendException(
                 InvalidSchemaError(
                     message=_('The property "in_range" ' "expects a list.")
@@ -543,8 +543,9 @@ class ValidValues(Constraint):
     valid_prop_types = Schema.PROPERTY_TYPES
 
     def __init__(self, property_name, property_type, constraint):
-        super(ValidValues, self).__init__(property_name, property_type, constraint)
-        if not isinstance(self.constraint_value, collections.Sequence):
+        super(ValidValues, self).__init__(property_name, property_type,
+                                          constraint)
+        if not isinstance(self.constraint_value, collections.abc.Sequence):
             ExceptionCollector.appendException(
                 InvalidSchemaError(
                     message=_('The property "valid_values" ' "expects a list.")
@@ -620,9 +621,8 @@ class MinLength(Constraint):
             )
 
     def _is_valid(self, value):
-        if (isinstance(value, six.string_types) or isinstance(value, (dict, list))) and len(
-            value
-        ) >= self.constraint_value:
+        if (isinstance(value, (str, dict, list)) and
+           len(value) >= self.constraint_value):
             return True
 
         return False
@@ -656,9 +656,8 @@ class MaxLength(Constraint):
             )
 
     def _is_valid(self, value):
-        if (isinstance(value, six.string_types) or isinstance(value, (dict, list))) and len(
-            value
-        ) <= self.constraint_value:
+        if (isinstance(value, (str, dict, list)) and
+           len(value) <= self.constraint_value):
             return True
 
         return False
