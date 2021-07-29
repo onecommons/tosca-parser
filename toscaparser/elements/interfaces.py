@@ -56,16 +56,15 @@ class InterfacesDef(StatefulEntityType):
         self._source = None
         self.outputs = outputs
         self.defs = {}
-        if interfacename == LIFECYCLE_SHORTNAME:
+        interfaces = getattr(self.ntype, "interfaces", None)
+        if interfaces and "type" in interfaces.get(interfacename, {}):
+            self.interfacetype = interfaces[interfacename]["type"]
+        elif interfacename == LIFECYCLE_SHORTNAME:
             self.interfacetype = LIFECYCLE
         elif interfacename == CONFIGURE_SHORTNAME:
             self.interfacetype = CONFIGURE
         elif interfacename == INSTALL_SHORTNAME:
             self.interfacetype = INSTALL
-        elif hasattr(self.ntype, 'interfaces') \
-                and self.ntype.interfaces \
-                and interfacename in self.ntype.interfaces:
-            self.interfacetype = self.ntype.interfaces[interfacename]['type']
         if not self.interfacetype:
             ExceptionCollector.appendException(
                 TypeError("Interface type for interface \"{0}\" not found"

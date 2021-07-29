@@ -37,21 +37,6 @@ class RelationshipType(StatefulEntityType):
             return RelationshipType(prel, custom_def=self.custom_def)
 
     @property
-    def interfaces(self):
-        interfaces = self.get_value(self.INTERFACES)
-
-        if self.parent_type is not None:
-            if self.parent_type.interfaces is not None:
-                import copy
-                parent_interfaces = copy.deepcopy(self.parent_type.interfaces)
-
-                if parent_interfaces:
-                    if interfaces:
-                        parent_interfaces.update(interfaces)
-                    interfaces = parent_interfaces
-        return interfaces
-
-    @property
     def valid_target_types(self):
         return self.entity_value(self.defs, 'valid_target_types') or []
 

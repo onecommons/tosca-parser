@@ -51,7 +51,7 @@ class StatefulEntityType(EntityType):
                 self.defs = self.TOSCA_DEF[entire_entitytype]
                 entitytype = entire_entitytype
             elif entitytype in toscaNames:
-              self.defs = self.TOSCA_DEF[entitytype]
+                self.defs = self.TOSCA_DEF[entitytype]
             else:
                 self.defs = None
                 ExceptionCollector.appendException(
