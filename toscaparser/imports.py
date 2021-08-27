@@ -74,12 +74,8 @@ class ImportsLoader(object):
         self.path = path
         self.repositories = (tpl and tpl.get('repositories')) or {}
         self.tpl = tpl
-        self.type_definition_list = []
-        if type_definition_list:
-            if isinstance(type_definition_list, list):
-                self.type_definition_list = type_definition_list
-            else:
-                self.type_definition_list.append(type_definition_list)
+        self.type_definition_list = type_definition_list or [] # names of type definition sections
+        assert isinstance(self.type_definition_list, list)
         if importslist is not None:
             self._validate_and_load_imports()
 
@@ -122,7 +118,7 @@ class ImportsLoader(object):
                 import_name = None
                 import_uri = import_def
 
-            full_file_name, custom_type = self._load_import_template(import_name, import_uri)
+            full_file_name, imported_tpl = self._load_import_template(import_name, import_uri)
             if full_file_name is None:
                 return
 
@@ -130,39 +126,32 @@ class ImportsLoader(object):
             if isinstance(import_uri, dict):
                 namespace_prefix = import_uri.get(
                     self.NAMESPACE_PREFIX)
-            if custom_type:
-                TypeValidation(custom_type, import_def)
-                self._update_custom_def(custom_type, namespace_prefix, full_file_name)
+            if imported_tpl:
+                TypeValidation(imported_tpl, import_def)
+                self._update_custom_def(imported_tpl, namespace_prefix, full_file_name)
+                nested_imports = imported_tpl.get('imports')
+                if nested_imports:
+                    self.nested_imports.update({full_file_name: nested_imports})
+            self._update_nested_tosca_tpls(full_file_name, imported_tpl)
 
-            if custom_type and 'imports' in custom_type.keys():
-                self.nested_imports.update(
-                    {full_file_name: custom_type['imports']})
-            self._update_nested_tosca_tpls(full_file_name, custom_type)
-
-    def _update_custom_def(self, custom_type, namespace_prefix, path):
+    def _update_custom_def(self, imported_tpl, namespace_prefix, path):
         path = os.path.normpath(path)
-        for type_def in self.type_definition_list:
-            outer_custom_types = custom_type.get(type_def)
+        for type_def_section in self.type_definition_list:
+            outer_custom_types = imported_tpl.get(type_def_section)
             if outer_custom_types:
-                if type_def == "imports":
-                    for i in self.custom_defs.get('imports', []):
-                        if i not in outer_custom_types:
-                            outer_custom_types.append(i)
-                    self.custom_defs.update({'imports': outer_custom_types})
+                if type_def_section in ['node_types', 'relationship_types']:
+                    for custom_def in outer_custom_types.values():
+                        custom_def['_source'] = path
+                if namespace_prefix:
+                    prefix_custom_types = {}
+                    for type_def_key in outer_custom_types:
+                        namespace_prefix_to_key = (namespace_prefix +
+                                                   "." + type_def_key)
+                        prefix_custom_types[namespace_prefix_to_key] = \
+                            outer_custom_types[type_def_key]
+                    self.custom_defs.update(prefix_custom_types)
                 else:
-                    if type_def in ['node_types', 'relationship_types']:
-                        for custom_def in outer_custom_types.values():
-                            custom_def['_source'] = path
-                    if namespace_prefix:
-                        prefix_custom_types = {}
-                        for type_def_key in outer_custom_types:
-                            namespace_prefix_to_key = (namespace_prefix +
-                                                       "." + type_def_key)
-                            prefix_custom_types[namespace_prefix_to_key] = \
-                                outer_custom_types[type_def_key]
-                        self.custom_defs.update(prefix_custom_types)
-                    else:
-                        self.custom_defs.update(outer_custom_types)
+                    self.custom_defs.update(outer_custom_types)
 
     def _update_nested_tosca_tpls(self, full_file_name, custom_tpl):
         if full_file_name and custom_tpl:

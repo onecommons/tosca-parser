@@ -130,7 +130,6 @@ class TopologyTemplate(object):
         self.node_templates[name] = node
         return node
 
-
     def _relationship_templates(self):
         rel_templates = []
         tpls = self._tpl_relationship_templates()

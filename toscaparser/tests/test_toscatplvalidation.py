@@ -302,7 +302,7 @@ class ToscaTemplateValidationTest(TestCase):
     def _imports_content_test(self, tpl_snippet, path, custom_type_def):
         imports = (toscaparser.utils.yamlparser.
                    simple_parse(tpl_snippet)['imports'])
-        loader = ImportsLoader(imports, path, custom_type_def)
+        loader = ImportsLoader(imports, path, [custom_type_def])
         return loader.get_custom_defs()
 
     # no longer an error

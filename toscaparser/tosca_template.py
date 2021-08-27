@@ -160,7 +160,7 @@ class ToscaTemplate(object):
         return self.topology_template.policies
 
     def _get_all_custom_defs(self, imports=None, path=None):
-        types = [IMPORTS, TYPES, NODE_TYPES, CAPABILITY_TYPES, RELATIONSHIP_TYPES,
+        types = [TYPES, NODE_TYPES, CAPABILITY_TYPES, RELATIONSHIP_TYPES,
                  DATA_TYPES, ARTIFACT_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
         custom_defs_final = {}
 
@@ -168,14 +168,12 @@ class ToscaTemplate(object):
             types, imports, path)
         if custom_defs:
             custom_defs_final.update(custom_defs)
-            if nested_imports:
-                for a_file, nested_import in nested_imports.items():
-                    import_defs = self._get_all_custom_defs(
-                        nested_import, a_file)
-                    custom_defs_final.update(import_defs)
+        if nested_imports:
+            for a_file, nested_import in nested_imports.items():
+                import_defs = self._get_all_custom_defs(
+                    nested_import, a_file)
+                custom_defs_final.update(import_defs)
 
-        # As imports are not custom_types, removing from the dict
-        custom_defs_final.pop(IMPORTS, None)
         return custom_defs_final
 
     def _get_custom_types(self, type_definitions, imports=None,
@@ -194,7 +192,7 @@ class ToscaTemplate(object):
         else:
             type_defs = type_definitions
 
-        if not imports:
+        if imports is None:
             imports = self._tpl_imports()
 
         if imports:
@@ -213,10 +211,9 @@ class ToscaTemplate(object):
 
         # Handle custom types defined in current template file
         for type_def in type_defs:
-            if type_def != IMPORTS:
-                inner_custom_types = self.tpl.get(type_def) or {}
-                if inner_custom_types:
-                    custom_defs.update(inner_custom_types)
+            inner_custom_types = self.tpl.get(type_def)
+            if inner_custom_types:
+                custom_defs.update(inner_custom_types)
         return custom_defs, nested_imports
 
     def _update_nested_tosca_tpls(self, nested_tosca_tpls):
@@ -231,7 +228,7 @@ class ToscaTemplate(object):
             topology_tpl = tosca_tpl.get(TOPOLOGY_TEMPLATE)
             if topology_tpl:
                 custom_types = self._get_all_custom_defs().copy()
-                custom_types.update(tosca_tpl.get('node_types', {}))
+                custom_types.update(tosca_tpl.get('node_types', {})) # XXX isn't this redundant?
                 self.nested_topologies[filename] = TopologyTemplate(
                                 topology_tpl, custom_types)
 
