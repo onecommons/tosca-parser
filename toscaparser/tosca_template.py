@@ -30,7 +30,6 @@ from toscaparser.substitution_mappings import SubstitutionMappings
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.yamlparser
 
-
 # TOSCA template key names
 SECTIONS = (DEFINITION_VERSION, DEFAULT_NAMESPACE, TEMPLATE_NAME,
             TOPOLOGY_TEMPLATE, TEMPLATE_AUTHOR, TEMPLATE_VERSION,
@@ -44,7 +43,7 @@ SECTIONS = (DEFINITION_VERSION, DEFAULT_NAMESPACE, TEMPLATE_NAME,
             'types', 'node_types', 'relationship_types', 'relationship_templates',
             'capability_types', 'artifact_types', 'data_types',
             'interface_types', 'policy_types', 'group_types', 'repositories')
-# Sections that are specific to individual template definitions
+# Sections that are specific to individual template versions
 SPECIAL_SECTIONS = (METADATA, DECORATORS) = ('metadata', 'decorators')
 
 log = logging.getLogger("tosca.model")
@@ -146,7 +145,13 @@ class ToscaTemplate(object):
         return self.tpl.get(IMPORTS)
 
     def _tpl_repositories(self):
-        repositories = self.tpl.get(REPOSITORIES) or {}
+        repositories = {}
+        assert self.topology_template # sets self.nested_tosca_tpls
+        for filename, tosca_tpl in self.nested_tosca_tpls.items():
+            repositories.update(tosca_tpl.get(REPOSITORIES) or {})
+        repositories.update(self.tpl.get(REPOSITORIES) or {})
+        # we need to update the template because it is passed directly to the import loader
+        self.tpl[REPOSITORIES] = repositories
         return {name:Repository(name, val) for name, val in repositories.items()}
 
     def _tpl_relationship_templates(self):
@@ -198,14 +203,14 @@ class ToscaTemplate(object):
         if imports:
             if path is None:
                 path = getattr(imports, "baseDir", self.path)
-            custom_service = toscaparser.imports.\
+            imported = toscaparser.imports.\
                 ImportsLoader(imports, path, type_defs, self.tpl, self.import_resolver)
 
-            nested_tosca_tpls = custom_service.get_nested_tosca_tpls()
+            nested_tosca_tpls = imported.get_nested_tosca_tpls()
             self._update_nested_tosca_tpls(nested_tosca_tpls)
 
-            nested_imports = custom_service.get_nested_imports()
-            imported_custom_defs = custom_service.get_custom_defs()
+            nested_imports = imported.get_nested_imports()
+            imported_custom_defs = imported.get_custom_defs()
             if imported_custom_defs:
                 custom_defs.update(imported_custom_defs)
 
