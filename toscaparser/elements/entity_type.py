@@ -148,7 +148,7 @@ class EntityType(object):
         if not hasattr(self, 'defs'):
             defs = None
             ExceptionCollector.appendException(
-                ValidationError(message="defs is " + str(defs)))
+                ValidationError(message="defs is missing"))
         else:
             defs = self.defs
         if defs is not None and ndtype in defs:
@@ -168,6 +168,8 @@ class EntityType(object):
 def update_definitions(exttools, version, loader = toscaparser.utils.yamlparser.load_yaml):
     extension_defs_file = exttools.get_defs_file(version)
     nfv_def_file = loader(extension_defs_file)
+    if not nfv_def_file: # loading failed
+        return
     for section in EntityType.TOSCA_DEF_SECTIONS:
         if section in nfv_def_file.keys():
             value = nfv_def_file[section]

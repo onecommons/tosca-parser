@@ -35,6 +35,7 @@ class TypeValidation(object):
                                'tosca_simple_yaml_1_3']
     exttools = ExtTools()
     VALID_TEMPLATE_VERSIONS.extend(exttools.get_versions())
+    ADDITIONAL_SECTIONS = exttools.get_sections()
 
     def __init__(self, custom_types, import_def):
         self.import_def = import_def
@@ -47,9 +48,12 @@ class TypeValidation(object):
         if version:
             self._validate_type_version(version)
             self.version = version
+            ADDITIONAL_SECTIONS = self.ADDITIONAL_SECTIONS.get(version, ())
+        else:
+            ADDITIONAL_SECTIONS = ()
 
         for name in custom_type:
-            if name not in self.ALLOWED_TYPE_SECTIONS:
+            if name not in self.ALLOWED_TYPE_SECTIONS and name not in ADDITIONAL_SECTIONS:
                 ExceptionCollector.appendException(
                     UnknownFieldError(what='Template ' + str(self.import_def),
                                       field=name))

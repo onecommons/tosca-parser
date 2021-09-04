@@ -17,6 +17,7 @@ import toscaparser.elements.interfaces as ifaces
 from toscaparser.elements.interfaces import InterfacesDef
 from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.elements.statefulentitytype import StatefulEntityType
+from toscaparser.common.exception import InvalidTypeError
 
 
 class NodeType(StatefulEntityType):
@@ -40,6 +41,11 @@ class NodeType(StatefulEntityType):
             return None
         pnode = self.derived_from(self.defs)
         if pnode:
+            if pnode and pnode == self.type:
+                # circular reference
+                ExceptionCollector.appendException(
+                    InvalidTypeError(what=self.type))
+                return None
             return NodeType(pnode, self.custom_def)
 
     @property

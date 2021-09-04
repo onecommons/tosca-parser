@@ -43,11 +43,12 @@ class ArtifactTypeDef(StatefulEntityType):
     def __init__(self, atype, custom_def=None):
         super(ArtifactTypeDef, self).__init__(atype, self.ARTIFACT_PREFIX, custom_def)
         self.custom_def = custom_def
-        self.properties = self.defs.get(self.PROPERTIES)
-        self.parent_artifacts = self._get_parent_artifacts()
-        self.mime_type = self.defs.get("mime_type")
-        self.file_ext = self.defs.get("file_ext", [])
-        self._validate_keys()
+        if self.defs is not None:
+            self.properties = self.defs.get(self.PROPERTIES)
+            self.parent_artifacts = self._get_parent_artifacts()
+            self.mime_type = self.defs.get("mime_type")
+            self.file_ext = self.defs.get("file_ext", [])
+            self._validate_keys()
 
     def _validate_keys(self):
         for key in self.defs.keys():
