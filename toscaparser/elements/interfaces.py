@@ -12,6 +12,8 @@
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
+from toscaparser.common.exception import MissingRequiredFieldError
+from toscaparser.common.exception import ValidationError
 from toscaparser.elements.statefulentitytype import StatefulEntityType
 
 SECTIONS = (
@@ -37,15 +39,41 @@ OPERATION_DEF_RESERVED_WORDS = (DESCRIPTION, IMPLEMENTATION, INPUTS, OUTPUTS) = 
     "outputs",
 )
 
-INTERFACE_DEF_RESERVED_WORDS = ["type", "inputs", "operations", "notifications", "description", "implementation"]
+INTERFACE_DEF_RESERVED_WORDS = [
+    "type",
+    "inputs",
+    "operations",
+    "notifications",
+    "description",
+    "implementation",
+]
+
+IMPLEMENTATION_DEF_RESERVED_WORDS = (
+    PRIMARY,
+    DEPENDENCIES,
+    TIMEOUT,
+    CLASSNAME,
+    OPERATION_HOST,
+    ENVIRONMENT,
+    PRECONDITIONS
+) = ("primary", "dependencies", "timeout", "className", "operation_host", "environment", "preConditions")
+
+INLINE_ARTIFACT_DEF_RESERVED_WORDS = ("description", "file", "repository")
 
 # this is kind of misnamed, these are created for each operation defined on a interface definition
 class InterfacesDef(StatefulEntityType):
     """TOSCA built-in interfaces type."""
 
-    def __init__(self, node_type, interfacename,
-                 node_template=None, name=None, value=None,
-                 inputs=None, outputs=None):
+    def __init__(
+        self,
+        node_type,
+        interfacename,
+        node_template=None,
+        name=None,
+        value=None,
+        inputs=None,
+        outputs=None,
+    ):
         self.ntype = node_type
         self.node_template = node_template
         self.interfacename = interfacename
@@ -67,25 +95,33 @@ class InterfacesDef(StatefulEntityType):
             self.interfacetype = INSTALL
         if not self.interfacetype:
             ExceptionCollector.appendException(
-                TypeError("Interface type for interface \"{0}\" not found"
-                          .format(self.interfacename))
+                TypeError(
+                    'Interface type for interface "{0}" not found'.format(
+                        self.interfacename
+                    )
+                )
             )
         self.type = self.interfacetype
         if node_type:
-            if self.node_template and self.node_template.custom_def \
-               and self.interfacetype in self.node_template.custom_def:
+            if (
+                self.node_template
+                and self.node_template.custom_def
+                and self.interfacetype in self.node_template.custom_def
+            ):
                 self.defs = self.node_template.custom_def[self.interfacetype]
             elif self.interfacetype in self.TOSCA_DEF:
                 self.defs = self.TOSCA_DEF[self.interfacetype]
         if not self.defs:
             ExceptionCollector.appendException(
-                TypeError("Interface type definition for interface \"{0}\" "
-                          "not found".format(self.interfacetype))
+                TypeError(
+                    'Interface type definition for interface "{0}" '
+                    "not found".format(self.interfacetype)
+                )
             )
         if value:
             if isinstance(self.value, dict):
                 for i, j in self.value.items():
-                    if i == '_source':
+                    if i == "_source":
                         self._source = j
                     elif i == IMPLEMENTATION:
                         self.implementation = j
@@ -100,12 +136,58 @@ class InterfacesDef(StatefulEntityType):
                         else:
                             self.outputs = j
                     elif i not in OPERATION_DEF_RESERVED_WORDS:
-                        what = '"interfaces" of template "%s"' % self.node_template.name
                         ExceptionCollector.appendException(
-                            UnknownFieldError(what=what, field=i)
+                            UnknownFieldError(what=self._msg, field=i)
                         )
             else:
                 self.implementation = value
+            self.validate_implementation()
+
+    @property
+    def _msg(self):
+        return 'operation "%s:%s" on template "%s"' % (
+            self.interfacename,
+            self.name,
+            self.node_template.name,
+        )
+
+    def validate_implementation(self):
+        if isinstance(self.implementation, dict):
+            for key, value in self.implementation.items():
+                if key == PRIMARY:
+                    self.validate_inline_artifact(value)
+                elif key == DEPENDENCIES:
+                    if not isinstance(value, list):
+                        ExceptionCollector.appendException(
+                            ValidationError(message=self._msg)
+                        )
+                    else:
+                        for artifact in value:
+                            self.validate_inline_artifact(artifact)
+                elif key not in IMPLEMENTATION_DEF_RESERVED_WORDS:
+                    ExceptionCollector.appendException(
+                        UnknownFieldError(
+                            what="implementation in " + self._msg, field=key
+                        )
+                    )
+
+    def validate_inline_artifact(self, inline_artifact):
+        if isinstance(inline_artifact, dict):
+            if "file" not in inline_artifact:
+                ExceptionCollector.appendException(
+                    MissingRequiredFieldError(
+                        what="inline artifact in " + self._msg, required="file"
+                    )
+                )
+            for key in inline_artifact:
+                if key not in INLINE_ARTIFACT_DEF_RESERVED_WORDS:
+                    what = (
+                        "inline artifact in "
+                        + self._msg
+                        + " contains invalid field "
+                        + key
+                    )
+                    ExceptionCollector.appendException(ValidationError(message=what))
 
     @property
     def lifecycle_ops(self):

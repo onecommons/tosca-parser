@@ -1433,7 +1433,7 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                      wp_db_port: { get_ref_property: [ database_endpoint, \
                      database_endpoint, port ] }
         '''
-        expectedmessage = _('"interfaces" of template "wordpress" contains '
+        expectedmessage = _('operation "Standard:configure" on template "wordpress" contains '
                             'unknown field "input". Refer to the definition '
                             'to verify valid values.')
         err = self.assertRaises(
