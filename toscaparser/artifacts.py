@@ -71,6 +71,10 @@ class Artifact(EntityTemplate):
         # XXX if not set deduce from file ext
         return self.type_definition.mime_type
 
+    @property
+    def file_extensions(self):
+        return self.type_definition.file_ext
+
     def _validate_required_fields(self, template):
         if "file" not in template:
             ExceptionCollector.appendException(

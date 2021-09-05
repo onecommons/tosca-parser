@@ -132,6 +132,7 @@ class ImportsLoader(object):
                 nested_imports = imported_tpl.get('imports')
                 if nested_imports:
                     self.nested_imports.update({full_file_name: nested_imports})
+            # XXX should save prefix too
             self._update_nested_tosca_tpls(full_file_name, imported_tpl)
 
     def _update_custom_def(self, imported_tpl, namespace_prefix, path):
@@ -139,7 +140,7 @@ class ImportsLoader(object):
         for type_def_section in self.type_definition_list:
             outer_custom_types = imported_tpl.get(type_def_section)
             if outer_custom_types:
-                if type_def_section in ['node_types', 'relationship_types']:
+                if type_def_section in ['node_types', 'relationship_types', 'artifact_types']:
                     for custom_def in outer_custom_types.values():
                         custom_def['_source'] = path
                 if namespace_prefix:

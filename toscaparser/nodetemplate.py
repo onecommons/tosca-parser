@@ -228,20 +228,37 @@ class NodeTemplate(EntityTemplate):
     @property
     def artifacts(self):
         if self._artifacts is None:
-            # node templates can't be imported so we don't need to track their source
-            artifacts_tpl = self.entity_tpl.get(self.ARTIFACTS)
-            if artifacts_tpl:
-                artifacts = {name: Artifact(name, value, self.custom_def)
-                    for name, value in artifacts_tpl.items()}
-            else:
-                artifacts = {}
+            artifacts = {}
+            required_artifacts = {}
 
-            # but types can, so we do
             for parent_type in reversed(self.types):
                 if not parent_type.defs or not parent_type.defs.get(self.ARTIFACTS):
                     continue
                 for name, value in parent_type.defs[self.ARTIFACTS].items():
-                    artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
+                    if isinstance(value, dict) and "file" not in value and "type" in value:
+                        # not a full artifact definition but rather specifying than an artifact 
+                        # of a certain type is required
+                        required_artifacts[name] = value["type"]
+                    else:
+                        artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
+
+            # node templates can't be imported so we don't need to track their source
+            artifacts_tpl = self.entity_tpl.get(self.ARTIFACTS)
+            if artifacts_tpl:
+                artifacts.update({name: Artifact(name, value, self.custom_def)
+                    for name, value in artifacts_tpl.items()})
+
+            for name, typename in required_artifacts.items():
+                artifact = artifacts.get(name)
+                if not artifact:
+                    ExceptionCollector.appendException(
+                      ValidationError(message='required artifact "%s" of type "%s" not defined on node "%s"' %
+                              (name, typename, self.name)))
+                elif not artifact.is_derived_from(typename):
+                    ExceptionCollector.appendException(
+                      ValidationError(message='artifact "%s" on node "%s" must be derived from type "%s"' %
+                              (name, self.name, typename)))
+
             self._artifacts = artifacts
         return self._artifacts
 
