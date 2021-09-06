@@ -246,15 +246,14 @@ class ToscaTemplate(object):
                     continue
                 if topology.substitution_mappings.type == nodetemplate.type:
                     # the node template's properties treated as inputs
-                    parsed_params = self._get_params_for_nested_template(
-                        nodetemplate)
+                    inputs = self._get_params_for_nested_template(nodetemplate)
                     # create a new substitution mapping object for the mapped node
                     # XXX SubstitutionMappings is just a simple wrapper around the def dict, only performs validation
                     # and sub_mapping_tosca_template is never unused!
                     nodetemplate.sub_mapping_tosca_template = SubstitutionMappings(
                         topology.substitution_mappings.sub_mapping_def,
                         topology.nodetemplates,
-                        parsed_params,
+                        inputs,
                         topology.outputs,
                         nodetemplate,
                         topology.custom_defs)
@@ -340,13 +339,10 @@ class ToscaTemplate(object):
 
     def _get_params_for_nested_template(self, nodetemplate):
         """Return total params for nested_template."""
-        parsed_params = deepcopy(self.parsed_params) \
-            if self.parsed_params else {}
+        parsed_params = {input.name : input for input in self.topology_template.inputs}
         if nodetemplate:
-            for pname in nodetemplate.get_properties():
-                parsed_params.update({pname:
-                                      nodetemplate.get_property_value(pname)})
-        return parsed_params
+            parsed_params.update(nodetemplate.get_properties())
+        return list(parsed_params.values())
 
     def _has_substitution_mappings(self):
         """Return True if the template has valid substitution mappings."""

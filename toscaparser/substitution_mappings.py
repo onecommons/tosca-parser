@@ -32,11 +32,13 @@ class SubstitutionMappings(object):
     implementation of a Node type.
     '''
 
-    SECTIONS = (NODE_TYPE, REQUIREMENTS, CAPABILITIES, PROPERTIES) = \
-               ('node_type', 'requirements', 'capabilities', 'properties')
+    SECTIONS = (NODE, NODE_TYPE, REQUIREMENTS, CAPABILITIES, PROPERTIES,
+                        SUBSTITUTION_FILTER, ATTRIBUTES, INTERFACES) = \
+               ('node', 'node_type', 'requirements', 'capabilities', 'properties',
+               'substitution_filter', 'attributes', 'interfaces')
 
     # XXX added in 1.3: substitution_filter, attributes, interfaces,
-    # XXX this doesn't support mappings at all
+    # XXX currently only supports property name to input name mapping
 
     OPTIONAL_OUTPUTS = ['tosca_id', 'tosca_name', 'state']
 
@@ -44,16 +46,15 @@ class SubstitutionMappings(object):
                  sub_mapped_node_template, custom_defs):
         self.nodetemplates = nodetemplates
         self.sub_mapping_def = sub_mapping_def
-        self.inputs = inputs or []
+        self.inputs = {input.name : input for input in inputs} if inputs else {}
         self.outputs = outputs or []
         self.sub_mapped_node_template = sub_mapped_node_template
         self.custom_defs = custom_defs or {}
         self.node_definition = None
-        self._validate()
-
         self._capabilities = None
         self._requirements = None
         self._properties = None
+        self._validate()
 
     @property
     def type(self):
@@ -74,7 +75,21 @@ class SubstitutionMappings(object):
 
     @property
     def properties(self):
-        return self.sub_mapping_def.get(self.PROPERTIES)
+        if self._properties is None:
+            self._properties = {}
+            mapping = self.sub_mapping_def.get(self.PROPERTIES)
+            if mapping:
+                self._map(mapping, self.inputs, self._properties)
+        return self._properties
+
+    def _map(self, mapping, source, dest):
+        for propname, value in mapping.items():
+            # map property from input
+            if isinstance(value, list):
+                input = value[0]
+            else:
+                input = value
+            dest[propname] = source[input]
 
     def _validate(self):
         # Basic validation
@@ -124,8 +139,9 @@ class SubstitutionMappings(object):
         more inputs than the substituted node has properties, default values
         must be defined for those inputs.
         """
-
-        all_inputs = set([input.name for input in self.inputs])
+        # reverse property name to input name mapping
+        reverse_property_mappings = {v : n for n,v in self.sub_mapping_def.get(self.PROPERTIES, {}).items()}
+        all_inputs = set([reverse_property_mappings.get(input, input) for input in self.inputs])
         required_properties = set([p.name for p in
                                    self.node_definition.
                                    get_properties_def_objects()
@@ -159,7 +175,7 @@ class SubstitutionMappings(object):
         # provide default values. Currently the scenario may not happen
         # because of parameters validation in nodetemplate, here is a
         # guarantee.
-        for input in self.inputs:
+        for input in self.inputs.values():
             if input.name in all_inputs - all_properties \
                and input.default is None:
                 ExceptionCollector.appendException(
@@ -171,11 +187,11 @@ class SubstitutionMappings(object):
     def _validate_capabilities(self):
         """validate the capabilities of substitution mappings."""
 
-        # The capabilites must be in node template wchich be mapped.
+        # The capabilites must be in node template which be mapped.
         tpls_capabilities = self.sub_mapping_def.get(self.CAPABILITIES)
-        node_capabiliteys = self.sub_mapped_node_template.get_capabilities() \
+        node_capabilities = self.sub_mapped_node_template.get_capabilities() \
             if self.sub_mapped_node_template else None
-        for cap in node_capabiliteys.keys() if node_capabiliteys else []:
+        for cap in node_capabilities.keys() if node_capabilities else []:
             if (tpls_capabilities and
                     cap not in list(tpls_capabilities.keys())):
                 pass

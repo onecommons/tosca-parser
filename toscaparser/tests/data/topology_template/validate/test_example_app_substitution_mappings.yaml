@@ -40,7 +40,7 @@ topology_template:
   substitution_mappings:
     node_type: example.app
     properties:
-      receiver_port: 8080
+      receiver_port: receiver_port
 
   node_templates:
     app:
