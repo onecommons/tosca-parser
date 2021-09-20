@@ -29,10 +29,13 @@ YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
 class ImportResolver(object):
+    def get_repository_url(self, importsLoader, repository_name):
+        repo_def = importsLoader.repositories[repository_name]
+        return repo_def['url'].strip()
+
     def get_url(self, importsLoader, repository_name, file_name, isFile=None):
         if repository_name:
-            repo_def = importsLoader.repositories[repository_name]
-            full_url = repo_def['url'].strip()
+            full_url = self.get_repository_url(importsLoader, repository_name)
             if file_name:
                 full_url = full_url.rstrip("/") + "/" + file_name
         else:
@@ -44,7 +47,7 @@ class ImportResolver(object):
         if parsed.scheme == 'file':
             path = parsed.path
             if importsLoader.path:
-                path = os.path.join(importsLoader.path, path)
+                path = os.path.join(os.path.dirname(importsLoader.path), path)
             return path, True, parsed.fragment
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
             return full_url, False, None
@@ -238,7 +241,18 @@ class ImportsLoader(object):
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
             # it's an absolute URL
             return self.resolver.get_url(self, repository, file_name, False)
-        elif not repository:
+
+        if repository:
+            url = self.resolver.get_repository_url(self, repository)
+            if url.startswith('file:'):
+                url_path = url[5:]
+                if not os.path.isabs(url_path):
+                    file_name = os.path.join(url_path, file_name)
+                    # we already resolved the repository to a relative file path,
+                    # so clear it now
+                    repository = None
+
+        if not repository:
             fragment = None
             import_template = None
             if self.path:
