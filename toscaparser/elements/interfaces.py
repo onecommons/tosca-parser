@@ -55,10 +55,11 @@ IMPLEMENTATION_DEF_RESERVED_WORDS = (
     CLASSNAME,
     OPERATION_HOST,
     ENVIRONMENT,
-    PRECONDITIONS
-) = ("primary", "dependencies", "timeout", "className", "operation_host", "environment", "preConditions")
+    PRECONDITIONS,
+    _SOURCE,
+) = ("primary", "dependencies", "timeout", "className", "operation_host", "environment", "preConditions", "_source")
 
-INLINE_ARTIFACT_DEF_RESERVED_WORDS = ("description", "file", "repository")
+INLINE_ARTIFACT_DEF_RESERVED_WORDS = ("description", "file", "repository", "_source")
 
 # this is kind of misnamed, these are created for each operation defined on a interface definition
 class InterfacesDef(StatefulEntityType):
