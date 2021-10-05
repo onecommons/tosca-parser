@@ -59,9 +59,9 @@ class ImportResolver(object):
 
 class ImportsLoader(object):
 
-    IMPORTS_SECTION = (FILE, REPOSITORY, NAMESPACE_URI, NAMESPACE_PREFIX) = \
+    IMPORTS_SECTION = (FILE, REPOSITORY, NAMESPACE_URI, NAMESPACE_PREFIX, WHEN) = \
                       ('file', 'repository', 'namespace_uri',
-                       'namespace_prefix')
+                       'namespace_prefix', 'when')
 
     def __init__(self, importslist, path, type_definition_list=None,
                  tpl=None, resolver=None):
