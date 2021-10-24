@@ -12,7 +12,7 @@
 
 from toscaparser.dataentity import DataEntity
 from toscaparser.elements.constraints import Schema
-from toscaparser.functions import is_function
+from toscaparser import functions
 
 
 class Property(object):
@@ -72,7 +72,7 @@ class Property(object):
 
     def validate(self):
         '''Validate if not a reference property.'''
-        if not is_function(self.value):
+        if not functions.is_function(self.value):
             if self.type == Schema.STRING:
                 self.value = str(self.value)
             self.value = DataEntity.validate_datatype(self.type, self.value,
