@@ -11,7 +11,7 @@
 #    under the License.
 
 from toscaparser.common.exception import ExceptionCollector
-from toscaparser.common.exception import InvalidTypeError
+from toscaparser.common.exception import MissingTypeError
 from toscaparser.elements.entity_type import EntityType
 from toscaparser.elements.property_definition import PropertyDef
 from toscaparser.unsupportedtype import UnsupportedType
@@ -55,7 +55,7 @@ class StatefulEntityType(EntityType):
             else:
                 self.defs = None
                 ExceptionCollector.appendException(
-                    InvalidTypeError(what=entitytype))
+                    MissingTypeError(what=entitytype))
         self.type = entitytype
         self._source = self.defs and self.defs.get('_source') or None
 

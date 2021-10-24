@@ -93,6 +93,10 @@ class InvalidTypeError(TOSCAException):
     msg_fmt = _('Type "%(what)s" is not a valid type.')
 
 
+class MissingTypeError(TOSCAException):
+    msg_fmt = _('No definition for type "%(what)s" found.')
+
+
 class InvalidTypeAdditionalRequirementsError(TOSCAException):
     msg_fmt = _('Additional requirements for type "%(type)s" not met.')
 

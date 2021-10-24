@@ -466,10 +466,9 @@ class ToscaTemplateTest(TestCase):
                type: tosca.capabilities.TestCapability
         '''
         err = self.assertRaises(
-            exception.InvalidTypeError,
+            exception.MissingTypeError,
             lambda: _get_nodetemplate(tpl_snippet, None, custom_def))
-        self.assertEqual('Type "tosca.capabilities.TestCapability" is not '
-                         'a valid type.', str(err))
+        self.assertIn("tosca.capabilities.TestCapability", str(err))
 
     def test_capability_without_properties(self):
         expected_version = "tosca_simple_yaml_1_0"
@@ -617,10 +616,9 @@ class ToscaTemplateTest(TestCase):
         exception.ExceptionCollector.assertExceptionMessage(
             exception.URLException, err2_msg)
 
-        err3_msg = _('Type "tosca.nodes.WebApplication.WordPress" is not a '
-                     'valid type.')
+        err3_msg = _('No definition for type "tosca.nodes.WebApplication.WordPress" found.')
         exception.ExceptionCollector.assertExceptionMessage(
-            exception.InvalidTypeError, err3_msg)
+            exception.MissingTypeError, err3_msg)
 
         err4_msg = _('template "wordpress" contains unknown field "requirement". Refer to the definition to verify valid values.')
         exception.ExceptionCollector.assertExceptionMessage(
@@ -654,9 +652,9 @@ class ToscaTemplateTest(TestCase):
         # exception.ExceptionCollector.assertExceptionMessage(
         #     exception.MissingRequiredFieldError, err9_msg)
 
-        err10_msg = _('Type "tosca.nodes.XYZ" is not a valid type.')
+        err10_msg = _('No definition for type "tosca.nodes.XYZ" found.')
         exception.ExceptionCollector.assertExceptionMessage(
-            exception.InvalidTypeError, err10_msg)
+            exception.MissingTypeError, err10_msg)
 
     def test_invalid_section_names(self):
         tosca_tpl = os.path.join(

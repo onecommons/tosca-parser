@@ -999,12 +999,9 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
               Standard:
                  configure: mysql_database_configure.sh
         '''
-        expectedmessage = _('Type "tosca.nodes.Databases" is not '
-                            'a valid type.')
         err = self.assertRaises(
-            exception.InvalidTypeError,
+            exception.MissingTypeError,
             lambda: self._single_node_template_content_test(tpl_snippet))
-        self.assertEqual(expectedmessage, err.__str__())
 
     @skip("this fails intermittently!")
     def test_node_template_missing_requirements(self):

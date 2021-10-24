@@ -48,7 +48,7 @@ group_type = GroupType('tosca.groups.Root')
 class ToscaDefTest(TestCase):
     def test_type(self):
         self.assertEqual(compute_type.type, "tosca.nodes.Compute")
-        self.assertRaises(exception.InvalidTypeError, NodeType,
+        self.assertRaises(exception.MissingTypeError, NodeType,
                           'tosca.nodes.Invalid')
         self.assertEqual(network_type.type, "tosca.nodes.network.Network")
         self.assertEqual(network_port_type.type, "tosca.nodes.network.Port")
