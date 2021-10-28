@@ -121,6 +121,7 @@ class EntityType(object):
                         parent_value = p.defs[ndtype]
                         if value:
                             if isinstance(value, dict):
+                                assert isinstance(parent_value, dict), ndtype
                                 for k, v in parent_value.items():
                                     if k not in value:
                                         value[k] = v
@@ -130,6 +131,7 @@ class EntityType(object):
                                                   item['_source'] = p._source
 
                             if isinstance(value, list):
+                                assert isinstance(parent_value, list), ndtype
                                 for p_value in parent_value:
                                     if p_value not in value:
                                         value.append(p_value)

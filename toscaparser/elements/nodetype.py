@@ -17,7 +17,7 @@ import toscaparser.elements.interfaces as ifaces
 from toscaparser.elements.interfaces import InterfacesDef
 from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.elements.statefulentitytype import StatefulEntityType
-from toscaparser.common.exception import InvalidTypeError
+from toscaparser.common.exception import InvalidTypeError, InvalidTypeDefinition
 
 
 class NodeType(StatefulEntityType):
@@ -208,8 +208,13 @@ class NodeType(StatefulEntityType):
 
     def _validate_keys(self):
         if self.defs:
-            for key in self.defs.keys():
+            for key in self.defs:
                 if key not in self.SECTIONS:
                     ExceptionCollector.appendException(
                         UnknownFieldError(what='Nodetype"%s"' % self.ntype,
                                           field=key))
+                if key == self.REQUIREMENTS:
+                    if not isinstance(self.defs[self.REQUIREMENTS], list):
+                        ExceptionCollector.appendException(
+                            InvalidTypeDefinition(type='Nodetype %s' % self.ntype,
+                                              what='"requirements" field value must be a list'))

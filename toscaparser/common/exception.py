@@ -92,6 +92,8 @@ class InvalidNodeTypeError(TOSCAException):
 class InvalidTypeError(TOSCAException):
     msg_fmt = _('Type "%(what)s" is not a valid type.')
 
+class InvalidTypeDefinition(TOSCAException):
+    msg_fmt = _('Type "%(type)s" is not a valid type: %(what)s.')
 
 class MissingTypeError(TOSCAException):
     msg_fmt = _('No definition for type "%(what)s" found.')
