@@ -111,8 +111,9 @@ class EntityType(object):
         if defs and ndtype in defs:
             # copy the value to avoid that next operations add items in the
             # item definitions
-            value = copy.copy(defs[ndtype])
+            value = defs[ndtype]
         if parent:
+            value = copy.copy(value)
             p = self
             if p:
                 while p:

@@ -41,6 +41,7 @@ class RelationshipTemplate(EntityTemplate):
         self.default_for = self.entity_tpl.get(self.DEFAULT_FOR)
 
     def get_matching_capabilities(self, targetNodeTemplate, capability_name=None):
+        # return the capabilities on the given targetNodeTemplate that matches this relationship
         capabilitiesDict = targetNodeTemplate.get_capabilities()
         # if capability_name is set, make sure the target node has a capability
         # that matching it as a name or or as a type
@@ -60,9 +61,10 @@ class RelationshipTemplate(EntityTemplate):
         if capabilityTypes:
             capabilities = [cap for cap in capabilities
                               if any(cap.is_derived_from(capType) for capType in capabilityTypes)]
-        if not capability_name and len(capabilities) > 1:
-            # if no capability was specified and there are more than one to choose from, choose the most generic
-            featureCap = capabilitiesDict.get("feature")
-            if featureCap:
-                return [featureCap]
+        elif not capability_name and len(capabilities) > 1:
+                # find the best match for the targetNodeTemplate
+                # if no capability was specified and there are more than one to choose from, choose the most generic
+                featureCap = capabilitiesDict.get("feature")
+                if featureCap:
+                    return [featureCap]
         return capabilities

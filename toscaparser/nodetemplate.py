@@ -24,7 +24,6 @@ from toscaparser.entity_template import EntityTemplate
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.utils.gettextutils import _
 from toscaparser.artifacts import Artifact
-
 log = logging.getLogger('tosca')
 
 
@@ -169,7 +168,7 @@ class NodeTemplate(EntityTemplate):
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'tname': related_node.name}))
                         return reqDef, None
-                related_capability = capabilities[0] # choose best match
+                related_capability = capabilities[0] # first one is best match
         elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types:
             ExceptionCollector.appendException(
               ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
@@ -236,8 +235,8 @@ class NodeTemplate(EntityTemplate):
                     continue
                 for name, value in parent_type.defs[self.ARTIFACTS].items():
                     if isinstance(value, dict) and "file" not in value and "type" in value:
-                        # not a full artifact definition but rather specifying than an artifact 
-                        # of a certain type is required
+                        # this is not a full artifact definition so treat this as
+                        # specifying that an artifact of a certain type is required
                         required_artifacts[name] = value["type"]
                     else:
                         artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
