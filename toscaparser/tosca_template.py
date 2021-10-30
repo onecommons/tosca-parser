@@ -152,7 +152,11 @@ class ToscaTemplate(object):
         repositories.update(self.tpl.get(REPOSITORIES) or {})
         # we need to update the template because it is passed directly to the import loader
         self.tpl[REPOSITORIES] = repositories
-        return {name:Repository(name, val) for name, val in repositories.items()}
+        if self.import_resolver:
+            get_repository = self.import_resolver.get_repository
+        else:
+            get_repository = Repository
+        return {name:get_repository(name, val) for name, val in repositories.items()}
 
     def _tpl_relationship_templates(self):
         topology_template = self._tpl_topology_template()

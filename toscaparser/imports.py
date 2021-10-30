@@ -24,11 +24,16 @@ from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
 import toscaparser.utils.yamlparser
 from six.moves.urllib.parse import urlparse
+from toscaparser.repositories import Repository
+
 
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
 class ImportResolver(object):
+    def get_repository(self, name, tpl):
+        return Repository(name, tpl)
+
     def get_repository_url(self, importsLoader, repository_name):
         repo_def = importsLoader.repositories[repository_name]
         return repo_def['url'].strip()
