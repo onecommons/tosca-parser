@@ -30,13 +30,25 @@ from toscaparser.repositories import Repository
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
+
 class ImportResolver(object):
     def get_repository(self, name, tpl):
         return Repository(name, tpl)
 
     def get_repository_url(self, importsLoader, repository_name):
         repo_def = importsLoader.repositories[repository_name]
-        return repo_def['url'].strip()
+        url = repo_def["url"].strip()
+        if url.startswith("file:") and importsLoader:
+            url_path = url[5:]
+            # its relative so join with current location of import
+            if not os.path.isabs(url_path) and importsLoader.path:
+                if os.path.isdir(importsLoader.path):
+                    base_path = importsLoader.path
+                else:
+                    base_path = os.path.dirname(importsLoader.path)
+                return "file://" + os.path.join(base_path, url_path)
+
+        return url
 
     def get_url(self, importsLoader, repository_name, file_name, isFile=None):
         if repository_name:
@@ -49,10 +61,14 @@ class ImportResolver(object):
             return full_url, True, None
 
         parsed = urlparse(full_url)
-        if parsed.scheme == 'file':
+        if parsed.scheme == "file":
             path = parsed.path
             if importsLoader.path:
-                path = os.path.join(os.path.dirname(importsLoader.path), path)
+                if os.path.isdir(importsLoader.path):
+                    base_path = importsLoader.path
+                else:
+                    base_path = os.path.dirname(importsLoader.path)
+                path = os.path.join(base_path, path)
             return path, True, parsed.fragment
         if toscaparser.utils.urlutils.UrlUtils.validate_url(full_url):
             return full_url, False, None
@@ -246,16 +262,6 @@ class ImportsLoader(object):
         if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
             # it's an absolute URL
             return self.resolver.get_url(self, repository, file_name, False)
-
-        if repository:
-            url = self.resolver.get_repository_url(self, repository)
-            if url.startswith('file:'):
-                url_path = url[5:]
-                if not os.path.isabs(url_path):
-                    file_name = os.path.join(url_path, file_name)
-                    # we already resolved the repository to a relative file path,
-                    # so clear it now
-                    repository = None
 
         if not repository:
             fragment = None
