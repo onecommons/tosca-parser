@@ -343,7 +343,12 @@ class EntityTemplate(object):
         return props
 
     def _create_interfaces(self):
-        interfaces = []
+        interfacesDefs = self._create_interfacedefs()
+        if not interfacesDefs:
+            return []
+        return self._create_operations(interfacesDefs)
+
+    def _create_interfacedefs(self):
         # get a copy of the interfaces directy defined on the entity template
         tpl_interfaces = self.type_definition.get_value(self.INTERFACES,
                                                          self.entity_tpl)
@@ -401,9 +406,10 @@ class EntityTemplate(object):
                     interfacesDefs[iName] = defs
         else:
             interfacesDefs = tpl_interfaces
-            if not interfacesDefs:
-              return []
+        return interfacesDefs
 
+    def _create_operations(self, interfacesDefs):
+        interfaces = []
         defaults = interfacesDefs.pop('defaults', {})
         for interface_type, value in interfacesDefs.items():
             # merge in shared:
@@ -433,7 +439,8 @@ class EntityTemplate(object):
             else:
                 defs = value
 
-            for op, op_def in defs.items():
+            for op in list(defs):
+                op_def = defs[op]
                 if op in INTERFACE_DEF_RESERVED_WORDS:
                     continue
                 if not isinstance(op_def, dict):
