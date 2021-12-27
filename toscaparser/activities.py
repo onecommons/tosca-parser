@@ -15,9 +15,8 @@ import logging
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError, ValidationError
-from toscaparser.entity_template import EntityTemplate
 from toscaparser.elements.constraints import Constraint, get_constraint_class
-
+from toscaparser.elements import scalarunit
 
 SECTIONS = (DELEGATE, SET_STATE, CALL_OPERATION, INLINE) = \
               ('delegate', 'set_state', 'call_operation', 'inline')
@@ -27,7 +26,7 @@ log = logging.getLogger('tosca')
 PRECONDITION_SECTIONS = (TARGET, TARGET_RELATIONSHIP, CONDITION) = (
                           'target', 'target_relationship', "condition")
 
-class Precondition(EntityTemplate):
+class Precondition(object):
 
     '''Step defined in workflows of topology template'''
 
@@ -61,7 +60,7 @@ class Precondition(EntityTemplate):
 
 class ConditionClause(object):
 
-  def __init__(self, name, definition):
+  def __init__(self, name, definition, datatype=None):
     self.name = name
     if name in ['and', 'or', 'not', 'assert']:
         self.conditions = list(self.getConditions(definition))
@@ -71,8 +70,8 @@ class ConditionClause(object):
         # hack: pick a prop_type to avoid validation error
         # XXX need to get the real property_type from the target's attribute definition
         self.conditions = [Constraint(name,
-                            get_constraint_class(next(iter(constraint))).valid_prop_types[0],
-                            constraint) for constraint in definition]
+              datatype or get_constraint_class(next(iter(constraint))).valid_prop_types[0],
+              constraint) for constraint in definition]
 
   def evaluate(self, attributes):
     if self.name == 'not':
@@ -95,11 +94,11 @@ class ConditionClause(object):
             return False
         value = attributes[self.name]
         for condition in self.conditions:
-            # XXX:
-            #if condition.property_type in scalarunit.ScalarUnit.SCALAR_UNIT_TYPES:
-            #  value = scalarunit.get_scalarunit_value(condition.property_type, value)
+            if condition.property_type in scalarunit.ScalarUnit.SCALAR_UNIT_TYPES:
+                value = scalarunit.get_scalarunit_value(condition.property_type, value)
             if not condition._is_valid(value):
                 return False
+            log.warning("value matched %s on %s", value, self.name)
         return True
 
   @staticmethod

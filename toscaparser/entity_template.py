@@ -38,9 +38,9 @@ class EntityTemplate(object):
                 'capabilities', 'type', 'description', 'directives', "instance_keys",
                 'attributes', 'artifacts', 'node_filter', 'copy')
     REQUIREMENTS_SECTION = (NODE, CAPABILITY, RELATIONSHIP, OCCURRENCES,
-                            NODE_FILTER) = \
+                            NODE_FILTER, DESCRIPTION, METADATA) = \
                            ('node', 'capability', 'relationship',
-                            'occurrences', 'node_filter')
+                            'occurrences', 'node_filter', 'description', 'metadata')
     # Special key names
     SPECIAL_SECTIONS = (METADATA) = ('metadata')
 
@@ -178,6 +178,8 @@ class EntityTemplate(object):
                                               self.entity_tpl, parent=True)
         if caps:
             for name, props in caps.items():
+                if props is None:
+                    continue
                 ctype = props.get('type')
                 capabilities = self.type_definition.get_capabilities()
                 if name in capabilities.keys():

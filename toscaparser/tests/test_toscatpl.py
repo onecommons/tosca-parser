@@ -392,13 +392,13 @@ class ToscaTemplateTest(TestCase):
                   node: tosca.nodes.Compute
                   node_filter:
                     properties:
-                      num_cpus: { in_range: [ 1, 4 ] }
-                      mem_size: { greater_or_equal: 2 }
+                      - num_cpus: { in_range: [ 1, 4 ] }
+                      - mem_size: { greater_or_equal: 2 }
                     capabilities:
                       - tosca.capabilities.OS:
                           properties:
-                            architecture: x86_64
-                            type: linux
+                            - architecture: x86_64
+                            - type: linux
         '''
 
         tpl_snippet_3 = '''
@@ -871,8 +871,9 @@ class ToscaTemplateTest(TestCase):
         tosca_tpl = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "data/node_filter/test_node_filter.yaml")
-        self.assertRaises(exception.ValidationError, ToscaTemplate, tosca_tpl,
-                          None)
+        t = ToscaTemplate(tosca_tpl)
+        filter_match = t.topology_template.node_templates['test'].relationships[0][0].target.name
+        assert filter_match == 'server_large', filter_match
 
     def test_attributes_inheritance(self):
         tosca_tpl = os.path.join(

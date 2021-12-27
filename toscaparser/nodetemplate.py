@@ -24,6 +24,8 @@ from toscaparser.entity_template import EntityTemplate
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.utils.gettextutils import _
 from toscaparser.artifacts import Artifact
+from toscaparser.activities import ConditionClause
+
 log = logging.getLogger('tosca')
 
 
@@ -147,8 +149,8 @@ class NodeTemplate(EntityTemplate):
             relTpl = RelationshipTemplate(relationship, name, self.custom_def)
         relTpl.source = self
 
-        # XXX support node_filter
         node = reqDef.get('node')
+        node_filter = reqDef.get('node_filter')
         related_node = None
         related_capability = None
         if node:
@@ -169,9 +171,9 @@ class NodeTemplate(EntityTemplate):
                             % {'rname': name, 'nname': self.name, 'tname': related_node.name}))
                         return reqDef, None
                 related_capability = capabilities[0] # first one is best match
-        elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types:
+        elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types and not node_filter:
             ExceptionCollector.appendException(
-              ValidationError(message='requirement "%s" of node "%s" must specify a node or a capability' %
+              ValidationError(message='requirement "%s" of node "%s" must specify a node_filter, a node or a capability' %
                               (name, self.name)))
             return reqDef, None
 
@@ -184,11 +186,18 @@ class NodeTemplate(EntityTemplate):
                 if not node or nodeTemplate.is_derived_from(node):
                     capability = reqDef.get('capability')
                     # should have already returned an error if this assertion is false
-                    assert node or capability or relTpl.type_definition.valid_target_types
-                    capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
-                    if capabilities:
-                        found = nodeTemplate
-                        found_cap = capabilities[0] # first is best match
+                    if capability or relTpl.type_definition.valid_target_types:
+                        capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
+                        if capabilities:
+                            found = nodeTemplate
+                            found_cap = capabilities[0] # first is best match
+                        else:
+                            continue # didn't match capabilities, don't check node_filter
+                    if node_filter:
+                        if nodeTemplate.match_nodefilter(node_filter):
+                            found = nodeTemplate
+                        else:
+                            continue
 
                 if found:
                     if related_node:
@@ -301,6 +310,9 @@ class NodeTemplate(EntityTemplate):
                         if isinstance(value, dict):
                             self._validate_requirements_keys(value)
                             self._validate_requirements_properties(value)
+                            node_filter = value.get('node_filter')
+                            if node_filter:
+                                self._validate_nodefilter(node_filter)
                         allowed_reqs.append(r1)
                     self._common_validate_field(req, allowed_reqs,
                                                 'requirements')
@@ -350,3 +362,107 @@ class NodeTemplate(EntityTemplate):
             elif not isinstance(key, str):
                 ExceptionCollector.appendException(
                     ValidationError(message=msg))
+
+
+    def _validate_nodefilter_filter(self, node_filter, cap_label=''):
+        valid = True
+        if cap_label:
+            name = 'capability "%s" on nodefilter on template "%s"' % (cap_label, self.name)
+        else:
+            name = 'nodefilter on template "%s"' % self.name
+        if not isinstance(node_filter, dict):
+            ExceptionCollector.appendException(
+                TypeMismatchError(
+                    what=name,
+                    type='dict'))
+            return False
+        if 'properties' in node_filter:
+            propfilters = node_filter['properties']
+            if not isinstance(propfilters, list):
+                ExceptionCollector.appendException(
+                    TypeMismatchError(
+                        what='"properties" of %s' % name,
+                        type='list'))
+                return False
+            for filter in propfilters:
+                if not isinstance(filter, dict):
+                    ExceptionCollector.appendException(
+                        TypeMismatchError(
+                            what='filter in %s' % name,
+                            type='dict'))
+                    valid = False
+                    continue
+                if len(filter) != 1:
+                    msg = _('Invalid %s: only one condition allow per filter condition') % name
+                    ExceptionCollector.appendException(ValidationError(message=msg))
+                    valid = False
+                    continue
+                # XXX validate filter condition
+        return valid
+
+    def _validate_nodefilter(self, node_filter):
+        valid = True
+        if not self._validate_nodefilter_filter(node_filter):
+            return False
+
+        capfilters = node_filter.get('capabilities')
+        if capfilters:
+            if not isinstance(capfilters, list):
+                ExceptionCollector.appendException(
+                    TypeMismatchError(
+                        what='"capabilities" of nodefilter in template "%s"' % self.name,
+                        type='list'))
+                return False
+            for capfilter in capfilters:
+                if not isinstance(capfilter, dict):
+                    ExceptionCollector.appendException(
+                        TypeMismatchError(
+                            what='capabilities list item on nodefilter in template "%s"' % self.name,
+                            type='dict'))
+                    valid = False
+                    continue
+                if len(capfilter) != 1:
+                    msg = _('Invalid nodefilter on template "%s": only one capability name per list item') % self.name
+                    ExceptionCollector.appendException(ValidationError(message=msg))
+                    valid = False
+                    continue
+                name, filter = list(capfilter.items())[0]
+                if not self._validate_nodefilter_filter(filter, name):
+                    valid = False
+        return valid
+
+    @staticmethod
+    def _match_filter(entity, node_filter):
+        filters = node_filter.get('properties') or []
+        props = entity.get_properties()
+        for condition in filters:
+            assert isinstance(condition, dict)
+            key, value = list(condition.items())[0]
+            if key not in props:
+                return False
+            prop = props[key]
+            propvalue = prop.value
+            if isinstance(value, dict):
+                if not ConditionClause(key, value, prop.type).evaluate({key:propvalue}):
+                    return False
+            elif propvalue != value: # simple match
+                return False
+        return True
+
+    def match_nodefilter(self, node_filter):
+        if 'properties' in node_filter:
+            if not self._match_filter(self, node_filter):
+                return False
+        capfilters = node_filter.get('capabilities')
+        if capfilters:
+            assert isinstance(capfilters, list)
+            capabilities = self.get_capabilities()
+            for capfilter in capfilters:
+                assert isinstance(capfilter, dict)
+                name, filter = list(capfilter.items())[0]
+                cap = capabilities.get(name)
+                if not cap:
+                    return False
+                if not self._match_filter(cap, filter):
+                    return False
+        return True
