@@ -77,7 +77,7 @@ class ToscaDefTest(TestCase):
              'tosca.capabilities.OperatingSystem',
              'tosca.capabilities.Scalable',
              'tosca.capabilities.network.Bindable'],
-            sorted([c.type for c in compute_type.get_capabilities_objects()]))
+            sorted([c.type for c in compute_type.get_capability_typedefs()]))
         # Assure the normative Network node type
         # hsa all the required Capability types
         # TODO(Matt) - since Network IS a normative node type
@@ -85,14 +85,14 @@ class ToscaDefTest(TestCase):
         self.assertEqual(
             ['tosca.capabilities.Node',
              'tosca.capabilities.network.Linkable'],
-            sorted([c.type for c in network_type.get_capabilities_objects()]))
+            sorted([c.type for c in network_type.get_capability_typedefs()]))
 
         # Assure the normative WebServer node type's
         # Endpoint cap. has all required property names
         # Note: we are testing them in alphabetic sort order
         endpoint_props_def_objects = \
             self._get_capability_properties_def_objects(
-                webserver_type.get_capabilities_objects(),
+                webserver_type.get_capability_typedefs(),
                 'tosca.capabilities.Endpoint')
         # Assure WebServer's Endpoint capability's properties have their
         # required keyname value set correctly
@@ -103,7 +103,7 @@ class ToscaDefTest(TestCase):
             sorted([(p.name, p.required) for p in endpoint_props_def_objects]))
 
         os_props = self._get_capability_properties_def_objects(
-            compute_type.get_capabilities_objects(),
+            compute_type.get_capability_typedefs(),
             'tosca.capabilities.OperatingSystem')
         self.assertEqual(
             [('architecture', False), ('distribution', False), ('type', False),
@@ -111,7 +111,7 @@ class ToscaDefTest(TestCase):
             sorted([(p.name, p.required) for p in os_props]))
 
         host_props = self._get_capability_properties_def_objects(
-            compute_type.get_capabilities_objects(),
+            compute_type.get_capability_typedefs(),
             'tosca.capabilities.Compute')
         self.assertEqual(
             [('cpu_frequency', False), ('disk_size', False),
@@ -120,7 +120,7 @@ class ToscaDefTest(TestCase):
         endpoint_admin_properties = 'secure'
         endpoint_admin_props_def_objects = \
             self._get_capability_properties_def_objects(
-                webserver_type.get_capabilities_objects(),
+                webserver_type.get_capability_typedefs(),
                 'tosca.capabilities.Endpoint.Admin')
         self.assertIn(
             endpoint_admin_properties,

@@ -252,7 +252,7 @@ class ToscaTemplateTest(TestCase):
                         'tosca.capabilities.network.Bindable',
                         'tosca.capabilities.Scalable']),
                 sorted([c.type
-                        for c in compute_type.get_capabilities_objects()]))
+                        for c in compute_type.get_capability_typedefs()]))
 
     def test_template_with_no_inputs(self):
         tosca_tpl = self._load_template('test_no_inputs_in_template.yaml')

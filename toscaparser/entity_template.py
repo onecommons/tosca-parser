@@ -172,36 +172,38 @@ class EntityTemplate(object):
         else:
             return False
 
+    def _create_capability(self, capabilitydefs, name, ctype, props):
+        c = capabilitydefs.get(name)
+        if ctype and (not c or ctype != c.type):
+            c = CapabilityTypeDef(name, ctype, self.type_definition.type,
+                                    self.type_definition.custom_def)
+        properties = {}
+        # first use the definition default value
+        if c.properties:
+            for property_name in c.properties.keys():
+                prop_def = c.properties[property_name]
+                if 'default' in prop_def:
+                    properties[property_name] = prop_def['default']
+        # then update (if available) with the node properties
+        if props:
+            properties.update(props)
+
+        return Capability(name, properties, c, self.custom_def)
+
     def _create_capabilities(self):
-        capability = []
+        capabilities = []
         caps = self.type_definition.get_value(self.CAPABILITIES,
                                               self.entity_tpl, parent=True)
         if caps:
             for name, props in caps.items():
                 if props is None:
                     continue
-                ctype = props.get('type')
-                capabilities = self.type_definition.get_capabilities()
-                if name in capabilities.keys():
-                    c = capabilities[name]
-                    ctype = props.get('type')
-                    if ctype and ctype != c.type:
-                        c = CapabilityTypeDef(name, ctype, self.type_definition.type,
-                                                self.type_definition.custom_def)
-                    properties = {}
-                    # first use the definition default value
-                    if c.properties:
-                        for property_name in c.properties.keys():
-                            prop_def = c.properties[property_name]
-                            if 'default' in prop_def:
-                                properties[property_name] = prop_def['default']
-                    # then update (if available) with the node properties
-                    if 'properties' in props and props['properties']:
-                        properties.update(props['properties'])
-
-                    cap = Capability(name, properties, c, self.custom_def)
-                    capability.append(cap)
-        return capability
+                capabilitydefs = self.type_definition.get_capabilities_def()
+                if name in capabilitydefs:
+                    cap = self._create_capability(capabilitydefs, name,
+                              props.get('type'), props.get('properties'))
+                    capabilities.append(cap)
+        return capabilities
 
     def _validate_directives(self, template):
         msg = (_('directives of "%s" must be a list of strings') % self.name)
@@ -219,7 +221,7 @@ class EntityTemplate(object):
         self._common_validate_properties(self.type_definition, properties, self.additionalProperties)
 
     def _validate_capabilities(self):
-        type_capabilities = self.type_definition.get_capabilities()
+        type_capabilities = self.type_definition.get_capabilities_def()
         allowed_caps = \
             type_capabilities.keys() if type_capabilities else []
         capabilities = self.type_definition.get_value(self.CAPABILITIES,
@@ -526,6 +528,4 @@ class EntityTemplate(object):
         :param name: name of capability
         :return: capability object if found, None otherwise
         """
-        caps = self.get_capabilities()
-        if caps and name in caps.keys():
-            return caps[name]
+        return self.get_capabilities().get(name)

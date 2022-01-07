@@ -128,7 +128,7 @@ class NodeType(StatefulEntityType):
     def _get_relation(self, key, ndtype):
         relation = None
         ntype = NodeType(ndtype, self.custom_def)
-        caps = ntype.get_capabilities()
+        caps = ntype.get_capabilities_def()
         if caps and key in caps.keys():
             c = caps[key]
             for r in self.RELATIONSHIP_TYPE:
@@ -146,8 +146,8 @@ class NodeType(StatefulEntityType):
                             break
         return relation
 
-    def get_capabilities_objects(self):
-        '''Return a list of capability objects.'''
+    def get_capability_typedefs(self):
+        '''Return a list of capability type objects.'''
         typecapabilities = []
         caps = self.get_value(self.CAPABILITIES, None, True)
         if caps:
@@ -160,10 +160,10 @@ class NodeType(StatefulEntityType):
                 typecapabilities.append(cap)
         return typecapabilities
 
-    def get_capabilities(self):
+    def get_capabilities_def(self):
         '''Return a dictionary of capability name-objects pairs.'''
         return {cap.name: cap
-                for cap in self.get_capabilities_objects()}
+                for cap in self.get_capability_typedefs()}
 
     @property
     def requirements(self):
@@ -197,13 +197,13 @@ class NodeType(StatefulEntityType):
         return ops
 
     def get_capability(self, name):
-        caps = self.get_capabilities()
-        if caps and name in caps.keys():
+        caps = self.get_capabilities_def()
+        if caps and name in caps:
             return caps[name].value
 
     def get_capability_type(self, name):
         captype = self.get_capability(name)
-        if captype and name in captype.keys():
+        if captype and name in captype:
             return captype[name].value
 
     def _validate_keys(self):
