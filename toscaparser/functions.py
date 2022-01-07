@@ -179,7 +179,7 @@ class GetAttribute(Function):
                         return
                     else:  # It is a complex type
                         data_type = DataType(value_type)
-                        props = data_type.get_all_properties()
+                        props = data_type.get_properties_def()
                         found = [props[elem]] if elem in props else []
                         if found:
                             prop = found[0]

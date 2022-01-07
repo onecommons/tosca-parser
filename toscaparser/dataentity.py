@@ -45,7 +45,7 @@ class DataEntity(object):
                 # "type" and "properties" are mutually exclusive
                 self.schema = {}
             else:
-                self.schema = self.datatype.get_all_properties()
+                self.schema = self.datatype.get_properties_def()
         self.value = value
         self.property_name = prop_name
         self._properties = None
