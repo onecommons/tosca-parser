@@ -66,6 +66,10 @@ class SubstitutionMappings(object):
         return self.sub_mapping_def.get(self.NODE_TYPE)
 
     @property
+    def node(self):
+        return self.sub_mapping_def.get(self.NODE)
+
+    @property
     def capabilities(self):
         return self.sub_mapping_def.get(self.CAPABILITIES)
 
