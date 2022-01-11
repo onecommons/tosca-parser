@@ -76,7 +76,11 @@ class EntityType(object):
 
     def derived_from(self, defs):
         '''Return a type this type is derived from.'''
-        return self.entity_value(defs, 'derived_from')
+        parent = self.entity_value(defs, 'derived_from')
+        if isinstance(parent, list): # multiple inheritance
+            return parent[0]
+        else:
+            return parent
 
     def is_derived_from(self, type_str):
         '''Check if object inherits from the given type.
@@ -88,14 +92,31 @@ class EntityType(object):
             return False
         elif self.type == type_str:
             return True
-        elif self.parent_type:
-            return self.parent_type.is_derived_from(type_str)
         else:
+            for p in self.parent_types():
+                if p.is_derived_from(type_str):
+                    return True
             return False
 
     def entity_value(self, defs, key):
         if defs and key in defs:
             return defs[key]
+
+    def parent_types(self):
+        parent = self.parent_type
+        if parent:
+            yield parent
+
+    def ancestors(self, seen=None):
+        if seen is None:
+            seen = [self.type]
+            yield self
+        for p in self.parent_types():
+            if p.type not in seen:
+                seen.append( p.type )
+                yield p
+                for p in p.ancestors(seen):
+                    yield p
 
     def get_value(self, ndtype, defs=None, parent=None, addPath=False):
         '''
@@ -114,36 +135,34 @@ class EntityType(object):
             value = defs[ndtype]
         if parent:
             value = copy.copy(value)
-            p = self
-            if p:
-                while p:
-                    if p.defs and ndtype in p.defs:
-                        # get the parent value
-                        parent_value = p.defs[ndtype]
-                        if value:
-                            if isinstance(value, dict):
-                                assert isinstance(parent_value, dict), ndtype
-                                for k, v in parent_value.items():
-                                    if k not in value:
-                                        value[k] = v
-                                        if addPath and p._source:
-                                          for item in v.values():
-                                              if isinstance(item, dict):
-                                                  item['_source'] = p._source
+            if not self:
+                return value
+            for p in self.ancestors():
+                if p.defs and ndtype in p.defs:
+                    # get the parent value
+                    parent_value = p.defs[ndtype]
+                    if value:
+                        if isinstance(value, dict):
+                            assert isinstance(parent_value, dict), ndtype
+                            for k, v in parent_value.items():
+                                if k not in value:
+                                    value[k] = v
+                                    if addPath and p._source:
+                                      for item in v.values():
+                                          if isinstance(item, dict):
+                                              item['_source'] = p._source
 
-                            if isinstance(value, list):
-                                assert isinstance(parent_value, list), ndtype
-                                for p_value in parent_value:
-                                    if p_value not in value:
-                                        value.append(p_value)
-                        else:
-                            value = copy.copy(parent_value)
-                            if addPath and p._source and isinstance(value, dict):
-                                for item in value.values():
-                                    if isinstance(item, dict):
-                                        item['_source'] = p._source
-
-                    p = p.parent_type
+                        if isinstance(value, list):
+                            assert isinstance(parent_value, list), ndtype
+                            for p_value in parent_value:
+                                if p_value not in value:
+                                    value.append(p_value)
+                    else:
+                        value = copy.copy(parent_value)
+                        if addPath and p._source and isinstance(value, dict):
+                            for item in value.values():
+                                if isinstance(item, dict):
+                                    item['_source'] = p._source
         return value
 
     def get_definition(self, ndtype):
@@ -156,8 +175,7 @@ class EntityType(object):
             defs = self.defs
         if defs is not None and ndtype in defs:
             value = defs[ndtype]
-        p = self.parent_type
-        if p:
+        for p in self.parent_types():
             inherited = p.get_definition(ndtype)
             if inherited:
                 inherited = dict(inherited)

@@ -104,12 +104,13 @@ class EntityTemplate(object):
 
     @property
     def types(self):
-        types = []
-        p = self.type_definition
-        while p:
-            types.append(p)
-            p = p.parent_type
-        return types
+        if not self.type_definition:
+            return []
+        types = {self.type_definition.type : self.type_definition}
+        for p in self.type_definition.parent_types():
+            if p.type not in types:
+                types[p.type] = p
+        return list(types.values())
 
     @property
     def directives(self):
