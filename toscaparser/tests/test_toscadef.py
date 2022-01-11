@@ -175,7 +175,6 @@ class ToscaDefTest(TestCase):
         self.assertIsNone(artif_root_type.parent_type)
         self.assertEqual('tosca.artifacts.Root',
                          artif_file_type.parent_type.type)
-        self.assertEqual({}, artif_file_type.parent_artifacts)
         self.assertEqual(sorted(['tosca.artifacts.Root'],
                                 key=lambda x: str(x)),
                          sorted([artif_file_type.get_artifact(name)
@@ -184,11 +183,6 @@ class ToscaDefTest(TestCase):
 
         self.assertEqual('tosca.artifacts.Implementation',
                          artif_bash_type.parent_type.type)
-        self.assertEqual({'tosca.artifacts.Implementation':
-                          {'derived_from': 'tosca.artifacts.Root',
-                           'description':
-                           'TOSCA base type for implementation artifacts'}},
-                         artif_bash_type.parent_artifacts)
         self.assertEqual(sorted([['sh'], 'tosca.artifacts.Implementation',
                                  'Script artifact for the Unix Bash shell',
                                  'application/x-sh'], key=lambda x: str(x)),
@@ -198,11 +192,6 @@ class ToscaDefTest(TestCase):
 
         self.assertEqual('tosca.artifacts.Implementation',
                          artif_python_type.parent_type.type)
-        self.assertEqual({'tosca.artifacts.Implementation':
-                          {'derived_from': 'tosca.artifacts.Root',
-                           'description':
-                           'TOSCA base type for implementation artifacts'}},
-                         artif_python_type.parent_artifacts)
         self.assertEqual(sorted([['py'], 'tosca.artifacts.Implementation',
                                  'Artifact for the interpreted Python'
                                  ' language', 'application/x-python'],
@@ -213,13 +202,6 @@ class ToscaDefTest(TestCase):
 
         self.assertEqual('tosca.artifacts.Deployment.Image',
                          artif_container_docker_type.parent_type.type)
-        self.assertEqual({'tosca.artifacts.Deployment':
-                          {'derived_from': 'tosca.artifacts.Root',
-                           'description':
-                           'TOSCA base type for deployment artifacts'},
-                          'tosca.artifacts.Deployment.Image':
-                          {'derived_from': 'tosca.artifacts.Deployment'}},
-                         artif_container_docker_type.parent_artifacts)
         self.assertEqual(sorted(['tosca.artifacts.Deployment.Image',
                                  'Docker container image'],
                                 key=lambda x: str(x)),
@@ -230,13 +212,6 @@ class ToscaDefTest(TestCase):
 
         self.assertEqual('tosca.artifacts.Deployment.Image',
                          artif_vm_iso_type.parent_type.type)
-        self.assertEqual({'tosca.artifacts.Deployment':
-                          {'derived_from': 'tosca.artifacts.Root',
-                           'description':
-                           'TOSCA base type for deployment artifacts'},
-                          'tosca.artifacts.Deployment.Image':
-                          {'derived_from': 'tosca.artifacts.Deployment'}},
-                         artif_vm_iso_type.parent_artifacts)
         self.assertEqual(sorted(['tosca.artifacts.Deployment.Image',
                                  'Virtual Machine (VM) image in '
                                  'ISO disk format',
@@ -249,13 +224,6 @@ class ToscaDefTest(TestCase):
 
         self.assertEqual('tosca.artifacts.Deployment.Image',
                          artif_vm_qcow2_type.parent_type.type)
-        self.assertEqual({'tosca.artifacts.Deployment':
-                          {'derived_from': 'tosca.artifacts.Root',
-                           'description':
-                           'TOSCA base type for deployment artifacts'},
-                          'tosca.artifacts.Deployment.Image':
-                          {'derived_from': 'tosca.artifacts.Deployment'}},
-                         artif_vm_qcow2_type.parent_artifacts)
         self.assertEqual(sorted(['tosca.artifacts.Deployment.Image',
                                  'Virtual Machine (VM) image in QCOW v2 '
                                  'standard disk format',

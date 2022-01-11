@@ -27,54 +27,6 @@ class CapabilityTypeDef(StatefulEntityType):
         self.custom_def = custom_def
         if self.PROPERTIES in self.defs:
             self.properties = self.defs[self.PROPERTIES]
-        self.parent_capabilities = self._get_parent_capabilities(custom_def)
-
-    def get_properties_def_objects(self):
-        '''Return a list of property definition objects.'''
-        properties = []
-        parent_properties = {}
-        if self.parent_capabilities:
-            for type, value in self.parent_capabilities.items():
-                if self.PROPERTIES in value:
-                    parent_properties[type] = value.get(self.PROPERTIES)
-        if self.properties:
-            for prop, schema in self.properties.items():
-                properties.append(PropertyDef(prop, None, schema))
-        if parent_properties:
-            for parent, props in parent_properties.items():
-                for prop, schema in props.items():
-                    # add parent property if not overridden by children type
-                    if not self.properties or \
-                            prop not in self.properties.keys():
-                        properties.append(PropertyDef(prop, None, schema))
-        return properties
-
-    def get_properties_def(self):
-        '''Return a dictionary of property definition name-object pairs.'''
-        return {prop.name: prop
-                for prop in self.get_properties_def_objects()}
-
-    def get_property_def_value(self, name):
-        '''Return the definition of a given property name.'''
-        props_def = self.get_properties_def()
-        if props_def and name in props_def:
-            return props_def[name].value
-
-    def _get_parent_capabilities(self, custom_def=None):
-        capabilities = {}
-        parent_cap = self.parent_type
-        if parent_cap:
-            parent_cap = parent_cap.type
-            while parent_cap != self.TOSCA_TYPEURI_CAPABILITY_ROOT:
-                if custom_def and parent_cap in custom_def.keys():
-                    capabilities[parent_cap] = custom_def[parent_cap]
-                elif parent_cap in self.TOSCA_DEF.keys():
-                    capabilities[parent_cap] = self.TOSCA_DEF[parent_cap]
-
-                if 'derived_from' not in capabilities[parent_cap]:
-                    break
-                parent_cap = capabilities[parent_cap]['derived_from']
-        return capabilities
 
     @property
     def parent_type(self):

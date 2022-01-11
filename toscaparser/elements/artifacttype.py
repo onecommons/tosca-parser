@@ -45,7 +45,6 @@ class ArtifactTypeDef(StatefulEntityType):
         self.custom_def = custom_def
         if self.defs is not None:
             self.properties = self.defs.get(self.PROPERTIES)
-            self.parent_artifacts = self._get_parent_artifacts()
             self.mime_type = self.defs.get("mime_type")
             self.file_ext = self.defs.get("file_ext", [])
             self._validate_keys()
@@ -56,15 +55,6 @@ class ArtifactTypeDef(StatefulEntityType):
                 ExceptionCollector.appendException(
                     UnknownFieldError(what='Artifacttype "%s"' % self.type, field=key)
                 )
-
-    def _get_parent_artifacts(self):
-        artifacts = {}
-        parent_artif = self.parent_type.type if self.parent_type else None
-        if parent_artif:
-            while parent_artif != "tosca.artifacts.Root":
-                artifacts[parent_artif] = self.TOSCA_DEF[parent_artif]
-                parent_artif = artifacts[parent_artif]["derived_from"]
-        return artifacts
 
     @property
     def parent_type(self):
