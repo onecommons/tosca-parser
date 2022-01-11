@@ -19,6 +19,7 @@ from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import MissingRequiredInputError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import UnknownOutputError
+from toscaparser.common.exception import ValidationError
 from toscaparser.elements.nodetype import NodeType
 from toscaparser.utils.gettextutils import _
 
@@ -42,9 +43,9 @@ class SubstitutionMappings(object):
 
     OPTIONAL_OUTPUTS = ['tosca_id', 'tosca_name', 'state']
 
-    def __init__(self, sub_mapping_def, nodetemplates, inputs, outputs,
+    def __init__(self, sub_mapping_def, topology, inputs, outputs,
                  sub_mapped_node_template, custom_defs):
-        self.nodetemplates = nodetemplates
+        self.topology = topology
         self.sub_mapping_def = sub_mapping_def
         self.inputs = {input.name : input for input in inputs} if inputs else {}
         self.outputs = outputs or []
@@ -118,6 +119,15 @@ class SubstitutionMappings(object):
 
     def _validate_type(self):
         """validate the node_type of substitution mappings."""
+        if self.node:
+            node = self.topology.node_templates.get(self.node)
+            if not node:
+                ExceptionCollector.appendException(
+                  ValidationError(message=_('Unknown node "%s" declared on substitution_mappings') % self.node)
+                )
+            self.node_definition = node.type_definition
+            return
+
         node_type = self.sub_mapping_def.get(self.NODE_TYPE)
         if not node_type:
             ExceptionCollector.appendException(

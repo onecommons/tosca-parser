@@ -256,7 +256,7 @@ class ToscaTemplate(object):
                     # and sub_mapping_tosca_template is never unused!
                     nodetemplate.sub_mapping_tosca_template = SubstitutionMappings(
                         topology.substitution_mappings.sub_mapping_def,
-                        topology.nodetemplates,
+                        topology,
                         inputs,
                         topology.outputs,
                         nodetemplate,

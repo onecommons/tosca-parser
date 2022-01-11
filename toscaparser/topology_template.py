@@ -151,7 +151,7 @@ class TopologyTemplate(object):
         # if tpl_substitution_mapping and self.sub_mapped_node_template:
         if tpl_substitution_mapping:
             return SubstitutionMappings(tpl_substitution_mapping,
-                                        self.nodetemplates,
+                                        self,
                                         self.inputs,
                                         self.outputs,
                                         self.sub_mapped_node_template,
