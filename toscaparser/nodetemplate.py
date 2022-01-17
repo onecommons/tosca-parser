@@ -296,8 +296,8 @@ class NodeTemplate(EntityTemplate):
                         for key in value:
                             allowed_reqs.append(key)
 
-        requires = self.type_definition.get_value(self.REQUIREMENTS,
-                                                  self.entity_tpl)
+        requires = self.requirements
+
         if requires:
             if not isinstance(requires, list):
                 ExceptionCollector.appendException(
@@ -306,6 +306,17 @@ class NodeTemplate(EntityTemplate):
                         type='list'))
             else:
                 for req in requires:
+                    if not isinstance(req, dict):
+                        ExceptionCollector.appendException(
+                            TypeMismatchError(
+                                what='a "requirement" in template "%s"' % self.name,
+                                type='dict'))
+                        continue
+                    if len(req) != 1:
+                        what = 'requirement "%s" in template "%s"' % (req, self.name)
+                        ExceptionCollector.appendException(InvalidPropertyValueError(what=what))
+                        continue
+
                     for r1, value in req.items():
                         if isinstance(value, dict):
                             self._validate_requirements_keys(value)
@@ -313,9 +324,12 @@ class NodeTemplate(EntityTemplate):
                             node_filter = value.get('node_filter')
                             if node_filter:
                                 self._validate_nodefilter(node_filter)
-                        allowed_reqs.append(r1)
-                    self._common_validate_field(req, allowed_reqs,
-                                                'requirements')
+                        elif not isinstance(value, str):
+                            msg = 'bad value "%s" for requirement "%s" in template "%s"' % (value, r1, self.name)
+                            ExceptionCollector.appendException(ValidationError(message=msg))
+
+                    # disable this check to allow node templates to define additional requirements
+                    # self._common_validate_field(req, allowed_reqs, 'requirements')
 
     def _validate_requirements_properties(self, requirements):
         # TODO(anyone): Only occurrences property of the requirements is
