@@ -15,6 +15,7 @@ from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
+from toscaparser.common.exception import TypeMismatchError
 from toscaparser.elements.grouptype import GroupType
 from toscaparser.elements.interfaces import InterfacesDef, INTERFACE_DEF_RESERVED_WORDS
 from toscaparser.elements.interfaces import CONFIGURE, CONFIGURE_SHORTNAME
@@ -33,10 +34,10 @@ class EntityTemplate(object):
 
     SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
                 INTERFACES, CAPABILITIES, TYPE, DESCRIPTION, DIRECTIVES, INSTANCE_KEYS,
-                ATTRIBUTES, ARTIFACTS, NODE_FILTER, COPY) = \
+                ATTRIBUTES, ARTIFACTS, NODE_FILTER, COPY, DEPENDENCIES) = \
                ('derived_from', 'properties', 'requirements', 'interfaces',
                 'capabilities', 'type', 'description', 'directives', "instance_keys",
-                'attributes', 'artifacts', 'node_filter', 'copy')
+                'attributes', 'artifacts', 'node_filter', 'copy',  'dependencies')
     REQUIREMENTS_SECTION = (NODE, CAPABILITY, RELATIONSHIP, OCCURRENCES,
                             NODE_FILTER, DESCRIPTION, METADATA) = \
                            ('node', 'capability', 'relationship',
@@ -54,7 +55,8 @@ class EntityTemplate(object):
         self._validate_field(self.entity_tpl)
         type = self.entity_tpl.get('type')
         UnsupportedType.validate_type(type)
-        self._validate_fields(template)
+        if '__typename' not in template:
+            self._validate_fields(template)
         if entity_name == 'node_type':
             self.type_definition = NodeType(type, custom_def) \
                 if type is not None else None
@@ -119,9 +121,15 @@ class EntityTemplate(object):
     @property
     def requirements(self):
         if self._requirements is None:
-            self._requirements = self.type_definition.get_value(
-                self.REQUIREMENTS,
-                self.entity_tpl) or []
+            # alternative syntax for requirements
+            dependencies = self.entity_tpl.get(self.DEPENDENCIES)
+            if dependencies:
+                self._requirements = [
+                  { dep['name'] : dict(node = dep['match'])} for dep in dependencies
+                ]
+            else:
+                self._requirements = self.type_definition.get_value(
+                                     self.REQUIREMENTS, self.entity_tpl) or []
         return self._requirements
 
     def get_properties_objects(self):
