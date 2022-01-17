@@ -89,7 +89,7 @@ class EntityTemplate(object):
         if metadata and 'additionalProperties' in metadata:
             self.additionalProperties = metadata['additionalProperties']
 
-        self._validate_properties()
+        self._properties_tpl = self._validate_properties()
         for prop in self.get_properties_objects():
             prop.validate()
         self._validate_interfaces()
@@ -199,6 +199,14 @@ class EntityTemplate(object):
 
         return Capability(name, properties, c, self.custom_def)
 
+    def _create_capabilities_from_properties(self, capabilities):
+        capabilitydefs = self.type_definition.get_capabilities_def()
+        for name, capdef in capabilitydefs.items():
+            if name in self._properties_tpl:
+                cap = self._create_capability(capabilitydefs, name,
+                      capdef.ctype, self._properties_tpl[name])
+                capabilities.append(cap)
+
     def _create_capabilities(self):
         capabilities = []
         caps = self.type_definition.get_value(self.CAPABILITIES,
@@ -212,6 +220,7 @@ class EntityTemplate(object):
                     cap = self._create_capability(capabilitydefs, name,
                               props.get('type'), props.get('properties'))
                     capabilities.append(cap)
+        self._create_capabilities_from_properties(capabilities)
         return capabilities
 
     def _validate_directives(self, template):
@@ -227,7 +236,18 @@ class EntityTemplate(object):
 
     def _validate_properties(self):
         properties = self.type_definition.get_value(self.PROPERTIES, self.entity_tpl)
+        if isinstance(properties, list):
+            properties = {p["title"]: p.get('value') for p in properties}
+        if not properties:
+            properties = {}
+        if not isinstance(properties, dict):
+            ExceptionCollector.appendException(
+              TypeMismatchError(
+                  what='"properties" of template "%s"' % self.name,
+                  type='dict'))
+            return {}
         self._common_validate_properties(self.type_definition, properties, self.additionalProperties)
+        return properties
 
     def _validate_capabilities(self):
         type_capabilities = self.type_definition.get_capabilities_def()
@@ -337,10 +357,15 @@ class EntityTemplate(object):
 
     def _create_properties(self):
         props = []
-        properties = self.type_definition.get_value(self.PROPERTIES,
-                                                    self.entity_tpl) or {}
+        properties = self._properties_tpl or {}
         props_def = self.type_definition.get_properties_def()
+        if isinstance(self.type_definition, NodeType):
+            capabilitydefs = self.type_definition.get_capabilities_def()
+        else:
+            capabilitydefs = {}
         for name, value in properties.items():
+            if name in capabilitydefs:
+                continue
             if props_def and name in props_def:
                 prop = Property(name, value,
                                 props_def[name].schema, self.custom_def)
