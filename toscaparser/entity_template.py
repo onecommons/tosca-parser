@@ -237,7 +237,7 @@ class EntityTemplate(object):
     def _validate_properties(self):
         properties = self.type_definition.get_value(self.PROPERTIES, self.entity_tpl)
         if isinstance(properties, list):
-            properties = {p["title"]: p.get('value') for p in properties}
+            properties = {p["name"]: p.get('value') for p in properties}
         if not properties:
             properties = {}
         if not isinstance(properties, dict):
