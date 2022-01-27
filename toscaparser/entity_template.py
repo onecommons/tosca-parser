@@ -42,8 +42,8 @@ class EntityTemplate(object):
                             NODE_FILTER, DESCRIPTION, METADATA) = \
                            ('node', 'capability', 'relationship',
                             'occurrences', 'node_filter', 'description', 'metadata')
-    # Special key names
-    SPECIAL_SECTIONS = (METADATA) = ('metadata')
+    # Special key names, not overridden by subclasses
+    SPECIAL_SECTIONS = (METADATA, NAME, TITLE, DESCRIPTION) = ('metadata', 'name', 'title', 'description')
 
     additionalProperties = True
     _source = None

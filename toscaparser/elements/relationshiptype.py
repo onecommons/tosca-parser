@@ -23,6 +23,8 @@ class RelationshipType(StatefulEntityType):
                                'interfaces', 'attributes', 'properties',
                                'description', 'version', 'credential', '_source')
 
+    SPECIAL_SECTIONS = (METADATA, NAME, TITLE, DESCRIPTION) = ('metadata', 'name', 'title', 'description')
+
     def __init__(self, type, custom_def=None):
         super(RelationshipType, self).__init__(type, self.RELATIONSHIP_PREFIX,
                                                custom_def)
@@ -42,7 +44,7 @@ class RelationshipType(StatefulEntityType):
 
     def _validate_keys(self):
         for key in self.defs.keys():
-            if key not in self.SECTIONS:
+            if key not in self.SECTIONS and key not in self.SPECIAL_SECTIONS:
                 ExceptionCollector.appendException(
                     UnknownFieldError(what='Relationshiptype "%s"' % self.type,
                                       field=key))
