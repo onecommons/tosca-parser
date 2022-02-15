@@ -109,11 +109,11 @@ class EntityType(object):
 
     def ancestors(self, seen=None):
         if seen is None:
-            seen = [self.type]
+            seen = {self.type}
             yield self
         for p in self.parent_types():
             if p.type not in seen:
-                seen.append( p.type )
+                seen.add( p.type )
                 yield p
                 for p in p.ancestors(seen):
                     yield p
@@ -171,19 +171,21 @@ class EntityType(object):
             defs = None
             ExceptionCollector.appendException(
                 ValidationError(message="defs is missing"))
+            return value
         else:
             defs = self.defs
         if defs is not None and ndtype in defs:
             value = defs[ndtype]
-        for p in self.parent_types():
-            inherited = p.get_definition(ndtype)
-            if inherited:
-                inherited = dict(inherited)
-                if not value:
-                    value = inherited
-                else:
-                    inherited.update(value)
-                    value.update(inherited)
+        for p in self.ancestors():
+            if defs is not None and ndtype in defs:
+                inherited = defs[ndtype]
+                if inherited:
+                    inherited = dict(inherited)
+                    if not value:
+                        value = inherited
+                    else:
+                        inherited.update(value)
+                        value.update(inherited)
         return value
 
 def update_definitions(exttools, version, loader = toscaparser.utils.yamlparser.load_yaml):
