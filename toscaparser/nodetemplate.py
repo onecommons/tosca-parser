@@ -222,10 +222,16 @@ class NodeTemplate(EntityTemplate):
             relTpl.capability = related_capability
             related_node.relationship_tpl.append(relTpl)
         else:
+            if node:
+                msg = _('Could not find target template "%(node)s"'
+                           ' for requirement "%(rname)s" of node "%(nname)s".'
+                        ) % {'node': node, 'rname': name, 'nname': self.name}
+            else:
+                msg = _('No matching target template found'
+                           ' for requirement "%(rname)s" of node "%(nname)s".'
+                           ) % {'rname': name, 'nname': self.name}
             ExceptionCollector.appendException(
-                ValidationError(message = _('No matching target template found'
-                           ' for requirement "%(rname)s" of node "%(nname)s".')
-                         % {'rname': name, 'nname': self.name}))
+                ValidationError(message = msg))
             return reqDef, None
         return reqDef, relTpl
 

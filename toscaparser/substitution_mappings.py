@@ -125,7 +125,8 @@ class SubstitutionMappings(object):
                 ExceptionCollector.appendException(
                   ValidationError(message=_('Unknown node "%s" declared on substitution_mappings') % self.node)
                 )
-            self.node_definition = node.type_definition
+            else:
+                self.node_definition = node.type_definition
             return
 
         node_type = self.sub_mapping_def.get(self.NODE_TYPE)
