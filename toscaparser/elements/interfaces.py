@@ -57,12 +57,21 @@ IMPLEMENTATION_DEF_RESERVED_WORDS = (
     ENVIRONMENT,
     PRECONDITIONS,
     _SOURCE,
-) = ("primary", "dependencies", "timeout", "className", "operation_host", "environment", "preConditions", "_source")
+) = (
+    "primary",
+    "dependencies",
+    "timeout",
+    "className",
+    "operation_host",
+    "environment",
+    "preConditions",
+    "_source",
+)
 
 INLINE_ARTIFACT_DEF_RESERVED_WORDS = ("description", "file", "repository", "_source")
 
-# this is kind of misnamed, these are created for each operation defined on a interface definition
-class InterfacesDef(StatefulEntityType):
+
+class OperationDef(StatefulEntityType):
     """TOSCA built-in interfaces type."""
 
     def __init__(

@@ -17,7 +17,7 @@ from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
 from toscaparser.common.exception import TypeMismatchError
 from toscaparser.elements.grouptype import GroupType
-from toscaparser.elements.interfaces import InterfacesDef, INTERFACE_DEF_RESERVED_WORDS
+from toscaparser.elements.interfaces import OperationDef, INTERFACE_DEF_RESERVED_WORDS
 from toscaparser.elements.interfaces import CONFIGURE, CONFIGURE_SHORTNAME
 from toscaparser.elements.interfaces import LIFECYCLE,  LIFECYCLE_SHORTNAME
 from toscaparser.elements.nodetype import NodeType
@@ -384,7 +384,7 @@ class EntityTemplate(object):
         interfacesDefs = self._create_interfacedefs()
         if not interfacesDefs:
             return []
-        return self._create_operations(interfacesDefs)
+        return self._create_operations(interfacesDefs, self.type_definition, self)
 
     def _create_interfacedefs(self):
         # get a copy of the interfaces directy defined on the entity template
@@ -446,7 +446,8 @@ class EntityTemplate(object):
             interfacesDefs = tpl_interfaces
         return interfacesDefs
 
-    def _create_operations(self, interfacesDefs):
+    @staticmethod
+    def _create_operations(interfacesDefs, type_definition, template):
         interfaces = []
         defaults = interfacesDefs.pop('defaults', {})
         for interface_type, value in interfacesDefs.items():
@@ -470,7 +471,7 @@ class EntityTemplate(object):
             # shared implementation
             implementation = value.get('implementation') or defaults.get('implementation')
 
-            # create an InterfacesDef for each operation
+            # create an OperationDef for each operation
             _source = value.pop('_source', None)
             if 'operations' in value:
                 defs = value.get('operations') or {}
@@ -487,9 +488,9 @@ class EntityTemplate(object):
                     op_def['implementation'] = implementation
                 if _source:
                     op_def['_source'] = _source
-                iface = InterfacesDef(self.type_definition,
+                iface = OperationDef(type_definition,
                                       interface_type,
-                                      node_template=self,
+                                      node_template=template,
                                       name=op,
                                       value=op_def,
                                       inputs=inputs.copy() if inputs else None,
@@ -498,9 +499,9 @@ class EntityTemplate(object):
 
             # add a "default" operation that has the shared inputs and implementation
             if inputs or implementation:
-                iface = InterfacesDef(self.type_definition,
+                iface = OperationDef(type_definition,
                                       interface_type,
-                                      node_template=self,
+                                      node_template=template,
                                       name='default',
                                       value=dict(implementation=implementation,
                                                   _source=_source),
@@ -520,13 +521,13 @@ class EntityTemplate(object):
                       'interfaces')
                 elif name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
                     self._common_validate_field(
-                        value, INTERFACE_DEF_RESERVED_WORDS + InterfacesDef.
-                        interfaces_node_lifecycle_operations,
+                        value, INTERFACE_DEF_RESERVED_WORDS
+                        + OperationDef.interfaces_node_lifecycle_operations,
                         'interfaces')
                 elif name in (CONFIGURE, CONFIGURE_SHORTNAME):
                     self._common_validate_field(
-                        value, INTERFACE_DEF_RESERVED_WORDS + InterfacesDef.
-                        interfaces_relationship_configure_operations,
+                        value, INTERFACE_DEF_RESERVED_WORDS
+                        + OperationDef.interfaces_relationship_configure_operations,
                         'interfaces')
                 elif (name in self.type_definition.interfaces
                       or name in self.type_definition.TOSCA_DEF):
