@@ -46,6 +46,7 @@ INTERFACE_DEF_RESERVED_WORDS = [
     "notifications",
     "description",
     "implementation",
+    "requirements",
 ]
 
 IMPLEMENTATION_DEF_RESERVED_WORDS = (

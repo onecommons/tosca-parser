@@ -100,3 +100,15 @@ class StatefulEntityType(EntityType):
     @property
     def interfaces(self):
         return self.get_value(self.INTERFACES, None, True, True) or {}
+
+    def get_interface_requirements(self, entity_tpl=None):
+        tpl_interfaces = self.get_value(self.INTERFACES, entity_tpl, True)
+        relationships = []
+        for i in tpl_interfaces.values():
+            req = i.get('requirements')
+            if req:
+                assert isinstance(req, list)
+                for rel in req:
+                    if rel not in relationships:
+                        relationships.append(rel)
+        return relationships

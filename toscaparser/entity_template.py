@@ -386,6 +386,9 @@ class EntityTemplate(object):
             return []
         return self._create_operations(interfacesDefs, self.type_definition, self)
 
+    def get_interface_requirements(self):
+        return self.type_definition.get_interface_requirements(self.entity_tpl)
+
     def _create_interfacedefs(self):
         # get a copy of the interfaces directy defined on the entity template
         tpl_interfaces = self.type_definition.get_value(self.INTERFACES,
