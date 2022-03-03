@@ -13,6 +13,7 @@
 from toscaparser.dataentity import DataEntity
 from toscaparser.elements.constraints import Schema
 from toscaparser import functions
+from toscaparser.elements.scalarunit import get_scalarunit_class
 
 
 class Property(object):
@@ -75,6 +76,15 @@ class Property(object):
         if not functions.is_function(self.value):
             if self.type == Schema.STRING:
                 self.value = str(self.value)
+            metadata = self.schema.metadata
+            if metadata and metadata.get('default_unit'):
+                try:
+                    float(self.value)
+                    # no unit specified, append the default unit
+                    if get_scalarunit_class(self.type)._check_unit_in_scalar_standard_units(metadata['default_unit']):
+                        self.value = str(self.value) + metadata['default_unit']
+                except:
+                    pass
             self.value = DataEntity.validate_datatype(self.type, self.value,
                                                       self.entry_schema,
                                                       self.custom_def,
