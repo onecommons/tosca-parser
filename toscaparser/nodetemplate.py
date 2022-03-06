@@ -235,7 +235,7 @@ class NodeTemplate(EntityTemplate):
             return reqDef, None
         return reqDef, relTpl
 
-    def get_relationship_template(self):
+    def get_relationship_templates(self):
         """Returns a list of RelationshipTemplates that target this node"""
         return self.relationship_tpl
 

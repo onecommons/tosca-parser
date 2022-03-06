@@ -178,7 +178,7 @@ class IntrinsicFunctionsTest(TestCase):
         for node in tosca.nodetemplates:
             for relationship in node.relationships:
                 trgt = relationship[0].target
-                rel_template = trgt.get_relationship_template()[0]
+                rel_template = trgt.get_relationship_templates()[0]
                 break
 
         operation = self._get_operation(rel_template.interfaces,
