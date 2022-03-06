@@ -102,6 +102,10 @@ class EntityType(object):
         if defs and key in defs:
             return defs[key]
 
+    @property
+    def parent_type(self):
+        return None
+
     def parent_types(self):
         parent = self.parent_type
         if parent:

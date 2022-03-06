@@ -152,7 +152,7 @@ class EntityTemplate(object):
     @property
     def interfaces(self):
         if self._interfaces is None:
-            self._interfaces = self._create_interfaces()
+            self._interfaces = self._create_interfaces(self.type_definition, self)
         return self._interfaces
 
     def get_capabilities_objects(self):
@@ -380,23 +380,24 @@ class EntityTemplate(object):
                 props.append(prop)
         return props
 
-    def _create_interfaces(self):
-        interfacesDefs = self._create_interfacedefs()
+    @staticmethod
+    def _create_interfaces(type_definition, template):
+        interfacesDefs = EntityTemplate._create_interfacedefs(type_definition, template.entity_tpl if template else None)
         if not interfacesDefs:
             return []
-        return self._create_operations(interfacesDefs, self.type_definition, self)
+        return EntityTemplate._create_operations(interfacesDefs, type_definition, template)
 
     def get_interface_requirements(self):
         return self.type_definition.get_interface_requirements(self.entity_tpl)
 
-    def _create_interfacedefs(self):
+    @staticmethod
+    def _create_interfacedefs(type_definition, entity_tpl=None):
         # get a copy of the interfaces directy defined on the entity template
-        tpl_interfaces = self.type_definition.get_value(self.INTERFACES,
-                                                         self.entity_tpl)
+        tpl_interfaces = type_definition.get_value(EntityTemplate.INTERFACES, entity_tpl)
         _source = None
-        if self.type_definition.interfaces:
-            interfacesDefs = self.type_definition.interfaces.copy()
-            _source = self.type_definition._source
+        if type_definition.interfaces:
+            interfacesDefs = type_definition.interfaces.copy()
+            _source = type_definition._source
             if tpl_interfaces:
                 # merge the interfaces defined on the type with the template's interface definitions
                 for iName, defs in tpl_interfaces.items():
@@ -425,7 +426,7 @@ class EntityTemplate(object):
                             baseDefs = baseDefs.get('operations') or {}
 
                         for op, baseDef in baseDefs.items():
-                            if op in ['inputs', 'notifications', '_source']:
+                            if op in INTERFACE_DEF_RESERVED_WORDS:
                                 continue
                             if op in defs:
                                 # op in both, merge
