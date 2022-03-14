@@ -56,7 +56,16 @@ class StatefulEntityType(EntityType):
                 ExceptionCollector.appendException(
                     MissingTypeError(what=entitytype))
         self.type = entitytype
-        self._source = self.defs and self.defs.get('_source') or None
+        self.custom_def = custom_def
+        self._source = self.defs and self.defs.get("_source") or None
+
+    @property
+    def parent_type(self):
+        """Return a relationship this reletionship is derived from."""
+        prel = self.derived_from(self.defs)
+        if prel:
+            # prefix is only used to expand "tosca:Type"
+            return StatefulEntityType(prel, self.NODE_PREFIX, custom_def=self.custom_def)
 
     def get_properties_def_objects(self):
         '''Return a list of property definition objects.'''
