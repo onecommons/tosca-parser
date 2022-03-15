@@ -333,6 +333,7 @@ class ScalarUnitNegativeTest(TestCase):
         '''
         nodetemplates = yamlparser.simple_parse(tpl_snippet)
         self.assertRaises(exception.ValidationError, lambda: TopologyTemplate({'node_templates':nodetemplates}, self.custom_def))
+        # XXX fix constraints
         # topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
         # nodetemplate = NodeTemplate('server', topology, self.custom_def)
         # props = nodetemplate.get_properties()
@@ -355,3 +356,30 @@ class ScalarUnitNegativeTest(TestCase):
         #     self.assertEqual(_('The value "1 MB" of property "mem_size" is '
         #                        'out of range "(min:1 MiB, max:1 GiB)".'),
         #                      error.__str__())
+
+class ScalarDefaultUnitTest(TestCase):
+
+    custom_def_snippet = '''
+    tosca.my.nodes.Compute:
+      derived_from: tosca.nodes.Root
+      properties:
+        disk_size:
+          required: false
+          type: scalar-unit.size
+          metadata:
+            default_unit: GB
+    '''
+    custom_def = yamlparser.simple_parse(custom_def_snippet)
+
+    def test_invalid_scalar_unit(self):
+        tpl_snippet = '''
+        server:
+          type: tosca.my.nodes.Compute
+          properties:
+            disk_size: 3
+        '''
+        nodetemplates = yamlparser.simple_parse(tpl_snippet)
+        topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
+        nodetemplate = topology.node_templates["server"]
+        assert nodetemplate
+        self.assertEqual(nodetemplate.get_property_value('disk_size'), "3 GB")

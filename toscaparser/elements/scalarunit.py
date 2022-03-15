@@ -32,6 +32,7 @@ class ScalarUnit(object):
     def __init__(self, value):
         self.value = value
 
+    @classmethod
     def _check_unit_in_scalar_standard_units(self, input_unit):
         """Check whether the input unit is following specified standard
 
