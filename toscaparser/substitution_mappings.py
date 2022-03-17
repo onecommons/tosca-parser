@@ -103,7 +103,7 @@ class SubstitutionMappings(object):
             return
 
         # SubstitutionMapping class syntax validation
-        self._validate_inputs()
+        # XXX self._validate_inputs()
         self._validate_capabilities()
         self._validate_requirements()
         self._validate_properties()
