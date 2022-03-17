@@ -29,7 +29,8 @@ class RelationshipType(StatefulEntityType):
         super(RelationshipType, self).__init__(type, self.RELATIONSHIP_PREFIX,
                                                custom_def)
         self.custom_def = custom_def
-        self._validate_keys()
+        if self.defs:
+            self._validate_keys()
 
     @property
     def parent_type(self):

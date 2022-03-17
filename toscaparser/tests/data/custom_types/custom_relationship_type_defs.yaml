@@ -9,7 +9,7 @@ node_types:
           capability: tosca.capabilities.HA
           relationship: tosca.relationships.HA
           node: tosca.nodes.HACompute
-          occurences: [ 0, 1 ]
+          occurrences: [ 0, 1 ]
 
 relationship_types:
   tosca.relationships.HA:

@@ -27,6 +27,11 @@ class NodeType(StatefulEntityType):
                 'description', 'attributes', 'requirements', 'capabilities',
                 'interfaces', 'artifacts', 'instance_keys', '_source')
 
+    REQUIREMENTS_SECTION = (NODE, CAPABILITY, RELATIONSHIP, OCCURRENCES,
+                            NODE_FILTER, DESCRIPTION, METADATA, TITLE) = \
+                           ('node', 'capability', 'relationship',
+                            'occurrences', 'node_filter', 'description', 'metadata', 'title')
+
     def __init__(self, ntype, custom_def=None):
         super(NodeType, self).__init__(ntype, self.NODE_PREFIX, custom_def)
         self.ntype = ntype
@@ -179,7 +184,22 @@ class NodeType(StatefulEntityType):
         return self.get_value(self.REQUIREMENTS, None, True)
 
     def get_all_requirements(self):
-        return self.requirements
+        reqs_tpl = self.requirements
+        if reqs_tpl is None:
+            return []
+        requirements = {}
+        for tpl in reqs_tpl:
+            name, value = list(tpl.items())[0]
+            # note that first match returned by get_value() will be the most derived one
+            if name in requirements:
+                # update value with current (more derived) value
+                current = requirements[name][name]
+                if isinstance(current, str):
+                    tpl = {name: dict(value, node = current)}
+                else:
+                    tpl = {name: dict(value, **current)}
+            requirements[name] = tpl
+        return list(requirements.values())
 
     def get_capability(self, name):
         caps = self.get_capabilities_def()
@@ -199,7 +219,59 @@ class NodeType(StatefulEntityType):
                         UnknownFieldError(what='Nodetype"%s"' % self.ntype,
                                           field=key))
                 if key == self.REQUIREMENTS:
-                    if not isinstance(self.defs[self.REQUIREMENTS], list):
+                    reqs = self.defs[self.REQUIREMENTS]
+                    if not isinstance(reqs, list):
                         ExceptionCollector.appendException(
                             InvalidTypeDefinition(type='Nodetype %s' % self.ntype,
                                               what='"requirements" field value must be a list'))
+                        continue
+                    for req in reqs:
+                        if not isinstance(req, dict) or not req:
+                            ExceptionCollector.appendException(
+                                InvalidTypeDefinition(type='Nodetype %s' % self.ntype,
+                                                  what='bad value for requirement list item: "%s"' % (req) ))
+                        reqvalue = list(req.values())[0]
+                        if not isinstance(reqvalue, (str, dict)) or len(req) != 1:
+                            what = 'invalidate requirement "%s"' % req
+                            ExceptionCollector.appendException(
+                                InvalidTypeDefinition(type='Nodetype %s' % self.ntype, what=what))
+                        elif isinstance(reqvalue, dict):
+                            self._validate_requirements_keys(reqvalue, 'Nodetype "%s"' % self.ntype)
+
+    def _validate_requirements_keys(self, requirement, where):
+        for key in requirement.keys():
+            if key not in self.REQUIREMENTS_SECTION:
+                ExceptionCollector.appendException(
+                    UnknownFieldError(
+                        what='"requirements" of %s' % where,
+                        field=key))
+
+    def get_requirement_definition(self, requirementName):
+        # return a normalized requirements definition that always include a relationship
+        parent_reqs = self.get_all_requirements()
+        defaultDef = dict(relationship=dict(type = "tosca.relationships.Root"))
+        if parent_reqs:
+            for req_dict in parent_reqs:
+                # note that first match returned by get_value() will be the most derived one
+                if requirementName in req_dict:
+                    # 3.7.3 Requirement definition p.122
+                    # if present, this will be either the name of the relationship type
+                    # or a dictionary containing "type"
+                    reqDef = req_dict[requirementName]
+                    if isinstance(reqDef, dict):
+                        # normalize 'relationship' key:
+                        relDef = reqDef.get('relationship')
+                        if not relDef:
+                            relDef = dict(type = "tosca.relationships.Root")
+                        elif isinstance(relDef, dict):
+                            relDef = relDef.copy()
+                        else:
+                            relDef = dict(type = relDef)
+                        reqDef = reqDef.copy()
+                        reqDef['relationship'] = relDef
+                        return reqDef
+                    else:
+                        # 3.7.3.2.1 Simple grammar (Capability Type only)
+                        defaultDef['capability'] = reqDef
+                        return defaultDef
+        return defaultDef

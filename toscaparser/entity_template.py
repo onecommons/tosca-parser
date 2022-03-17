@@ -38,10 +38,8 @@ class EntityTemplate(object):
                ('derived_from', 'properties', 'requirements', 'interfaces',
                 'capabilities', 'type', 'description', 'directives', "instance_keys",
                 'attributes', 'artifacts', 'node_filter', 'copy',  'dependencies')
-    REQUIREMENTS_SECTION = (NODE, CAPABILITY, RELATIONSHIP, OCCURRENCES,
-                            NODE_FILTER, DESCRIPTION, METADATA) = \
-                           ('node', 'capability', 'relationship',
-                            'occurrences', 'node_filter', 'description', 'metadata')
+    REQUIREMENTS_SECTION = NodeType.REQUIREMENTS_SECTION
+
     # Special key names, not overridden by subclasses
     SPECIAL_SECTIONS = (METADATA, NAME, TITLE, DESCRIPTION) = ('metadata', 'name', 'title', 'description')
 
@@ -237,7 +235,10 @@ class EntityTemplate(object):
     def _validate_properties(self):
         properties = self.type_definition.get_value(self.PROPERTIES, self.entity_tpl)
         if isinstance(properties, list):
-            properties = {p["name"]: p.get('value') for p in properties}
+            src = self.entity_tpl
+            cls = getattr(src, "mapCtor", src.__class__)
+            properties = cls( (p["name"], p.get('value')) for p in properties )
+            self.entity_tpl['properties'] = properties
         if not properties:
             properties = {}
         if not isinstance(properties, dict):

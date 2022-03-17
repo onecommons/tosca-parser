@@ -64,34 +64,6 @@ class NodeTemplate(EntityTemplate):
                         self._relationships.append( (relTpl, r, reqDef) )
         return self._relationships
 
-    def _getRequirementDefinition(self, requirementName):
-        parent_reqs = self.type_definition.get_all_requirements()
-        defaultDef = dict(relationship=dict(type = "tosca.relationships.Root"))
-        if parent_reqs:
-            for req_dict in parent_reqs:
-                if requirementName in req_dict:
-                    # 3.7.3 Requirement definition p.122
-                    # if present, this will be either the name of the relationship type
-                    # or a dictionary containing "type"
-                    reqDef = req_dict[requirementName]
-                    if isinstance(reqDef, dict):
-                        # normalize 'relationship' key:
-                        relDef = reqDef.get('relationship')
-                        if not relDef:
-                            relDef = dict(type = "tosca.relationships.Root")
-                        elif isinstance(relDef, dict):
-                            relDef = relDef.copy()
-                        else:
-                            relDef = dict(type = relDef)
-                        reqDef = reqDef.copy()
-                        reqDef['relationship'] = relDef
-                        return reqDef
-                    else:
-                        # 3.7.3.2.1 Simple grammar (Capability Type only)
-                        defaultDef['capability'] = reqDef
-                        return defaultDef
-        return defaultDef
-
     def _get_explicit_relationship(self, req):
         """Handle explicit relationship
 
@@ -106,7 +78,7 @@ class NodeTemplate(EntityTemplate):
         one with type "tosca.relationships.Root" will be returned.
         """
         name, value = next(iter(req.items())) # list only has one item
-        typeReqDef = self._getRequirementDefinition(name)
+        typeReqDef = self.type_definition.get_requirement_definition(name)
         reqDef = typeReqDef.copy()
         if isinstance(value, dict):
             # see 3.8.2 Requirement assignment p. 140 for value
@@ -325,7 +297,7 @@ class NodeTemplate(EntityTemplate):
 
                     for r1, value in req.items():
                         if isinstance(value, dict):
-                            self._validate_requirements_keys(value)
+                            self.type_definition._validate_requirements_keys(value,  'template "%s"' % self.name)
                             self._validate_requirements_properties(value)
                             node_filter = value.get('node_filter')
                             if node_filter:
@@ -357,13 +329,6 @@ class NodeTemplate(EntityTemplate):
             ExceptionCollector.appendException(
                 InvalidPropertyValueError(what=(occurrences)))
 
-    def _validate_requirements_keys(self, requirement):
-        for key in requirement.keys():
-            if key not in self.REQUIREMENTS_SECTION:
-                ExceptionCollector.appendException(
-                    UnknownFieldError(
-                        what='"requirements" of template "%s"' % self.name,
-                        field=key))
 
     def _validate_instancekeys(self):
         template = self.entity_tpl
