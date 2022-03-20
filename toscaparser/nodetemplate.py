@@ -428,6 +428,8 @@ class NodeTemplate(EntityTemplate):
             prop = props[key]
             propvalue = prop.value
             if isinstance(value, dict):
+                if 'eval' in value or 'q' in value:
+                    continue
                 if not ConditionClause(key, value, prop.type).evaluate({key:propvalue}):
                     return False
             elif propvalue != value: # simple match

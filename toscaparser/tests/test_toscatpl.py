@@ -359,8 +359,8 @@ class ToscaTemplateTest(TestCase):
                          relations in node_tpl.relationships])
 
     def test_template_requirements_not_implemented(self):
-        # TODO(spzala): replace this test with new one once TOSCA types look up
-        # support is implemented.
+        # XXX the functionality in these templates has been implemented 
+        #     update the tests so they test that
         """Requirements that yet need to be implemented
 
         The following requirement formats are not yet implemented,
