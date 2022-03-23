@@ -98,7 +98,6 @@ class ConditionClause(object):
                 value = scalarunit.get_scalarunit_value(condition.property_type, value)
             if not condition._is_valid(value):
                 return False
-            log.warning("value matched %s on %s", value, self.name)
         return True
 
   @staticmethod

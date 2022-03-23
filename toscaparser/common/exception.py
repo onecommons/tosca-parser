@@ -208,7 +208,7 @@ class ExceptionCollector(object):
             if not ExceptionCollector.contains(exception):
                 exception.trace = traceback.extract_stack()[:-1]
                 ExceptionCollector.exceptions.append(exception)
-                log.warning( ExceptionCollector.getExceptionReportEntry(exception, False) )
+                log.debug( ExceptionCollector.getExceptionReportEntry(exception, False) )
         else:
             raise exception
 
