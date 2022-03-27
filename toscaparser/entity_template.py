@@ -517,10 +517,15 @@ class EntityTemplate(object):
     def _validate_interfaces(self):
         ifaces = self.type_definition.get_value(self.INTERFACES,
                                                 self.entity_tpl)
+        # XXX this doesn't validate operations if "operations" keyword is used
         if ifaces:
             for name, value in ifaces.items():
-                if name == 'defaults':
-                  self._common_validate_field(
+                if name == 'Mock':
+                    self._common_validate_field(
+                        value, INTERFACE_DEF_RESERVED_WORDS,
+                        'interfaces')
+                elif name == 'defaults':
+                    self._common_validate_field(
                       value,
                       ['implementation', 'inputs', 'outputs'],
                       'interfaces')

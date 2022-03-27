@@ -23,6 +23,7 @@ SECTIONS = (
     LIFECYCLE_SHORTNAME,
     CONFIGURE_SHORTNAME,
     INSTALL_SHORTNAME,
+    MOCK
 ) = (
     "tosca.interfaces.node.lifecycle.Standard",
     "tosca.interfaces.relationship.Configure",
@@ -30,6 +31,7 @@ SECTIONS = (
     "Standard",
     "Configure",
     "Install",
+    "Mock"
 )
 
 OPERATION_DEF_RESERVED_WORDS = (DESCRIPTION, IMPLEMENTATION, INPUTS, OUTPUTS) = (
@@ -96,6 +98,7 @@ class OperationDef(StatefulEntityType):
         self.outputs = outputs
         self.defs = {}
         interfaces = getattr(self.ntype, "interfaces", None)
+        self.interfacetype = None
         if interfaces and "type" in interfaces.get(interfacename, {}):
             self.interfacetype = interfaces[interfacename]["type"]
         elif interfacename == LIFECYCLE_SHORTNAME:
@@ -104,6 +107,8 @@ class OperationDef(StatefulEntityType):
             self.interfacetype = CONFIGURE
         elif interfacename == INSTALL_SHORTNAME:
             self.interfacetype = INSTALL
+        elif interfacename == MOCK:
+            self.interfacetype = MOCK
         if not self.interfacetype:
             ExceptionCollector.appendException(
                 TypeError(
