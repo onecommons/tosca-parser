@@ -28,7 +28,7 @@ from toscaparser.utils import yamlparser
 
 class Schema(collections.abc.Mapping):
 
-    KEYS = (TYPE, REQUIRED, DESCRIPTION, DEFAULT, CONSTRAINTS, ENTRYSCHEMA, STATUS, METADATA) = (
+    KEYS = (TYPE, REQUIRED, DESCRIPTION, DEFAULT, CONSTRAINTS, ENTRY_SCHEMA, STATUS, METADATA, TITLE) = (
         "type",
         "required",
         "description",
@@ -36,7 +36,8 @@ class Schema(collections.abc.Mapping):
         "constraints",
         "entry_schema",
         "status",
-        "metadata"
+        "metadata",
+        "title"
     )
 
     PROPERTY_TYPES = (
@@ -105,6 +106,10 @@ class Schema(collections.abc.Mapping):
         return self.schema.get(self.DESCRIPTION, "")
 
     @property
+    def title(self):
+        return self.schema.get(self.TITLE, "")
+
+    @property
     def default(self):
         return self.schema.get(self.DEFAULT)
 
@@ -129,7 +134,7 @@ class Schema(collections.abc.Mapping):
 
     @property
     def entry_schema(self):
-        return self.schema.get(self.ENTRYSCHEMA)
+        return self.schema.get(self.ENTRY_SCHEMA)
 
     def __getitem__(self, key):
         return self.schema[key]

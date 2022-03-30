@@ -19,11 +19,7 @@ from toscaparser.elements.scalarunit import get_scalarunit_class
 class Property(object):
     '''TOSCA built-in Property type.'''
 
-    PROPERTY_KEYS = (
-        TYPE, REQUIRED, DESCRIPTION, DEFAULT, CONSTRAINTS
-    ) = (
-        'type', 'required', 'description', 'default', 'constraints'
-    )
+    PROPERTY_KEYS = Schema.KEYS
 
     ENTRY_SCHEMA_KEYS = (
         ENTRYTYPE, ENTRYPROPERTIES
