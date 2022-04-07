@@ -88,10 +88,10 @@ class DataEntity(object):
             if self.schema:
                 allowed_props = self.schema.keys()
                 for name, prop_def in self.schema.items():
-                    if prop_def.required:
-                        required_props.append(name)
-                    if prop_def.default:
+                    if prop_def.default is not None:
                         default_props[name] = prop_def.default
+                    elif prop_def.required:
+                        required_props.append(name)
 
             # check allowed field
             for value_key in list(self.value.keys()):

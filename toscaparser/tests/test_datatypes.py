@@ -50,6 +50,11 @@ class DataTypeTest(TestCase):
           required: false
           entry_schema:
             type: tosca.my.datatypes.ContactInfo
+        extras:
+          type: map
+          entry_schema:
+            type: string
+          default: {}
 
     tosca.my.datatypes.ContactInfo:
       description: simple contact information
