@@ -119,11 +119,11 @@ class EntityTemplate(object):
     @property
     def requirements(self):
         if self._requirements is None:
-            # alternative syntax for requirements
+            # alternative syntax for requirements, take precedence
             dependencies = self.entity_tpl.get(self.DEPENDENCIES)
             if dependencies:
                 self._requirements = [
-                  { dep['name'] : dict(node = dep['match'])} for dep in dependencies
+                  { dep['name'] : dict(node = dep.get('match'), metadata = dep) } for dep in dependencies
                 ]
             else:
                 self._requirements = self.type_definition.get_value(
