@@ -221,10 +221,10 @@ class NodeTemplate(EntityTemplate):
                 if not parent_type.defs or not parent_type.defs.get(self.ARTIFACTS):
                     continue
                 for name, value in parent_type.defs[self.ARTIFACTS].items():
-                    if isinstance(value, dict) and "file" not in value and "type" in value:
+                    if isinstance(value, dict) and "file" not in value:
                         # this is not a full artifact definition so treat this as
                         # specifying that an artifact of a certain type is required
-                        required_artifacts[name] = value["type"]
+                        required_artifacts[name] = value
                     else:
                         artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
 
@@ -234,13 +234,15 @@ class NodeTemplate(EntityTemplate):
                 artifacts.update({name: Artifact(name, value, self.custom_def)
                     for name, value in artifacts_tpl.items()})
 
-            for name, typename in required_artifacts.items():
+            for name, value in required_artifacts.items():
+                typename = value.get("type")
                 artifact = artifacts.get(name)
                 if not artifact:
+                  if value.get("required"):
                     ExceptionCollector.appendException(
                       ValidationError(message='required artifact "%s" of type "%s" not defined on node "%s"' %
                               (name, typename, self.name)))
-                elif not artifact.is_derived_from(typename):
+                elif typename and not artifact.is_derived_from(typename):
                     ExceptionCollector.appendException(
                       ValidationError(message='artifact "%s" on node "%s" must be derived from type "%s"' %
                               (name, self.name, typename)))
