@@ -77,7 +77,7 @@ class ToscaTemplateTest(TestCase):
     def test_node_tpls(self):
         '''Test nodetemplate names.'''
         self.assertEqual(
-            ['mysql_database', 'mysql_dbms', 'server',
+            ['my_wordpress', 'mysql_database', 'mysql_dbms', 'server',
              'webserver', 'wordpress'],
             sorted([tpl.name for tpl in self.tosca.nodetemplates]))
 
@@ -232,6 +232,13 @@ class ToscaTemplateTest(TestCase):
                 raise AssertionError(
                     'Unexpected interface: {0}'.format(interface.name))
 
+    def test_interfaces_on_types(self):
+        wordpress_node = [
+            node for node in self.tosca.nodetemplates
+            if node.name == 'my_wordpress'][0]
+        interfaces = wordpress_node.interfaces
+        self.assertEqual([i.name for i in interfaces], ["create", "configure", "default"])
+
     def test_normative_type_by_short_name(self):
         # test template with a short name Compute
         template = os.path.join(
@@ -359,7 +366,7 @@ class ToscaTemplateTest(TestCase):
                          relations in node_tpl.relationships])
 
     def test_template_requirements_not_implemented(self):
-        # XXX the functionality in these templates has been implemented 
+        # XXX the functionality in these templates has been implemented
         #     update the tests so they test that
         """Requirements that yet need to be implemented
 

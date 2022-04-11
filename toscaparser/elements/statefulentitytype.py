@@ -108,7 +108,19 @@ class StatefulEntityType(EntityType):
 
     @property
     def interfaces(self):
-        return self.get_value(self.INTERFACES, None, True, True) or {}
+        cls = getattr(self.defs, "mapCtor", self.defs.__class__)
+        interfaces = cls()
+        defaults = cls()
+        for p in reversed(list(self.ancestors())):
+            p_interfaces = p.defs.get(self.INTERFACES)
+            if p_interfaces:
+                interfaces.update(p_interfaces)
+                if interfaces.get("defaults"):
+                    # merge defaults
+                    defaults.update(interfaces['defaults'])
+        if defaults:
+            interfaces['defaults'] = defaults
+        return interfaces
 
     def get_interface_requirements(self, entity_tpl=None):
         tpl_interfaces = self.get_value(self.INTERFACES, entity_tpl, True)
