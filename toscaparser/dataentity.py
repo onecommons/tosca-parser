@@ -82,6 +82,8 @@ class DataEntity(object):
                 ExceptionCollector.appendException(
                     TypeMismatchError(what=self.value, type=self.datatype.type)
                 )
+                return self.value
+
             allowed_props = []
             required_props = []
             default_props = {}
