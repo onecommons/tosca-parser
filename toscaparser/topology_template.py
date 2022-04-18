@@ -25,6 +25,7 @@ from toscaparser.workflow import Workflow
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.substitution_mappings import SubstitutionMappings
 from toscaparser.utils.gettextutils import _
+from toscaparser.common.exception import ExceptionCollector
 
 
 # Topology template key names
@@ -382,6 +383,7 @@ class TopologyTemplate(object):
         """
         if hasattr(self, 'nodetemplates'):
             for node_template in self.nodetemplates:
+                ExceptionCollector.near = f' in node template "{node_template.name}"'
                 # XXX should use something like findProps to recursively validate properties
                 for prop in node_template.get_properties_objects():
                     functions.get_function(self,
@@ -414,4 +416,5 @@ class TopologyTemplate(object):
                                                        rel_tpl,
                                                        value)
         for output in self.outputs:
+            ExceptionCollector.near = f' in output "{output.name}"'
             functions.get_function(self, self.outputs, output.value)
