@@ -45,6 +45,7 @@ class EntityTemplate(object):
 
     additionalProperties = True
     _source = None
+    _properties_tpl = None
 
     def __init__(self, name, template, entity_name, custom_def=None):
         self.name = name
@@ -174,10 +175,7 @@ class EntityTemplate(object):
             return False
         elif self.type == type_str:
             return True
-        elif self.parent_type:
-            return self.parent_type.is_derived_from(type_str)
-        else:
-            return False
+        return self.type_definition.is_derived_from(type_str)
 
     def _create_capability(self, capabilitydefs, name, ctype, props):
         c = capabilitydefs.get(name)
