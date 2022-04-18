@@ -23,7 +23,7 @@ SECTIONS = (
     LIFECYCLE_SHORTNAME,
     CONFIGURE_SHORTNAME,
     INSTALL_SHORTNAME,
-    MOCK
+    MOCK,
 ) = (
     "tosca.interfaces.node.lifecycle.Standard",
     "tosca.interfaces.relationship.Configure",
@@ -31,14 +31,23 @@ SECTIONS = (
     "Standard",
     "Configure",
     "Install",
-    "Mock"
+    "Mock",
 )
 
-OPERATION_DEF_RESERVED_WORDS = (DESCRIPTION, IMPLEMENTATION, INPUTS, OUTPUTS) = (
+OPERATION_DEF_RESERVED_WORDS = (
+  DESCRIPTION,
+  IMPLEMENTATION,
+  INPUTS,
+  OUTPUTS,
+  ENTRY_STATE,
+  EXIT_STATE,
+  ) = (
     "description",
     "implementation",
     "inputs",
     "outputs",
+    "entry_state",
+    "exit_state",
 )
 
 INTERFACE_DEF_RESERVED_WORDS = [
@@ -96,6 +105,7 @@ class OperationDef(StatefulEntityType):
         self.inputs = inputs
         self._source = None
         self.outputs = outputs
+        self.entry_state = None
         self.defs = {}
         interfaces = getattr(self.ntype, "interfaces", None)
         self.interfacetype = None
@@ -141,6 +151,8 @@ class OperationDef(StatefulEntityType):
                         self._source = j
                     elif i == IMPLEMENTATION:
                         self.implementation = j
+                    elif i == ENTRY_STATE:
+                        self.entry_state = j
                     elif i == INPUTS:
                         if self.inputs:
                             self.inputs.update(j)
