@@ -34,6 +34,7 @@ class NodeTemplate(EntityTemplate):
     def __init__(self, name, topology_template, custom_def=None,
                  available_rel_tpls=None):
         node_templates = topology_template._tpl_nodetemplates()
+        ExceptionCollector.near = f' in node template "{name}"'
         super(NodeTemplate, self).__init__(name, node_templates[name],
                                            'node_type',
                                            custom_def)

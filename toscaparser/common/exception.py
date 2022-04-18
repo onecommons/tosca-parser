@@ -38,6 +38,7 @@ class TOSCAException(Exception):
     def __init__(self, **kwargs):
         try:
             self.message = self.msg_fmt % kwargs
+            self.near = ExceptionCollector.near
         except KeyError:
             exc_info = sys.exc_info()
             log.exception('Exception in string format operation: %s'
@@ -181,10 +182,12 @@ class ExceptionCollector(object):
 
     exceptions = []
     collecting = False
+    near = None
 
     @staticmethod
     def clear():
         del ExceptionCollector.exceptions[:]
+        ExceptionCollector.near = None
 
     @staticmethod
     def start():
@@ -194,6 +197,7 @@ class ExceptionCollector(object):
     @staticmethod
     def stop():
         ExceptionCollector.collecting = False
+        ExceptionCollector.near = None
 
     @staticmethod
     def contains(exception):
@@ -227,8 +231,10 @@ class ExceptionCollector(object):
         return traceString
 
     @staticmethod
-    def getExceptionReportEntry(exception, full=True):
+    def getExceptionReportEntry(exception, full=True, extra=True):
         entry = exception.__class__.__name__ + ': ' + str(exception)
+        if extra and getattr(exception, 'near', None):
+          entry += exception.near
         if full:
             entry += '\n' + ExceptionCollector.getTraceString(exception.trace)
         return entry
@@ -238,16 +244,16 @@ class ExceptionCollector(object):
         return ExceptionCollector.exceptions
 
     @staticmethod
-    def getExceptionsReport(full=True):
+    def getExceptionsReport(full=True, extra=True):
         report = []
         for exception in ExceptionCollector.exceptions:
             report.append(
-                ExceptionCollector.getExceptionReportEntry(exception, full))
+                ExceptionCollector.getExceptionReportEntry(exception, full, extra))
         return report
 
     @staticmethod
     def assertExceptionMessage(exception, message):
         err_msg = exception.__name__ + ': ' + message
-        report = ExceptionCollector.getExceptionsReport(False)
+        report = ExceptionCollector.getExceptionsReport(False, False)
         assert err_msg in report, (_('Could not find "%(msg)s" in "%(rep)s".')
                                    % {'rep': report.__str__(), 'msg': err_msg})
