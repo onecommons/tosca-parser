@@ -324,14 +324,18 @@ class NodeTemplate(EntityTemplate):
 
     def _validate_occurrences(self, occurrences):
         DataEntity.validate_datatype('list', occurrences)
-        for value in occurrences:
-            DataEntity.validate_datatype('integer', value)
-        if (len(occurrences) != 2
-                or not (0 <= occurrences[0] <= occurrences[1])
-                or occurrences[1] == 0):
+        if not isinstance(occurrences, list) or len(occurrences) != 2:
             ExceptionCollector.appendException(
                 InvalidPropertyValueError(what=(occurrences)))
-
+            return
+        if DataEntity.validate_datatype('integer', occurrences[0]):
+            ExceptionCollector.appendException(
+                InvalidPropertyValueError(what=(occurrences)))
+        if occurrences[1] != "UNBOUNDED":
+            DataEntity.validate_datatype('integer', occurrences[1])
+            if not (0 <= occurrences[0] <= occurrences[1]) or occurrences[1] == 0:
+                ExceptionCollector.appendException(
+                    InvalidPropertyValueError(what=(occurrences)))
 
     def _validate_instancekeys(self):
         template = self.entity_tpl
