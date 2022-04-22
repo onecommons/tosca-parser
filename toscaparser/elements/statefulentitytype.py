@@ -112,7 +112,7 @@ class StatefulEntityType(EntityType):
         interfaces = cls()
         defaults = cls()
         for p in reversed(list(self.ancestors())):
-            p_interfaces = p.defs.get(self.INTERFACES)
+            p_interfaces = p.defs and p.defs.get(self.INTERFACES)
             if p_interfaces:
                 interfaces.update(p_interfaces)
                 if interfaces.get("defaults"):
@@ -125,11 +125,12 @@ class StatefulEntityType(EntityType):
     def get_interface_requirements(self, entity_tpl=None):
         tpl_interfaces = self.get_value(self.INTERFACES, entity_tpl, True)
         relationships = []
-        for i in tpl_interfaces.values():
-            req = i.get('requirements')
-            if req:
-                assert isinstance(req, list)
-                for rel in req:
-                    if rel not in relationships:
-                        relationships.append(rel)
+        if tpl_interfaces:
+            for i in tpl_interfaces.values():
+                req = i.get('requirements')
+                if req:
+                    assert isinstance(req, list)
+                    for rel in req:
+                        if rel not in relationships:
+                            relationships.append(rel)
         return relationships
