@@ -36,6 +36,7 @@ class NodeType(StatefulEntityType):
         super(NodeType, self).__init__(ntype, self.NODE_PREFIX, custom_def)
         self.ntype = ntype
         self.custom_def = custom_def
+        self._requirement_definitions = None
         self._validate_keys()
 
     def parent_types(self):
@@ -246,32 +247,39 @@ class NodeType(StatefulEntityType):
                         what='"requirements" of %s' % where,
                         field=key))
 
+    @property
+    def requirement_definitions(self):
+        if self._requirement_definitions is None:
+            self._requirement_definitions = {}
+            reqs = self.get_all_requirements()
+            if not reqs:
+                return self._requirement_definitions
+            for req_dict in reqs:
+                name, reqDef = list(req_dict.items())[0]
+                # 3.7.3 Requirement definition p.122
+                # if present, this will be either the name of the relationship type
+                # or a dictionary containing "type"
+                if isinstance(reqDef, dict):
+                    # normalize 'relationship' key:
+                    relDef = reqDef.get('relationship')
+                    if not relDef:
+                        relDef = dict(type = "tosca.relationships.Root")
+                    elif isinstance(relDef, dict):
+                        relDef = relDef.copy()
+                    else:
+                        relDef = dict(type = relDef)
+                    reqDef = reqDef.copy()
+                    reqDef['relationship'] = relDef
+                    self._requirement_definitions[name] = reqDef
+                else:
+                    # 3.7.3.2.1 Simple grammar (Capability Type only)
+                    defaultDef = dict(relationship=dict(type = "tosca.relationships.Root"))
+                    defaultDef['capability'] = reqDef
+                    self._requirement_definitions[name] =  defaultDef
+
+        return self._requirement_definitions
+
     def get_requirement_definition(self, requirementName):
         # return a normalized requirements definition that always include a relationship
-        parent_reqs = self.get_all_requirements()
         defaultDef = dict(relationship=dict(type = "tosca.relationships.Root"))
-        if parent_reqs:
-            for req_dict in parent_reqs:
-                # note that first match returned by get_value() will be the most derived one
-                if requirementName in req_dict:
-                    # 3.7.3 Requirement definition p.122
-                    # if present, this will be either the name of the relationship type
-                    # or a dictionary containing "type"
-                    reqDef = req_dict[requirementName]
-                    if isinstance(reqDef, dict):
-                        # normalize 'relationship' key:
-                        relDef = reqDef.get('relationship')
-                        if not relDef:
-                            relDef = dict(type = "tosca.relationships.Root")
-                        elif isinstance(relDef, dict):
-                            relDef = relDef.copy()
-                        else:
-                            relDef = dict(type = relDef)
-                        reqDef = reqDef.copy()
-                        reqDef['relationship'] = relDef
-                        return reqDef
-                    else:
-                        # 3.7.3.2.1 Simple grammar (Capability Type only)
-                        defaultDef['capability'] = reqDef
-                        return defaultDef
-        return defaultDef
+        return self.requirement_definitions.get(requirementName, defaultDef)

@@ -58,14 +58,28 @@ class NodeTemplate(EntityTemplate):
             self._relationships = []
             # self.requirements is from the yaml
             requires = self.requirements
+            type_requirements = self.type_definition.requirement_definitions
+            names = []
             if requires and isinstance(requires, list):
                 for r in requires:
-                    reqDef, relTpl = self._get_explicit_relationship(r)
+                    name, value = next(iter(r.items())) # list only has one item
+                    names.append(name)
+                    reqDef, relTpl = self._get_explicit_relationship(name, value)
                     if relTpl:
                         self._relationships.append( (relTpl, r, reqDef) )
+
+            # add requirements on the type definition that were not defined by the template
+            for name, req_on_type in type_requirements.items():
+                if name not in names:
+                    node = req_on_type.get('node')
+                    is_template = node and node in self.topology_template.node_templates
+                    if is_template: # XXX or occurrences > 0: mandatory, try to infer
+                        reqDef, relTpl = self._relationship_from_req(name, req_on_type)
+                        if relTpl:
+                            self._relationships.append( (relTpl, {name: reqDef}, reqDef) )
         return self._relationships
 
-    def _get_explicit_relationship(self, req):
+    def _get_explicit_relationship(self, name, value):
         """Handle explicit relationship
 
         For example,
@@ -78,7 +92,6 @@ class NodeTemplate(EntityTemplate):
         If no relationship was either assigned or defined by the node's type definition,
         one with type "tosca.relationships.Root" will be returned.
         """
-        name, value = next(iter(req.items())) # list only has one item
         typeReqDef = self.type_definition.get_requirement_definition(name)
         reqDef = typeReqDef.copy()
         if isinstance(value, dict):
@@ -86,7 +99,9 @@ class NodeTemplate(EntityTemplate):
             reqDef.update(value)
         else:
             reqDef['node'] = value
+        return self._relationship_from_req(name, reqDef)
 
+    def _relationship_from_req(self, name, reqDef):
         relationship = reqDef['relationship']
         relTpl = None
         type = None
