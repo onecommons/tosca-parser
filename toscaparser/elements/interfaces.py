@@ -173,11 +173,18 @@ class OperationDef(StatefulEntityType):
 
     @property
     def _msg(self):
-        return 'operation "%s:%s" on template "%s"' % (
-            self.interfacename,
-            self.name,
-            self.node_template.name,
-        )
+        if self.node_template:
+            return 'operation "%s:%s" on template "%s"' % (
+                self.interfacename,
+                self.name,
+                self.node_template.name,
+            )
+        else:
+            return 'operation "%s:%s" on type "%s"' % (
+                self.interfacename,
+                self.name,
+                self.ntype.name,
+            )
 
     def validate_implementation(self):
         if isinstance(self.implementation, dict):
