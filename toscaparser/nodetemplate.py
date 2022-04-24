@@ -258,14 +258,17 @@ class NodeTemplate(EntityTemplate):
         else:
             if node:
                 msg = _('Could not find target template "%(node)s"'
-                           ' for requirement "%(rname)s" of node "%(nname)s".'
-                        ) % {'node': node, 'rname': name, 'nname': self.name}
+                           ' for requirement "%(rname)s"'
+                        ) % {'node': node, 'rname': name}
             else:
                 msg = _('No matching target template found'
-                           ' for requirement "%(rname)s" of node "%(nname)s".'
-                           ) % {'rname': name, 'nname': self.name}
-            ExceptionCollector.appendException(
-                ValidationError(message = msg))
+                           ' for requirement "%(rname)s"'
+                           ) % {'rname': name}
+            if "default" in self.directives:
+                log.warning(f'{msg} on default node template "{self.name}"')
+            else:
+                ExceptionCollector.appendException(
+                    ValidationError(message = msg))
             return reqDef, None
         return reqDef, relTpl
 
