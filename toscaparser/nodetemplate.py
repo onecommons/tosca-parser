@@ -111,7 +111,7 @@ class NodeTemplate(EntityTemplate):
             return node
         is_imported = self.topology_template is not self.topology_template.tosca_template.topology_template
         # if we check an imported topology and the node is marked as default or wasn't found
-        if True:
+        if is_imported:
             if not node or (node and "default" in node.directives):
                 # check the outermost topology
                 match = self.topology_template.tosca_template.topology_template.node_templates.get(name)
