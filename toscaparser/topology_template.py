@@ -45,9 +45,10 @@ class TopologyTemplate(object):
     '''Load the template data.'''
     def __init__(self, template, custom_defs,
                  parsed_params=None,
-                 sub_mapped_node_template=None):
+                 tosca_template=None):
         self.tpl = template
-        self.sub_mapped_node_template = sub_mapped_node_template
+        self.sub_mapped_node_template = None
+        self.tosca_template = tosca_template
         if self.tpl:
             self.custom_defs = custom_defs or {}
             self.parsed_params = parsed_params
@@ -262,6 +263,7 @@ class TopologyTemplate(object):
         if not isinstance(inputs, dict):
             exception.ExceptionCollector.appendException(
                 exception.TypeMismatchError(what=INPUTS, type="dict"))
+            return {}
         return inputs
 
     def _tpl_nodetemplates(self):
@@ -299,6 +301,7 @@ class TopologyTemplate(object):
         if not isinstance(groups, dict):
             exception.ExceptionCollector.appendException(
                 exception.TypeMismatchError(what=GROUPS, type="dict"))
+            return {}
         return groups
 
     def _tpl_policies(self):
@@ -405,16 +408,22 @@ class TopologyTemplate(object):
                                     node_template,
                                     prop.value)
 
-                for rel_tpl, req, reqDef in node_template.relationships:
-                    # XXX should use something like findProps to recursively validate properties
-                    for prop in rel_tpl.get_properties_objects():
-                        functions.get_function(self, req, prop.value)
-                    for interface in rel_tpl.interfaces:
-                        if interface.inputs:
-                            for name, value in interface.inputs.items():
-                                functions.get_function(self,
-                                                       rel_tpl,
-                                                       value)
         for output in self.outputs:
             ExceptionCollector.near = f' in output "{output.name}"'
             functions.get_function(self, self.outputs, output.value)
+
+    def validate_relationships(self):
+        if not hasattr(self, 'nodetemplates'):
+            return
+        for node_template in self.nodetemplates:
+            ExceptionCollector.near = f' in node template "{node_template.name}"'
+            for rel_tpl, req, reqDef in node_template.relationships:
+                # XXX should use something like findProps to recursively validate properties
+                for prop in rel_tpl.get_properties_objects():
+                    functions.get_function(self, req, prop.value)
+                for interface in rel_tpl.interfaces:
+                    if interface.inputs:
+                        for name, value in interface.inputs.items():
+                            functions.get_function(self,
+                                                   rel_tpl,
+                                                   value)

@@ -109,6 +109,11 @@ class ToscaTemplate(object):
                 self.outputs = self._outputs()
                 self.policies = self._policies()
                 self._handle_nested_tosca_templates_with_topology()
+                # now that all the node templates have been loaded we can validated the relationships between them
+                self.topology_template.validate_relationships()
+                for nested in self.nested_topologies.values():
+                    nested.validate_relationships()
+
 
         ExceptionCollector.stop()
         if verify:
@@ -118,7 +123,7 @@ class ToscaTemplate(object):
         return TopologyTemplate(self._tpl_topology_template(),
                                 self._get_all_custom_defs(),
                                 self.parsed_params,
-                                None)
+                                self)
 
     def _inputs(self):
         return self.topology_template.inputs
@@ -239,7 +244,7 @@ class ToscaTemplate(object):
                 custom_types = self._get_all_custom_defs().copy()
                 custom_types.update(tosca_tpl.get('node_types', {})) # XXX isn't this redundant?
                 self.nested_topologies[filename] = TopologyTemplate(
-                                topology_tpl, custom_types)
+                                topology_tpl, custom_types, None, self)
 
         # if a nodetemplate should be substituted, set its sub_mapping_tosca_template
         for nodetemplate in self.nodetemplates:

@@ -373,10 +373,10 @@ class TopologyTemplateTest(TestCase):
                type: integer
                value: 1
         '''
-        policies = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
+        inputs = (toscaparser.utils.yamlparser.simple_parse(tpl_snippet))
         custom_defs = self._get_custom_types()
         err = self.assertRaises(exception.TypeMismatchError,
-                                lambda: TopologyTemplate(policies,
+                                lambda: TopologyTemplate(inputs,
                                                          custom_defs))
         errormsg = _('inputs must be of type "dict".')
         self.assertEqual(errormsg, err.__str__())

@@ -205,6 +205,8 @@ class EntityTemplate(object):
 
     def _create_capabilities(self):
         capabilities = []
+        if not self.type_definition:
+            return capabilities
         caps = self.type_definition.get_value(self.CAPABILITIES,
                                               self.entity_tpl, parent=True)
         if caps:

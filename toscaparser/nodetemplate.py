@@ -48,6 +48,30 @@ class NodeTemplate(EntityTemplate):
         self.sub_mapping_tosca_template = None
         self._artifacts = None
         self._instance_keys = None
+        self._all_requirements = None
+
+    @property
+    def all_requirements(self):
+        """
+        returns [(RelationshipTemplate, original_tpl, requires_tpl_dict)]
+        """
+        if self._all_requirements is None:
+            self._all_requirements = []
+            # self.requirements is from the yaml
+            requires = self.requirements
+            type_requirements = self.type_definition.requirement_definitions
+            names = []
+            if requires and isinstance(requires, list):
+                for r in requires:
+                    name, value = next(iter(r.items())) # list only has one item
+                    names.append(name)
+                    self._all_requirements.append(r)
+
+            # add requirements on the type definition that were not defined by the template
+            for name, req_on_type in type_requirements.items():
+                if name not in names:
+                    self._all_requirements.append({name: req_on_type})
+        return self._all_requirements
 
     @property
     def relationships(self):
@@ -56,6 +80,8 @@ class NodeTemplate(EntityTemplate):
         """
         if self._relationships is None:
             self._relationships = []
+            if not self.type_definition:
+                return self._relationships
             # self.requirements is from the yaml
             requires = self.requirements
             type_requirements = self.type_definition.requirement_definitions
@@ -72,12 +98,32 @@ class NodeTemplate(EntityTemplate):
             for name, req_on_type in type_requirements.items():
                 if name not in names:
                     node = req_on_type.get('node')
-                    is_template = node and node in self.topology_template.node_templates
+                    is_template = node and self.find_node_related_template(node)
                     if is_template: # XXX or occurrences > 0: mandatory, try to infer
                         reqDef, relTpl = self._relationship_from_req(name, req_on_type)
                         if relTpl:
                             self._relationships.append( (relTpl, {name: reqDef}, reqDef) )
         return self._relationships
+
+    def find_node_related_template(self, name):
+        node = self.topology_template.node_templates.get(name)
+        if not self.topology_template.tosca_template:
+            return node
+        is_imported = self.topology_template is not self.topology_template.tosca_template.topology_template
+        # if we check an imported topology and the node is marked as default or wasn't found
+        if True:
+            if not node or (node and "default" in node.directives):
+                # check the outermost topology
+                match = self.topology_template.tosca_template.topology_template.node_templates.get(name)
+                if match:
+                    return match
+        if not node:
+            # outermost templates can reference imported "default" templates
+            for nested in self.topology_template.tosca_template.nested_topologies.values():
+                match = nested.node_templates.get(name)
+                if match:# and "default" in match.directives:
+                    return match
+        return node
 
     def _get_explicit_relationship(self, name, value):
         """Handle explicit relationship
@@ -142,7 +188,7 @@ class NodeTemplate(EntityTemplate):
         related_node = None
         related_capability = None
         if node:
-            related_node = self.topology_template.node_templates.get(node)
+            related_node = self.find_node_related_template(node)
             if related_node:
                 capabilities = relTpl.get_matching_capabilities(related_node, reqDef.get('capability'))
                 if not capabilities:
