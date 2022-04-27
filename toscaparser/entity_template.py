@@ -235,10 +235,7 @@ class EntityTemplate(object):
     def _validate_properties(self):
         properties = self.type_definition.get_value(self.PROPERTIES, self.entity_tpl)
         if isinstance(properties, list):
-            src = self.entity_tpl
-            cls = getattr(src, "mapCtor", src.__class__)
-            properties = cls( (p["name"], p.get('value')) for p in properties )
-            self.entity_tpl['properties'] = properties
+            properties = dict( (p["name"], p.get('value')) for p in properties )
         if not properties:
             properties = {}
         if not isinstance(properties, dict):
