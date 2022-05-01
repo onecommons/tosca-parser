@@ -197,7 +197,7 @@ class DataEntity(object):
                 DataEntity.validate_entry(value, entry_schema, custom_def)
             return value
         elif type == Schema.PORTSPEC:
-            ps = PortSpec(value)
+            ps = PortSpec.make(value)
             ps.validate()
             return ps
         elif type == Schema.PORTDEF:

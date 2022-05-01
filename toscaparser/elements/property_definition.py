@@ -41,7 +41,7 @@ class PropertyDef(object):
         self._required = self.PROPERTY_REQUIRED_DEFAULT
 
         if not isinstance(schema, dict):
-            msg = (_('Schema definition of "%(pname)s" must be a mapping.') % dict(pname=self.name))
+            msg = (_('Schema definition of "%(pname)s" must be a mapping, not: %(schema)s') % dict(pname=self.name, schema=schema))
             ExceptionCollector.appendException(
                 InvalidSchemaError(message=msg))
             return

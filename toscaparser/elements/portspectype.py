@@ -35,6 +35,36 @@ class PortSpec(dict):
         'target', 'target_range'
     )
 
+    @staticmethod
+    def make(*args, **kw):
+        """
+        Parse "source['-'range][':'target['-'range]]['/'protocol]"
+        """
+        if len(args) != 1:
+             return PortSpec(*args, **kw)
+        spec = args[0]
+        if not spec:
+            return PortSpec()
+        elif isinstance(spec, int):
+            PortSpec(source=spec, target=spec)
+        elif isinstance(spec, str):
+            ports, sep, protocol = spec.partition('/')
+            d = dict(protocol=protocol or 'tcp')
+            source, sep, target = ports.partition(':')
+            if not target:
+                target = source
+            if '-' in source:
+                d['source_range'] = source
+            else:
+                d["source"] = source
+            if '-' in target:
+                d['target_range'] = target
+            else:
+                d["target"] = target
+            return PortSpec(**d)
+        else:
+            return PortSpec(spec, **kw)
+
     @property
     def spec(self):
         """
