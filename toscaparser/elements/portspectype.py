@@ -40,30 +40,34 @@ class PortSpec(dict):
         """
         Parse "source['-'range][':'target['-'range]]['/'protocol]"
         """
+        # XXX should be __new__ or __init__
         if len(args) != 1:
-             return PortSpec(*args, **kw)
-        spec = args[0]
-        if not spec:
-            return PortSpec()
-        elif isinstance(spec, int):
-            PortSpec(source=spec, target=spec)
-        elif isinstance(spec, str):
-            ports, sep, protocol = spec.partition('/')
-            d = dict(protocol=protocol or 'tcp')
-            source, sep, target = ports.partition(':')
-            if not target:
-                target = source
-            if '-' in source:
-                d["source_range"] = source.split('-')
-            else:
-                d["source"] = source
-            if '-' in target:
-                d["target_range"] = target.split('-')
-            else:
-                d["target"] = target
-            return PortSpec(**d)
+            p = PortSpec(*args, **kw)
         else:
-            return PortSpec(spec, **kw)
+            spec = args[0]
+            if not spec:
+                p = PortSpec()
+            elif isinstance(spec, int):
+                p = PortSpec(source=spec, target=spec)
+            elif isinstance(spec, str):
+                ports, sep, protocol = spec.partition('/')
+                d = dict(protocol=protocol or 'tcp')
+                source, sep, target = ports.partition(':')
+                if not target:
+                    target = source
+                if '-' in source:
+                    d["source_range"] = source.split('-')
+                else:
+                    d["source"] = source
+                if '-' in target:
+                    d["target_range"] = target.split('-')
+                else:
+                    d["target"] = target
+                p = PortSpec(**d)
+            else:
+                p = PortSpec(spec, **kw)
+        p.validate()
+        return p
 
     @property
     def spec(self):
@@ -114,7 +118,7 @@ class PortSpec(dict):
 
         # Validate source value is in specified range
         if source_range:
-            validateutils.validate_range(source_range)
+            source_range = validateutils.validate_range(source_range)
         if source is not None:
             self[PortSpec.SOURCE] = source = validateutils.validate_portdef(source, PortSpec.SOURCE)
             if source_range:
@@ -123,7 +127,7 @@ class PortSpec(dict):
 
         # Validate target value is in specified range
         if target_range:
-            validateutils.validate_range(target_range)
+            target_range = validateutils.validate_range(target_range)
         if target is not None:
             self[PortSpec.TARGET] = target = validateutils.validate_portdef(source, PortSpec.TARGET)
             if target_range:

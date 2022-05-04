@@ -95,11 +95,11 @@ def validate_range(range):
             ValueError(_('"%s" is not a valid range.') % range))
     # validate min and max are numerics or the keyword UNBOUNDED
     min_test = max_test = False
-    if not range[0] == RANGE_UNBOUNDED:
+    if range[0] != RANGE_UNBOUNDED:
         min = validate_numeric(range[0])
     else:
         min_test = True
-    if not range[1] == RANGE_UNBOUNDED:
+    if range[1] != RANGE_UNBOUNDED:
         max = validate_numeric(range[1])
     else:
         max_test = True
@@ -109,6 +109,7 @@ def validate_range(range):
         if min > max:
             ExceptionCollector.appendException(
                 ValueError(_('"%s" is not a valid range.') % range))
+        return [min, max]
 
     return range
 
