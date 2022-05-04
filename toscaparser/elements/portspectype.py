@@ -54,11 +54,11 @@ class PortSpec(dict):
             if not target:
                 target = source
             if '-' in source:
-                d['source_range'] = source
+                d["source_range"] = source.split('-')
             else:
                 d["source"] = source
             if '-' in target:
-                d['target_range'] = target
+                d["target_range"] = target.split('-')
             else:
                 d["target"] = target
             return PortSpec(**d)
@@ -111,17 +111,21 @@ class PortSpec(dict):
             ExceptionCollector.appendException(
                 InvalidTypeAdditionalRequirementsError(
                     type=PortSpec.TYPE_URI))
+
         # Validate source value is in specified range
+        if source_range:
+            validateutils.validate_range(source_range)
         if source is not None:
+            self[PortSpec.SOURCE] = source = validateutils.validate_portdef(source, PortSpec.SOURCE)
             if source_range:
                 validateutils.validate_value_in_range(source, source_range,
                                                   PortSpec.SOURCE)
-            else:
-                validateutils.validate_portdef(source,PortSpec.SOURCE)
+
         # Validate target value is in specified range
+        if target_range:
+            validateutils.validate_range(target_range)
         if target is not None:
+            self[PortSpec.TARGET] = target = validateutils.validate_portdef(source, PortSpec.TARGET)
             if target_range:
                 validateutils.validate_value_in_range(target, target_range,
                                                   PortSpec.TARGET)
-            else:
-                validateutils.validate_portdef( target, PortSpec.TARGET)
