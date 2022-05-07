@@ -23,9 +23,9 @@ class RelationshipTemplate(EntityTemplate):
     '''Relationship template.'''
 
     SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
-                INTERFACES, TYPE, DEFAULT_FOR, DEPENDENCIES) = \
+                INTERFACES, TYPE, DEFAULT_FOR, DEPENDENCIES, DIRECTIVES) = \
                ('derived_from', 'properties', 'requirements', 'interfaces',
-                 'type', 'default_for', 'dependencies')
+                 'type', 'default_for', 'dependencies', 'directives')
     ANY = 'ANY'
 
     def __init__(self, relationship_template, name, custom_def=None,
