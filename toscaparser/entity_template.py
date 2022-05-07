@@ -54,7 +54,7 @@ class EntityTemplate(object):
         self._validate_field(self.entity_tpl)
         type = self.entity_tpl.get('type')
         UnsupportedType.validate_type(type)
-        if '__typename' not in template:
+        if '__typename' not in template and "_original_properties" not in template:
             self._validate_fields(template)
         if entity_name == 'node_type':
             self.type_definition = NodeType(type, custom_def) \
