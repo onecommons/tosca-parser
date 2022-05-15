@@ -110,16 +110,19 @@ class StatefulEntityType(EntityType):
     def interfaces(self):
         cls = getattr(self.defs, "mapCtor", self.defs.__class__)
         interfaces = cls()
-        defaults = cls()
         for p in reversed(list(self.ancestors())):
             p_interfaces = p.defs and p.defs.get(self.INTERFACES)
             if p_interfaces:
-                interfaces.update(p_interfaces)
-                if interfaces.get("defaults"):
-                    # merge defaults
-                    defaults.update(interfaces['defaults'])
-        if defaults:
-            interfaces['defaults'] = defaults
+                for iname, idef in p_interfaces.items():
+                    if iname not in interfaces:
+                        interfaces[iname] = cls(idef)
+                    elif idef:
+                        merged = interfaces[iname]
+                        for k, v in idef.items():
+                            if k not in merged or not isinstance(v, dict) or not isinstance(merged[k], dict):
+                                merged[k] = v
+                            else:
+                                merged[k].update(v)
         return interfaces
 
     def get_interface_requirements(self, entity_tpl=None):

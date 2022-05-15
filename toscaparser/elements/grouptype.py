@@ -68,10 +68,6 @@ class GroupType(StatefulEntityType):
     def version(self):
         return self.group_version
 
-    @property
-    def interfaces(self):
-        return self.get_value(self.INTERFACES)
-
     def _validate_fields(self):
         if self.defs:
             for name in self.defs.keys():
