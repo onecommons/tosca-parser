@@ -110,6 +110,7 @@ class StatefulEntityType(EntityType):
     def interfaces(self):
         cls = getattr(self.defs, "mapCtor", self.defs.__class__)
         interfaces = cls()
+        # reversed so most derived is last
         for p in reversed(list(self.ancestors())):
             p_interfaces = p.defs and p.defs.get(self.INTERFACES)
             if p_interfaces:
@@ -119,10 +120,7 @@ class StatefulEntityType(EntityType):
                     elif idef:
                         merged = interfaces[iname]
                         for k, v in idef.items():
-                            if k not in merged or not isinstance(v, dict) or not isinstance(merged[k], dict):
-                                merged[k] = v
-                            else:
-                                merged[k].update(v)
+                            merged[k] = v
         return interfaces
 
     def get_interface_requirements(self, entity_tpl=None):
