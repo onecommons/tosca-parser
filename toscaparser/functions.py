@@ -158,6 +158,7 @@ class GetAttribute(Function):
                     return
 
             value_type = attr.schema['type']
+            value_schema = attr.schema
             if len(self.args) > index:
                 for elem in self.args[index:]:
                     if value_type == "list":
@@ -167,9 +168,9 @@ class GetAttribute(Function):
                                              ' "{0}". "{1}" Expected positive'
                                              ' integer argument'
                                              ).format(GET_ATTRIBUTE, elem)))
-                        value_type = attr.schema['entry_schema']['type']
+                        value_type = value_schema['entry_schema']['type']
                     elif value_type == "map":
-                        value_type = attr.schema['entry_schema']['type']
+                        value_type = value_schema['entry_schema']['type']
                     elif value_type in Schema.PROPERTY_TYPES:
                         ExceptionCollector.appendException(
                             ValueError(_('Illegal arguments for function'
@@ -178,12 +179,14 @@ class GetAttribute(Function):
                                          ).format(GET_ATTRIBUTE, elem)))
                         return
                     else:  # It is a complex type
-                        data_type = DataType(value_type)
-                        props = data_type.get_properties_def()
+                        data_type = DataType(value_type,
+                                             self.tosca_tpl.custom_defs)
+                        props = data_type.get_all_properties()
                         found = [props[elem]] if elem in props else []
                         if found:
                             prop = found[0]
                             value_type = prop.schema['type']
+                            value_schema = prop.schema
                         else:
                             ExceptionCollector.appendException(
                                 KeyError(_('Illegal arguments for function'

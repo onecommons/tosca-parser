@@ -202,6 +202,30 @@ class NodeType(StatefulEntityType):
             requirements[name] = tpl
         return list(requirements.values())
 
+    @property
+    def lifecycle_inputs(self):
+        '''Return inputs to life cycle operations if found.'''
+        inputs = []
+        interfaces = self.interfaces
+        if interfaces:
+            for name, value in interfaces.items():
+                if name == ifaces.LIFECYCLE:
+                    for x, y in value.items():
+                        if x == 'inputs':
+                            for i in y.iterkeys():
+                                inputs.append(i)
+        return inputs
+
+    @property
+    def lifecycle_operations(self):
+        '''Return available life cycle operations if found.'''
+        ops = None
+        interfaces = self.interfaces
+        if interfaces:
+            i = ifaces.OperationDef(self.type, ifaces.LIFECYCLE)
+            ops = i.lifecycle_ops
+        return ops
+
     def get_capability(self, name):
         caps = self.get_capabilities_def()
         if caps and name in caps:

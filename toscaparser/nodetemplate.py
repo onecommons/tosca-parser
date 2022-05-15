@@ -419,7 +419,6 @@ class NodeTemplate(EntityTemplate):
                 ExceptionCollector.appendException(
                     ValidationError(message=msg))
 
-
     def _validate_nodefilter_filter(self, node_filter, cap_label=''):
         valid = True
         if cap_label:
