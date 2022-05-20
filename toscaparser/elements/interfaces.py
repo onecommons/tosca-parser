@@ -102,8 +102,14 @@ class OperationDef(StatefulEntityType):
         self.name = name
         self.value = value
         self.implementation = None
+        if inputs:
+            cls = getattr(inputs, "mapCtor", inputs.__class__)
+            inputs = cls(inputs)
         self.inputs = inputs
         self._source = None
+        if outputs:
+            cls = getattr(outputs, "mapCtor", outputs.__class__)
+            outputs = cls(outputs)
         self.outputs = outputs
         self.entry_state = None
         self.defs = {}

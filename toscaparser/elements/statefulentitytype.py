@@ -116,6 +116,7 @@ class StatefulEntityType(EntityType):
             if p_interfaces:
                 for iname, idef in p_interfaces.items():
                     if iname not in interfaces:
+                        cls = getattr(idef, "mapCtor", idef.__class__)
                         interfaces[iname] = cls(idef)
                     elif idef:
                         merged = interfaces[iname]

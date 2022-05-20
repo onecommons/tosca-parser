@@ -192,7 +192,7 @@ class Constraint(object):
         if(not isinstance(constraint, collections.abc.Mapping) or
            len(constraint) != 1):
             ExceptionCollector.appendException(
-                InvalidSchemaError(message=_("Invalid constraint schema: %s") % constraint)
+                InvalidSchemaError(message=_("Invalid constraint: %s (must be a map with one key)") % constraint)
             )
         else:
             for type in constraint.keys():

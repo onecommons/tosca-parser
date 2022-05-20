@@ -398,13 +398,14 @@ class EntityTemplate(object):
         tpl_interfaces = type_definition.get_value(EntityTemplate.INTERFACES, entity_tpl)
         _source = None
         if type_definition.interfaces:
-            interfacesDefs = type_definition.interfaces.copy()
+            interfacesDefs = type_definition.interfaces
             _source = type_definition._source
             if tpl_interfaces:
                 # merge the interfaces defined on the type with the template's interface definitions
                 for iName, defs in tpl_interfaces.items():
                     # for each interface, see if base defines it too
-                    defs = defs.copy()
+                    cls = getattr(defs, "mapCtor", defs.__class__)
+                    defs = cls(defs)
                     inputs = defs.get('inputs', {})
                     if 'operations' in defs:
                         defs = defs.get('operations', {})
@@ -499,8 +500,8 @@ class EntityTemplate(object):
                                       node_template=template,
                                       name=op,
                                       value=op_def,
-                                      inputs=inputs.copy() if inputs else None,
-                                      outputs=outputs.copy() if outputs else None)
+                                      inputs=inputs,
+                                      outputs=outputs)
                 interfaces.append(iface)
 
             # add a "default" operation that has the shared inputs and implementation
