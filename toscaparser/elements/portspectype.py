@@ -75,11 +75,11 @@ class PortSpec(dict):
         Translate a `tosca:PortSpec` into a string like "source-range:target-range/udp"
         or "source:target" or just "source" if target is missing or the same.
         """
-        if "source_range" in self:
+        if self.get("source_range") is not None:
             source = "{:d}-{:d}".format(*self["source_range"])
         else:
             source = "{}".format(self.get("source", ""))
-        if "target_range" in self:
+        if self.get("target_range") is not None:
             target = "{:d}-{:d}".format(*self["target_range"])
         else:
             target = "{}".format(self.get("target", ""))
