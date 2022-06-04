@@ -157,6 +157,7 @@ class ToscaDefTest(TestCase):
         self.assertEqual(
             [{'host': {'capability': 'tosca.capabilities.Compute',
                        'node': 'tosca.nodes.Compute',
+                       'occurrences': [0, 'UNBOUNDED'],
                        'relationship': 'tosca.relationships.HostedOn'}},
              {'dependency': {'capability': 'tosca.capabilities.Node',
                              'node': 'tosca.nodes.Root',

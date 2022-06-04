@@ -26,6 +26,7 @@ from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.substitution_mappings import SubstitutionMappings
 from toscaparser.utils.gettextutils import _
 from toscaparser.common.exception import ExceptionCollector
+from toscaparser.common.exception import ValidationError
 
 
 # Topology template key names
@@ -412,7 +413,7 @@ class TopologyTemplate(object):
             ExceptionCollector.near = f' in output "{output.name}"'
             functions.get_function(self, self.outputs, output.value)
 
-    def validate_relationships(self):
+    def validate_relationships(self, strict):
         if not hasattr(self, 'nodetemplates'):
             return
         for node_template in self.nodetemplates:
@@ -427,3 +428,8 @@ class TopologyTemplate(object):
                             functions.get_function(self,
                                                    rel_tpl,
                                                    value)
+            if strict:
+                for name in node_template.missing_requirements:
+                    msg = f'Required requirement "{name}" not defined'
+                    ExceptionCollector.appendException(
+                        ValidationError(message = msg))

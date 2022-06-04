@@ -185,10 +185,12 @@ class NodeType(StatefulEntityType):
         return self.get_value(self.REQUIREMENTS, None, True)
 
     def get_all_requirements(self):
+        # requirements with any shorthand syntax normalized
         reqs_tpl = self.requirements
         if reqs_tpl is None:
             return []
         requirements = {}
+        # merge requirements with the same name
         for tpl in reqs_tpl:
             name, value = list(tpl.items())[0]
             # note that first match returned by get_value() will be the most derived one
@@ -196,9 +198,16 @@ class NodeType(StatefulEntityType):
                 # update value with current (more derived) value
                 current = requirements[name][name]
                 if isinstance(current, str):
+                    # diverges from 3.7.3.2.1 Simple grammar (Capability Type only)
                     tpl = {name: dict(value, node = current)}
                 else:
                     tpl = {name: dict(value, **current)}
+                    if value.get('metadata') and current.get('metadata'):
+                        # merge metadata
+                        tpl[name]['metadata'] = dict(value['metadata'], **current['metadata'])
+            elif isinstance(value, str):
+                # diverges from 3.7.3.2.1 Simple grammar (Capability Type only)
+                tpl = {name : dict(node = value)}
             requirements[name] = tpl
         return list(requirements.values())
 
@@ -273,6 +282,9 @@ class NodeType(StatefulEntityType):
 
     @property
     def requirement_definitions(self):
+        """
+        Returns a dictionary of requirements with any shorthand syntax normalized and the relationship type added.
+        """
         if self._requirement_definitions is None:
             self._requirement_definitions = {}
             reqs = self.get_all_requirements()
@@ -280,26 +292,21 @@ class NodeType(StatefulEntityType):
                 return self._requirement_definitions
             for req_dict in reqs:
                 name, reqDef = list(req_dict.items())[0]
+                # get_all_requirements() will have normalized with into a dictionary already
+                # normalize 'relationship' key:
                 # 3.7.3 Requirement definition p.122
-                # if present, this will be either the name of the relationship type
+                # if "relationship" is present, this will be either the name of the relationship type
                 # or a dictionary containing "type"
-                if isinstance(reqDef, dict):
-                    # normalize 'relationship' key:
-                    relDef = reqDef.get('relationship')
-                    if not relDef:
-                        relDef = dict(type = "tosca.relationships.Root")
-                    elif isinstance(relDef, dict):
-                        relDef = relDef.copy()
-                    else:
-                        relDef = dict(type = relDef)
-                    reqDef = reqDef.copy()
-                    reqDef['relationship'] = relDef
-                    self._requirement_definitions[name] = reqDef
+                relDef = reqDef.get('relationship')
+                if not relDef:
+                    relDef = dict(type = "tosca.relationships.Root")
+                elif isinstance(relDef, dict):
+                    relDef = relDef.copy()
                 else:
-                    # 3.7.3.2.1 Simple grammar (Capability Type only)
-                    defaultDef = dict(relationship=dict(type = "tosca.relationships.Root"))
-                    defaultDef['capability'] = reqDef
-                    self._requirement_definitions[name] =  defaultDef
+                    relDef = dict(type = relDef)
+                reqDef = reqDef.copy()
+                reqDef['relationship'] = relDef
+                self._requirement_definitions[name] = reqDef
 
         return self._requirement_definitions
 

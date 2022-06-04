@@ -53,6 +53,7 @@ YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 
 class ToscaTemplate(object):
     exttools = ExtTools()
+    strict = False
 
     MAIN_TEMPLATE_VERSIONS = ['tosca_simple_yaml_1_0',
                               'tosca_simple_yaml_1_2',
@@ -110,9 +111,9 @@ class ToscaTemplate(object):
                 self.policies = self._policies()
                 self._handle_nested_tosca_templates_with_topology()
                 # now that all the node templates have been loaded we can validated the relationships between them
-                self.topology_template.validate_relationships()
+                self.topology_template.validate_relationships(self.strict)
                 for nested in self.nested_topologies.values():
-                    nested.validate_relationships()
+                    nested.validate_relationships(self.strict)
 
 
         ExceptionCollector.stop()

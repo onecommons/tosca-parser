@@ -49,11 +49,12 @@ class NodeTemplate(EntityTemplate):
         self._artifacts = None
         self._instance_keys = None
         self._all_requirements = None
+        self._missing_requirements = None
 
     @property
     def all_requirements(self):
         """
-        returns [(RelationshipTemplate, original_tpl, requires_tpl_dict)]
+        returns [{name: requires_tpl_dict}]
         """
         if self._all_requirements is None:
             self._all_requirements = []
@@ -80,6 +81,7 @@ class NodeTemplate(EntityTemplate):
         """
         if self._relationships is None:
             self._relationships = []
+            self._missing_requirements = {}
             if not self.type_definition:
                 return self._relationships
             # self.requirements is from the yaml
@@ -99,11 +101,20 @@ class NodeTemplate(EntityTemplate):
                 if name not in names:
                     node = req_on_type.get('node')
                     is_template = node and self.find_node_related_template(node)
-                    if is_template: # XXX or occurrences > 0: mandatory, try to infer
+                    if is_template:
                         reqDef, relTpl = self._relationship_from_req(name, req_on_type)
                         if relTpl:
                             self._relationships.append( (relTpl, {name: reqDef}, reqDef) )
+                    elif "occurrences" not in req_on_type or req_on_type["occurrences"][0]:
+                        # minimum occurrences is not 0
+                        self._missing_requirements[name] = req_on_type
         return self._relationships
+
+    @property
+    def missing_requirements(self):
+        if self._missing_requirements is None:
+            self.relationships # creates self._missing_requirements
+        return self._missing_requirements
 
     def find_node_related_template(self, name):
         node = self.topology_template.node_templates.get(name)
