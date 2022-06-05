@@ -68,27 +68,31 @@ class Property(object):
         return self.schema.entry_schema
 
     def validate(self):
+        self.value = self._validate(self.value)
+
+    def _validate(self, value):
         '''Validate if not a reference property.'''
-        if not functions.is_function(self.value):
+        if not functions.is_function(value):
             if self.type == Schema.STRING:
-                self.value = str(self.value)
+                value = str(value)
             metadata = self.schema.metadata
             if metadata and metadata.get('default_unit'):
                 try:
-                    float(self.value)
+                    float(value)
                     # no unit specified, append the default unit
                     if get_scalarunit_class(self.type)._check_unit_in_scalar_standard_units(metadata['default_unit']):
-                        self.value = str(self.value) + metadata['default_unit']
+                        value = str(value) + metadata['default_unit']
                 except:
                     pass
-            self.value = DataEntity.validate_datatype(self.type, self.value,
+            value = DataEntity.validate_datatype(self.type, value,
                                                       self.entry_schema,
                                                       self.custom_def,
                                                       self.name)
-            self._validate_constraints()
+            self._validate_constraints(value)
+        return value
 
-    def _validate_constraints(self):
+    def _validate_constraints(self, value):
         if self.constraints:
             for constraint in self.constraints:
                 if constraint:
-                    constraint.validate(self.value)
+                    constraint.validate(value)

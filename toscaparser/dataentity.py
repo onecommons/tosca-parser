@@ -22,6 +22,7 @@ from toscaparser.elements.scalarunit import ScalarUnit_Size
 from toscaparser.elements.scalarunit import ScalarUnit_Time
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils import validateutils
+import collections.abc
 
 
 class ValueDataType(object):
@@ -78,7 +79,7 @@ class DataEntity(object):
                 constraint.validate(self.value)
         # If the datatype has 'properties' definition:
         else:
-            if not isinstance(self.value, dict):
+            if not isinstance(self.value, collections.abc.Mapping):
                 ExceptionCollector.appendException(
                     TypeMismatchError(what=self.value, type=self.datatype.type)
                 )
