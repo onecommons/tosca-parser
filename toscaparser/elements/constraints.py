@@ -506,16 +506,18 @@ class InRange(Constraint):
         self.max = self.constraint_value[1]
 
     def _is_valid(self, value):
+        if isinstance(value, collections.abc.MutableSequence):
+            # its a range
+            min = value[0]
+            max = value[1]
+        else:
+            min = max = value
         if not isinstance(self.min, six.string_types):
-            if value < self.min:
+            if min < self.min:
                 return False
-        elif self.min != self.UNBOUNDED:
-            return False
         if not isinstance(self.max, six.string_types):
-            if value > self.max:
+            if max > self.max:
                 return False
-        elif self.max != self.UNBOUNDED:
-            return False
         return True
 
     def _err_msg(self, value):
