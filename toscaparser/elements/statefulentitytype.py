@@ -12,6 +12,7 @@
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import MissingTypeError
+from toscaparser.common.exception import TypeMismatchError
 from toscaparser.elements.entity_type import EntityType
 from toscaparser.elements.property_definition import PropertyDef
 from toscaparser.unsupportedtype import UnsupportedType
@@ -36,6 +37,13 @@ class StatefulEntityType(EntityType):
 
     def __init__(self, entitytype, prefix, custom_def=None):
         entire_entitytype = entitytype
+        if not isinstance(entitytype, str):
+            ExceptionCollector.appendException(TypeMismatchError(
+                                               what=entitytype,
+                                               type="string"))
+            self.defs = None
+            self.type = str(entitytype)
+            return
         if UnsupportedType.validate_type(entire_entitytype):
             self.defs = None
         else:
