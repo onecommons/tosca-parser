@@ -18,8 +18,6 @@ from toscaparser.common.exception import ValidationError
 from toscaparser.common.exception import TypeMismatchError
 from toscaparser.elements.grouptype import GroupType
 from toscaparser.elements.interfaces import OperationDef, INTERFACE_DEF_RESERVED_WORDS
-from toscaparser.elements.interfaces import CONFIGURE, CONFIGURE_SHORTNAME
-from toscaparser.elements.interfaces import LIFECYCLE,  LIFECYCLE_SHORTNAME
 from toscaparser.elements.nodetype import NodeType
 from toscaparser.elements.policytype import PolicyType
 from toscaparser.elements.relationshiptype import RelationshipType
@@ -84,14 +82,19 @@ class EntityTemplate(object):
             msg = "no type found %s for %s"  % (entity_name, template)
             ExceptionCollector.appendException(ValidationError(message=msg))
             return
-        metadata = self.type_definition.get_definition('metadata')
+
+        metadata = self.entity_tpl.get('metadata')
         if metadata and 'additionalProperties' in metadata:
             self.additionalProperties = metadata['additionalProperties']
+        else:
+            metadata = self.type_definition.get_definition('metadata')
+            if metadata and 'additionalProperties' in metadata:
+                self.additionalProperties = metadata['additionalProperties']
 
         self._properties_tpl = self._validate_properties()
         for prop in self.get_properties_objects():
             prop.validate()
-        self._validate_interfaces()
+        self.type_definition._validate_interfaces(self)
 
     @property
     def type(self):
@@ -515,59 +518,6 @@ class EntityTemplate(object):
                                       inputs=inputs, outputs=outputs)
                 interfaces.append(iface)
         return interfaces
-
-    def _validate_interfaces(self):
-        ifaces = self.type_definition.get_value(self.INTERFACES,
-                                                self.entity_tpl)
-        # XXX this doesn't validate operations if "operations" keyword is used
-        if ifaces:
-            for name, value in ifaces.items():
-                if name == 'Mock':
-                    self._common_validate_field(
-                        value, INTERFACE_DEF_RESERVED_WORDS,
-                        'interfaces')
-                elif name == 'defaults':
-                    self._common_validate_field(
-                      value,
-                      ['implementation', 'inputs', 'outputs'],
-                      'interfaces')
-                elif name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
-                    self._common_validate_field(
-                        value, INTERFACE_DEF_RESERVED_WORDS
-                        + OperationDef.interfaces_node_lifecycle_operations,
-                        'interfaces')
-                elif name in (CONFIGURE, CONFIGURE_SHORTNAME):
-                    self._common_validate_field(
-                        value, INTERFACE_DEF_RESERVED_WORDS
-                        + OperationDef.interfaces_relationship_configure_operations,
-                        'interfaces')
-                elif (name in self.type_definition.interfaces
-                      or name in self.type_definition.TOSCA_DEF):
-                      self._common_validate_field(
-                          value,
-                          INTERFACE_DEF_RESERVED_WORDS + self._collect_custom_iface_operations(name),
-                          'interfaces')
-                else:
-                    ExceptionCollector.appendException(
-                        UnknownFieldError(
-                            what='"interfaces" of template "%s"' %
-                            self.name, field=name))
-
-    def _collect_custom_iface_operations(self, name):
-        allowed_operations = []
-        nodetype_iface_def = self.type_definition.interfaces.get(
-                              name, self.type_definition.TOSCA_DEF.get(name))
-        allowed_operations.extend(nodetype_iface_def.keys())
-        if 'type' in nodetype_iface_def:
-            iface_type = nodetype_iface_def['type']
-            if iface_type in self.type_definition.custom_def:
-                iface_type_def = self.type_definition.custom_def[iface_type]
-            else:
-                iface_type_def = self.type_definition.TOSCA_DEF[iface_type]
-            allowed_operations.extend(iface_type_def.keys())
-        allowed_operations = [op for op in allowed_operations if
-                              op not in INTERFACE_DEF_RESERVED_WORDS]
-        return allowed_operations
 
     def get_capability(self, name):
         """Provide named capability
