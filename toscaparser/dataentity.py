@@ -160,7 +160,7 @@ class DataEntity(object):
         """
         from toscaparser.functions import is_function
 
-        if is_function(value):
+        if value is None or is_function(value):
             return value
         if type == Schema.ANY:
             return value

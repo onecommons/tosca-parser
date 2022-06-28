@@ -299,8 +299,8 @@ class EntityTemplate(object):
         required_props = []
         for p in entitytype.get_properties_def_objects():
             allowed_props.append(p.name)
-            # If property is 'required' and has no 'default' value then record
-            if p.required and p.default is None:
+            # If property is 'required' and no default was declared
+            if p.required and "default" not in p.schema:
                 required_props.append(p.name)
         # validate all required properties have values
         if properties:
@@ -380,7 +380,7 @@ class EntityTemplate(object):
                           dict(type='any'), self.custom_def)
                 props.append(prop)
         for p in props_def.values():
-            if p.default is not None and p.name not in properties:
+            if "default" in p.schema and p.name not in properties:
                 prop = Property(p.name, p.default, p.schema, self.custom_def)
                 props.append(prop)
         return props

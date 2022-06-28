@@ -73,7 +73,7 @@ class Property(object):
     def _validate(self, value):
         '''Validate if not a reference property.'''
         if not functions.is_function(value):
-            if self.type == Schema.STRING:
+            if self.type == Schema.STRING and value is not None:
                 value = str(value)
             metadata = self.schema.metadata
             if metadata and metadata.get('default_unit'):
