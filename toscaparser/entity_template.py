@@ -230,6 +230,7 @@ class EntityTemplate(object):
         if not isinstance(keys, list):
             ExceptionCollector.appendException(
                 ValidationError(message=msg))
+            return
         for key in keys:
             if not isinstance(key, str):
                 ExceptionCollector.appendException(
