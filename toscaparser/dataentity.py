@@ -97,14 +97,15 @@ class DataEntity(object):
                         required_props.append(name)
 
             # check allowed field
-            for value_key in list(self.value.keys()):
-                if value_key not in allowed_props:
-                    ExceptionCollector.appendException(
-                        UnknownFieldError(
-                            what=(_('Data value of type "%s"') % self.datatype.type),
-                            field=value_key,
+            if not self.datatype.defs.get("metadata", {}).get('additionalProperties'):
+                for value_key in list(self.value.keys()):
+                    if value_key not in allowed_props:
+                        ExceptionCollector.appendException(
+                            UnknownFieldError(
+                                what=(_('Data value of type "%s"') % self.datatype.type),
+                                field=value_key,
+                            )
                         )
-                    )
 
             # check default field
             for def_key, def_value in list(default_props.items()):
