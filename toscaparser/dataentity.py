@@ -128,7 +128,7 @@ class DataEntity(object):
             # check every field
             for name, value in list(self.value.items()):
                 schema_name = self._find_schema(name)
-                if not schema_name:
+                if not schema_name or value is None:
                     continue
                 prop_schema = Schema(name, schema_name)
                 # check if field value meets type defined
