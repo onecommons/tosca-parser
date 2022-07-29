@@ -41,7 +41,7 @@ class EntityTemplate(object):
     # Special key names, not overridden by subclasses
     SPECIAL_SECTIONS = (METADATA, NAME, TITLE, DESCRIPTION) = ('metadata', 'name', 'title', 'description')
 
-    additionalProperties = True
+    additionalProperties = False
     _source = None
     _properties_tpl = None
 
