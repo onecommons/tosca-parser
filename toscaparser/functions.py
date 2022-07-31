@@ -478,11 +478,13 @@ class GetProperty(Function):
         props = node_tpl.get_properties()
         found = [props[property_name]] if property_name in props else []
         if len(found) == 0:
-            ExceptionCollector.appendException(
-                KeyError(_('Property "%(prop)s" was not found in node '
-                           'template "%(ntpl)s".') %
-                         {'prop': property_name,
-                          'ntpl': node_tpl.name}))
+            if property_name not in node_tpl.type_definition.get_properties_def():
+                # referencing a property that isn't defined for the template
+                ExceptionCollector.appendException(
+                    KeyError(_('get_property function referencing property "%(prop)s" not found in node '
+                              'template "%(ntpl)s".') %
+                            {'prop': property_name,
+                              'ntpl': node_tpl.name}))
             return None
         return found[0]
 
@@ -650,11 +652,15 @@ class GetProperty(Function):
                             property_value,
                             elem)
         else:
-            property_value = self._find_property(self.args[1]).value
+            property = self._find_property(self.args[1])
+            if property:
+                property_value = property.value
+            else:
+                return None
         if isinstance(property_value, Function):
             return property_value.result()
         else:
-          return property_value
+            return property_value
 
     @property
     def node_template_name(self):
