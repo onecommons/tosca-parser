@@ -122,7 +122,7 @@ class EntityType(object):
                 for p in p.ancestors(seen):
                     yield p
 
-    def get_value(self, ndtype, defs=None, parent=None, addPath=False):
+    def get_value(self, ndtype, defs=None, parent=None, addPath=False, merge=False):
         '''
         If set, `defs` should be from the template otherwise uses defs from this type
         `parent` merges in defs from this type and ancestors
@@ -147,16 +147,24 @@ class EntityType(object):
                     parent_value = p.defs[ndtype]
                     if value:
                         if isinstance(value, dict):
+                            # add items if key is missing
                             assert isinstance(parent_value, dict), ndtype
                             for k, v in parent_value.items():
                                 if k not in value:
                                     value[k] = v
                                     if addPath and p._source:
-                                      for item in v.values():
-                                          if isinstance(item, dict):
-                                              item['_source'] = p._source
+                                        for item in v.values():
+                                            if isinstance(item, dict):
+                                                item['_source'] = p._source
+                                elif merge and isinstance(v, dict) and isinstance(value[k], dict):
+                                    # merge value with parent and merge "metadata" keys if present
+                                    metadata = "metadata" in value[k]
+                                    value[k] = dict(v, **value[k])
+                                    if metadata and "metadata" in v:
+                                        value[k]["metadata"] = dict(v["metadata"], **value[k]["metadata"])
 
                         if isinstance(value, list):
+                            # append parent items if unique to list
                             assert isinstance(parent_value, list), ndtype
                             for p_value in parent_value:
                                 if p_value not in value:
@@ -170,27 +178,9 @@ class EntityType(object):
         return value
 
     def get_definition(self, ndtype):
-        value = None
-        if not hasattr(self, 'defs'):
-            defs = None
-            ExceptionCollector.appendException(
-                ValidationError(message="defs is missing"))
-            return value
-        else:
-            defs = self.defs
-        if defs is not None and ndtype in defs:
-            value = defs[ndtype]
-        for p in self.ancestors():
-            if p.defs is not None and ndtype in p.defs:
-                inherited = p.defs[ndtype]
-                if inherited:
-                    inherited = dict(inherited)
-                    if not value:
-                        value = inherited
-                    else:
-                        inherited.update(value)
-                        value.update(inherited)
-        return value
+        # retrieves property and attribute definitions
+        # XXX validate that the derived type is compatible with the base type
+        return self.get_value(ndtype, parent=True, merge=True)
 
 def update_definitions(exttools, version, loader = toscaparser.utils.yamlparser.load_yaml):
     extension_defs_file = exttools.get_defs_file(version)

@@ -95,7 +95,7 @@ class Schema(collections.abc.Mapping):
 
         self.schema = schema_dict
         self._len = None
-        self.constraints_list = []
+        self.constraints_list = None
 
     @property
     def required(self):
@@ -123,13 +123,15 @@ class Schema(collections.abc.Mapping):
 
     @property
     def constraints(self):
-        if not self.constraints_list:
+        if self.constraints_list is None:
             constraint_schemata = self.schema.get(self.CONSTRAINTS)
             if constraint_schemata:
                 self.constraints_list = [
                     Constraint(self.name, self.type, cschema)
                     for cschema in constraint_schemata
                 ]
+            else:
+                self.constraints_list = []
         return self.constraints_list
 
     @property
