@@ -378,7 +378,7 @@ class EntityTemplate(object):
                 props.append(prop)
             elif self.additionalProperties:
                 prop = Property(name, value,
-                          dict(type='any'), self.custom_def)
+                                dict(type='any', required=False), self.custom_def)
                 props.append(prop)
         for p in props_def.values():
             if "default" in p.schema and p.name not in properties:
