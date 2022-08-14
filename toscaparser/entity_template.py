@@ -32,10 +32,10 @@ class EntityTemplate(object):
 
     SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
                 INTERFACES, CAPABILITIES, TYPE, DESCRIPTION, DIRECTIVES, INSTANCE_KEYS,
-                ATTRIBUTES, ARTIFACTS, NODE_FILTER, COPY, DEPENDENCIES) = \
+                ATTRIBUTES, ARTIFACTS, NODE_FILTER, COPY, DEPENDENCIES, IMPORTED) = \
                ('derived_from', 'properties', 'requirements', 'interfaces',
                 'capabilities', 'type', 'description', 'directives', "instance_keys",
-                'attributes', 'artifacts', 'node_filter', 'copy',  'dependencies')
+                'attributes', 'artifacts', 'node_filter', 'copy',  'dependencies', 'imported')
     REQUIREMENTS_SECTION = NodeType.REQUIREMENTS_SECTION
 
     # Special key names, not overridden by subclasses
