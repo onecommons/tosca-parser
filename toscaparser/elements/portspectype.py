@@ -123,13 +123,13 @@ class PortSpec(dict):
             self[PortSpec.SOURCE] = source = validateutils.validate_portdef(source, PortSpec.SOURCE)
             if source_range:
                 validateutils.validate_value_in_range(source, source_range,
-                                                  PortSpec.SOURCE)
+                                                      PortSpec.SOURCE)
 
         # Validate target value is in specified range
         if target_range:
             target_range = validateutils.validate_range(target_range)
         if target is not None:
-            self[PortSpec.TARGET] = target = validateutils.validate_portdef(source, PortSpec.TARGET)
+            self[PortSpec.TARGET] = target = validateutils.validate_portdef(target, PortSpec.TARGET)
             if target_range:
                 validateutils.validate_value_in_range(target, target_range,
-                                                  PortSpec.TARGET)
+                                                      PortSpec.TARGET)
