@@ -41,7 +41,7 @@ class NodeType(StatefulEntityType):
 
     def parent_types(self):
         parents = self.entity_value(self.defs, 'derived_from')
-        if isinstance(parents, list): # multiple inheritance
+        if isinstance(parents, list):  # multiple inheritance
             for pnode in parents:
                 yield NodeType(pnode, self.custom_def)
         else:
@@ -224,16 +224,6 @@ class NodeType(StatefulEntityType):
                             for i in y.iterkeys():
                                 inputs.append(i)
         return inputs
-
-    @property
-    def lifecycle_operations(self):
-        '''Return available life cycle operations if found.'''
-        ops = None
-        interfaces = self.interfaces
-        if interfaces:
-            i = ifaces.OperationDef(self.type, ifaces.LIFECYCLE)
-            ops = i.lifecycle_ops
-        return ops
 
     def get_capability(self, name):
         caps = self.get_capabilities_def()

@@ -17,6 +17,11 @@ from toscaparser.common.exception import UnknownFieldError, ValidationError
 from toscaparser.elements.entity_type import EntityType
 from toscaparser.elements.property_definition import PropertyDef
 from toscaparser.unsupportedtype import UnsupportedType
+from toscaparser.elements.interfaces import INTERFACE_DEF_RESERVED_WORDS
+from toscaparser.elements.interfaces import CONFIGURE, CONFIGURE_SHORTNAME
+from toscaparser.elements.interfaces import LIFECYCLE,  LIFECYCLE_SHORTNAME
+from toscaparser.elements.interfaces import INSTALL,  INSTALL_SHORTNAME
+from toscaparser.elements.interfaces import merge_interfacedefs
 
 
 class StatefulEntityType(EntityType):
@@ -124,14 +129,7 @@ class StatefulEntityType(EntityType):
         for p in reversed(list(self.ancestors())):
             p_interfaces = p.defs and p.defs.get(self.INTERFACES)
             if p_interfaces:
-                for iname, idef in p_interfaces.items():
-                    if iname not in interfaces:
-                        cls = getattr(idef, "mapCtor", idef.__class__)
-                        interfaces[iname] = cls(idef)
-                    elif idef:
-                        merged = interfaces[iname]
-                        for k, v in idef.items():
-                            merged[k] = v
+                interfaces = merge_interfacedefs(interfaces, p_interfaces, p._source)
         return interfaces
 
     def get_interface_requirements(self, entity_tpl=None):
@@ -148,10 +146,6 @@ class StatefulEntityType(EntityType):
         return relationships
 
     def _validate_interfaces(self, entity_template=None):
-        from toscaparser.elements.interfaces import OperationDef, INTERFACE_DEF_RESERVED_WORDS
-        from toscaparser.elements.interfaces import CONFIGURE, CONFIGURE_SHORTNAME
-        from toscaparser.elements.interfaces import LIFECYCLE,  LIFECYCLE_SHORTNAME
-
         if entity_template:
             error_source = entity_template
             ifaces = self.get_value(self.INTERFACES, entity_template.entity_tpl)
@@ -159,9 +153,9 @@ class StatefulEntityType(EntityType):
             error_source = self
             ifaces = self.get_value(self.INTERFACES)
 
-        # XXX this doesn't validate operations if "operations" keyword is used
         if ifaces:
             for name, value in ifaces.items():
+                operation_names = None
                 if not isinstance(value, dict):
                     ExceptionCollector.appendException(TypeMismatchError(
                                                        what=value,
@@ -173,25 +167,31 @@ class StatefulEntityType(EntityType):
                         'interfaces')
                 elif name == 'defaults':
                     error_source._common_validate_field(
-                      value,
-                      ['implementation', 'inputs', 'outputs'],
-                      'interfaces')
+                        value,
+                        ['implementation', 'inputs', 'outputs'],
+                        'interfaces')
                 elif name in (LIFECYCLE, LIFECYCLE_SHORTNAME):
+                    operation_names = self.interfaces_node_lifecycle_operations
                     error_source._common_validate_field(
-                        value, INTERFACE_DEF_RESERVED_WORDS
-                        + OperationDef.interfaces_node_lifecycle_operations,
+                        value, INTERFACE_DEF_RESERVED_WORDS + operation_names,
                         'interfaces')
                 elif name in (CONFIGURE, CONFIGURE_SHORTNAME):
+                    operation_names = self.interfaces_relationship_configure_operations
                     error_source._common_validate_field(
-                        value, INTERFACE_DEF_RESERVED_WORDS
-                        + OperationDef.interfaces_relationship_configure_operations,
+                        value, INTERFACE_DEF_RESERVED_WORDS + operation_names,
+                        'interfaces')
+                elif name == INSTALL_SHORTNAME and "type" not in value:
+                    operation_names = list(self.TOSCA_DEF[INSTALL]["operations"])
+                    error_source._common_validate_field(
+                        value, INTERFACE_DEF_RESERVED_WORDS + operation_names,
                         'interfaces')
                 elif (name in self.interfaces
                       or name in self.TOSCA_DEF):
-                      error_source._common_validate_field(
-                          value,
-                          INTERFACE_DEF_RESERVED_WORDS + self._collect_custom_iface_operations(name),
-                          'interfaces')
+                    # interface name or interface type name
+                    operation_names = self._collect_custom_iface_operations(name)
+                    error_source._common_validate_field(
+                        value, INTERFACE_DEF_RESERVED_WORDS + operation_names,
+                        'interfaces')
                 else:
                     if entity_template:
                         msg = '"interfaces" of template "%s"' % entity_template.name
@@ -201,19 +201,27 @@ class StatefulEntityType(EntityType):
                         UnknownFieldError(
                             what=msg, field=name))
 
+                if operation_names and "operations" in value:
+                    error_source._common_validate_field(value["operations"], operation_names, 'interfaces')
+
     def _collect_custom_iface_operations(self, name):
-        from toscaparser.elements.interfaces import INTERFACE_DEF_RESERVED_WORDS
         allowed_operations = []
-        nodetype_iface_def = self.interfaces.get(
-                              name, self.TOSCA_DEF.get(name))
-        allowed_operations.extend(nodetype_iface_def.keys())
+        nodetype_iface_def = self.interfaces.get(name, self.TOSCA_DEF.get(name))
+        if "operations" in nodetype_iface_def:
+            allowed_operations.extend(nodetype_iface_def["operations"].keys())
+        else:
+            allowed_operations.extend(nodetype_iface_def.keys())
         if 'type' in nodetype_iface_def:
             iface_type = nodetype_iface_def['type']
             if iface_type in self.custom_def:
                 iface_type_def = self.custom_def[iface_type]
             else:
                 iface_type_def = self.TOSCA_DEF[iface_type]
-            allowed_operations.extend(iface_type_def.keys())
+            if "operations" in iface_type_def:
+                allowed_operations.extend(iface_type_def["operations"].keys())
+            else:
+                allowed_operations.extend(iface_type_def.keys())
+
         allowed_operations = [op for op in allowed_operations if
                               op not in INTERFACE_DEF_RESERVED_WORDS]
         return allowed_operations

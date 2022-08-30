@@ -14,7 +14,7 @@ from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import ValidationError
-from toscaparser.elements.statefulentitytype import StatefulEntityType
+from toscaparser.elements.entity_type import EntityType
 
 SECTIONS = (
     LIFECYCLE,
@@ -83,12 +83,12 @@ IMPLEMENTATION_DEF_RESERVED_WORDS = (
 INLINE_ARTIFACT_DEF_RESERVED_WORDS = ("description", "file", "repository", "_source")
 
 
-class OperationDef(StatefulEntityType):
+class OperationDef:
     """TOSCA built-in interfaces type."""
 
     def __init__(
         self,
-        node_type,
+        type_definition,
         interfacename,
         node_template=None,
         name=None,
@@ -96,7 +96,7 @@ class OperationDef(StatefulEntityType):
         inputs=None,
         outputs=None,
     ):
-        self.ntype = node_type
+        self.ntype = type_definition
         self.node_template = node_template
         self.interfacename = interfacename
         self.name = name
@@ -112,7 +112,6 @@ class OperationDef(StatefulEntityType):
             outputs = cls(outputs)
         self.outputs = outputs
         self.entry_state = None
-        self.defs = {}
         interfaces = getattr(self.ntype, "interfaces", None)
         self.interfacetype = None
         if interfaces and "type" in interfaces.get(interfacename, {}):
@@ -134,22 +133,6 @@ class OperationDef(StatefulEntityType):
                 )
             )
         self.type = self.interfacetype
-        if node_type:
-            if (
-                self.node_template
-                and self.node_template.custom_def
-                and self.interfacetype in self.node_template.custom_def
-            ):
-                self.defs = self.node_template.custom_def[self.interfacetype]
-            elif self.interfacetype in self.TOSCA_DEF:
-                self.defs = self.TOSCA_DEF[self.interfacetype]
-        if not self.defs:
-            ExceptionCollector.appendException(
-                TypeError(
-                    'Interface type definition for interface "{0}" '
-                    "not found".format(self.interfacetype)
-                )
-            )
         if value:
             if isinstance(self.value, dict):
                 for i, j in self.value.items():
@@ -230,20 +213,149 @@ class OperationDef(StatefulEntityType):
                     )
                     ExceptionCollector.appendException(ValidationError(message=what))
 
-    @property
-    def lifecycle_ops(self):
-        if self.defs:
-            if self.type == LIFECYCLE:
-                return self._ops()
 
-    @property
-    def configure_ops(self):
-        if self.defs:
-            if self.type == CONFIGURE:
-                return self._ops()
+def create_interfaces(type_definition, template):
+    entity_tpl = template.entity_tpl if template else None
+    interfacesDefs = _create_interfacedefs(type_definition, entity_tpl)
+    if not interfacesDefs:
+        return []
+    return _create_operations(interfacesDefs, type_definition, template)
 
-    def _ops(self):
-        ops = []
-        for name in list(self.defs.keys()):
-            ops.append(name)
-        return ops
+
+def _create_interfacedefs(type_definition, entity_tpl=None):
+    # get a copy of the interfaces directy defined on the entity template
+    tpl_interfaces = type_definition.get_value("interfaces", entity_tpl)
+    if type_definition.interfaces:
+        interfacesDefs = type_definition.interfaces
+        if tpl_interfaces:
+            return merge_interfacedefs(interfacesDefs, tpl_interfaces, type_definition._source)
+        return interfacesDefs
+    else:
+        return tpl_interfaces
+
+
+def _merge_operations(baseDefs, operations, _source):
+    if 'operations' in baseDefs:
+        baseOps = baseDefs['operations'] or {}
+    else:
+        baseOps = {k: v for k, v in baseDefs.items() if k not in INTERFACE_DEF_RESERVED_WORDS}
+
+    for op, baseDef in baseOps.items():
+        if op in operations:
+            # op in both, merge operations
+            currentiDef = operations[op]
+            if isinstance(baseDef, dict):
+                if not isinstance(currentiDef, dict):
+                    currentiDef = dict(implementation=currentiDef)
+                if isinstance(baseDef.get('implementation'), dict) and _source:
+                    # if implementation might be an inline artifact, save the baseDir of the source
+                    baseDef['implementation']['_source'] = _source
+                operations[op] = dict(baseDef, **currentiDef)
+                if 'inputs' in baseDef and 'inputs' in currentiDef:
+                    # merge inputs
+                    operations[op]['inputs'] = dict(baseDef['inputs'], **currentiDef['inputs'])
+        else:
+            operations[op] = baseDef
+
+
+def merge_interfacedefs(base, derived, _source):
+    # merge the interfaces defined on the type with the template's interface definitions
+    for iName, defs in derived.items():
+        # for each interface, see if base defines it too
+        cls = getattr(defs, "mapCtor", defs.__class__)
+        defs = cls(defs)
+        inputs = defs.get('inputs') or cls()
+        if 'operations' in defs:
+            operations = defs['operations'] or cls()
+        else:
+            operations = defs
+
+        baseDefs = base.get(iName)
+        if baseDefs:
+            # add in base's ops and merge interface-level inputs
+            baseInputs = baseDefs.get('inputs')
+            if baseInputs:  # merge shared inputs
+                inputs = dict(baseInputs, **inputs)
+                defs['inputs'] = inputs
+
+            # set shared implementation
+            implementation = baseDefs.get('implementation')
+            if implementation and 'implementation' not in defs:
+                defs['implementation'] = implementation
+                if isinstance(implementation, dict) and _source:
+                    # if implementation might be an inline artifact, save the baseDir of the source
+                    implementation['_source'] = _source
+
+            _merge_operations(baseDefs, operations, _source)
+
+            for key in ["type", "requirements", "description"]:
+                if key in baseDefs and key not in defs:
+                    defs[key] = baseDefs[key]
+
+        # add or replace the interface with derived
+        base[iName] = defs
+
+    return base
+
+
+def _create_operations(interfacesDefs, type_definition, template):
+    interfaces = []
+    defaults = interfacesDefs.pop('defaults', {})
+    for interface_type, value in interfacesDefs.items():
+        # merge in shared:
+        # shared inputs
+        inputs = value.get('inputs')
+        defaultInputs = defaults.get('inputs')
+        if inputs and defaultInputs:  # merge shared inputs
+            inputs = dict(defaultInputs, **inputs)
+        else:
+            inputs = inputs or defaultInputs
+
+        # shared outputs
+        outputs = value.get('outputs')
+        defaultOutputs = defaults.get('outputs')
+        if outputs and defaultOutputs: # merge shared inputs
+            outputs = dict(defaultOutputs, **outputs)
+        else:
+            outputs = outputs or defaultOutputs
+
+        # shared implementation
+        implementation = value.get('implementation') or defaults.get('implementation')
+
+        # create an OperationDef for each operation
+        _source = value.pop('_source', None)
+        if 'operations' in value:
+            defs = value.get('operations') or {}
+        else:
+            defs = value
+
+        for op in list(defs):
+            op_def = defs[op]
+            if op in INTERFACE_DEF_RESERVED_WORDS:
+                continue
+            if not isinstance(op_def, dict):
+                op_def = dict(implementation=op_def or implementation)
+            elif implementation and not op_def.get('implementation'):
+                op_def['implementation'] = implementation
+            if _source:
+                op_def['_source'] = _source
+            iface = OperationDef(type_definition,
+                                 interface_type,
+                                 node_template=template,
+                                 name=op,
+                                 value=op_def,
+                                 inputs=inputs,
+                                 outputs=outputs)
+            interfaces.append(iface)
+
+        # add a "default" operation that has the shared inputs and implementation
+        if inputs or implementation:
+            iface = OperationDef(type_definition,
+                                  interface_type,
+                                  node_template=template,
+                                  name='default',
+                                  value=dict(implementation=implementation,
+                                              _source=_source),
+                                  inputs=inputs, outputs=outputs)
+            interfaces.append(iface)
+    return interfaces
