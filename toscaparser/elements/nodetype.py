@@ -187,7 +187,8 @@ class NodeType(StatefulEntityType):
     def get_all_requirements(self):
         # requirements with any shorthand syntax normalized
         reqs_tpl = self.requirements
-        if reqs_tpl is None:
+        # avoid crashing:
+        if reqs_tpl is None or self._requirement_definitions and "__invalid" in self._requirement_definitions:
             return []
         requirements = {}
         # merge requirements with the same name
@@ -248,6 +249,7 @@ class NodeType(StatefulEntityType):
                         ExceptionCollector.appendException(
                             InvalidTypeDefinition(type='Nodetype %s' % self.ntype,
                                               what='"requirements" field value must be a list'))
+                        self._requirement_definitions = dict(__invalid={})
                         continue
                     for req in reqs:
                         if not isinstance(req, dict) or not req:
@@ -256,9 +258,11 @@ class NodeType(StatefulEntityType):
                                                   what='bad value for requirement list item: "%s"' % (req) ))
                         reqvalue = list(req.values())[0]
                         if not isinstance(reqvalue, (str, dict)) or len(req) != 1:
-                            what = 'invalidate requirement "%s"' % req
+                            what = 'invalid requirement "%s"' % req
                             ExceptionCollector.appendException(
                                 InvalidTypeDefinition(type='Nodetype %s' % self.ntype, what=what))
+                            # set this to avoid future exceptions during parsing
+                            self._requirement_definitions = dict(__invalid={})
                         elif isinstance(reqvalue, dict):
                             self._validate_requirements_keys(reqvalue, 'Nodetype "%s"' % self.ntype)
 
