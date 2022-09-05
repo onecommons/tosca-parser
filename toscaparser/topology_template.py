@@ -32,10 +32,10 @@ from toscaparser.common.exception import ValidationError
 # Topology template key names
 SECTIONS = (DESCRIPTION, INPUTS, NODE_TEMPLATES,
             RELATIONSHIP_TEMPLATES, OUTPUTS, GROUPS,
-            SUBSTITUION_MAPPINGS, POLICIES, WORKFLOWS) = \
+            SUBSTITUION_MAPPINGS, POLICIES, WORKFLOWS, ROOT) = \
            ('description', 'inputs', 'node_templates',
             'relationship_templates', 'outputs', 'groups',
-            'substitution_mappings', 'policies', 'workflows')
+            'substitution_mappings', 'policies', 'workflows', 'root')
 
 log = logging.getLogger("tosca.model")
 
@@ -290,7 +290,7 @@ class TopologyTemplate(object):
         return outputs
 
     def _tpl_substitution_mappings(self):
-        substitution_mappings = self.tpl.get(SUBSTITUION_MAPPINGS) or {}
+        substitution_mappings = self.tpl.get(SUBSTITUION_MAPPINGS) or self.tpl.get(ROOT) or {}
         if not isinstance(substitution_mappings, dict):
             exception.ExceptionCollector.appendException(
                 exception.TypeMismatchError(what=SUBSTITUION_MAPPINGS,
