@@ -35,13 +35,13 @@ SECTIONS = (
 )
 
 OPERATION_DEF_RESERVED_WORDS = (
-  DESCRIPTION,
-  IMPLEMENTATION,
-  INPUTS,
-  OUTPUTS,
-  ENTRY_STATE,
-  EXIT_STATE,
-  ) = (
+    DESCRIPTION,
+    IMPLEMENTATION,
+    INPUTS,
+    OUTPUTS,
+    ENTRY_STATE,
+    EXIT_STATE,
+) = (
     "description",
     "implementation",
     "inputs",
@@ -69,6 +69,7 @@ IMPLEMENTATION_DEF_RESERVED_WORDS = (
     ENVIRONMENT,
     PRECONDITIONS,
     _SOURCE,
+    INVOKE,
 ) = (
     "primary",
     "dependencies",
@@ -78,6 +79,7 @@ IMPLEMENTATION_DEF_RESERVED_WORDS = (
     "environment",
     "preConditions",
     "_source",
+    "invoke",
 )
 
 INLINE_ARTIFACT_DEF_RESERVED_WORDS = ("description", "file", "repository", "_source")
@@ -102,6 +104,7 @@ class OperationDef:
         self.name = name
         self.value = value
         self.implementation = None
+        self.invoke = None
         if inputs:
             cls = getattr(inputs, "mapCtor", inputs.__class__)
             inputs = cls(inputs)
@@ -152,6 +155,8 @@ class OperationDef:
                             self.outputs.update(j)
                         else:
                             self.outputs = j
+                    elif i == INVOKE:
+                        self.invoke = j
                     elif i not in OPERATION_DEF_RESERVED_WORDS:
                         ExceptionCollector.appendException(
                             UnknownFieldError(what=self._msg, field=i)

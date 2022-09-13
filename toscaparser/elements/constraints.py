@@ -81,8 +81,8 @@ class Schema(collections.abc.Mapping):
     def __init__(self, name, schema_dict, datatype=None):
         self.name = name
         if not isinstance(schema_dict, collections.abc.Mapping):
-            msg = (_('Schema definition of "%(pname)s" must be a dict.')
-                   % dict(pname=name))
+            msg = (_('Schema definition of "%(pname)s" ("%(schema)s") must be a dict not "%(type)s.')
+                   % dict(pname=name, schema=schema_dict, type=type(schema_dict)))
             ExceptionCollector.appendException(InvalidSchemaError(message=msg))
 
         try:
