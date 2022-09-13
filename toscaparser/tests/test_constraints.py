@@ -47,7 +47,7 @@ class ConstraintTest(TestCase):
         schema = yamlparser.simple_parse(tpl_snippet)
         error = self.assertRaises(exception.InvalidSchemaError, Schema,
                                   'cpus', schema['cpus'])
-        self.assertEqual(_('Schema definition of "cpus" must be a dict.'),
+        self.assertEqual(_('Schema definition of "cpus" ("[{\'type\': \'integer\'}, {\'description\': \'Number of CPUs for the server.\'}]") must be a dict not a list.'),
                          str(error))
 
     def test_schema_miss_type(self):
