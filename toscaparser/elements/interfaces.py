@@ -177,7 +177,7 @@ class OperationDef:
             return 'operation "%s:%s" on type "%s"' % (
                 self.interfacename,
                 self.name,
-                self.ntype.name,
+                self.ntype.type,
             )
 
     def validate_implementation(self):
