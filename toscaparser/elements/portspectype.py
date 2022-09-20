@@ -133,3 +133,8 @@ class PortSpec(dict):
             if target_range:
                 validateutils.validate_value_in_range(target, target_range,
                                                       PortSpec.TARGET)
+
+        if self.get("protocol"):
+            from toscaparser.elements.constraints import ValidValues
+            ValidValues("protocol", "list",
+                        dict(valid_values=["udp", "tcp", "icmp"])).validate(self["protocol"])

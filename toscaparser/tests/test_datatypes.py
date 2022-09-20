@@ -109,6 +109,7 @@ class DataTypeTest(TestCase):
         value_snippet = '''
         portspec_valid:
           protocol: tcp
+          source: 80
         '''
         value = yamlparser.simple_parse(value_snippet)
         data = DataEntity('tosca.datatypes.network.PortSpec',
@@ -118,6 +119,7 @@ class DataTypeTest(TestCase):
         value_snippet = '''
         portspec_invalid:
           protocol: xyz
+          source: 80
         '''
         value = yamlparser.simple_parse(value_snippet)
         data = DataEntity('tosca.datatypes.network.PortSpec',
