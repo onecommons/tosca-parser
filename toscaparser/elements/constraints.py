@@ -54,7 +54,9 @@ class Schema(collections.abc.Mapping):
         SCALAR_UNIT_FREQUENCY,
         SCALAR_UNIT_TIME,
         VERSION,
+        PORTDEF_FULLNAME,
         PORTDEF,
+        PORTSPEC_FULLNAME,
         PORTSPEC,
         ANY,
     ) = (
@@ -71,7 +73,9 @@ class Schema(collections.abc.Mapping):
         "scalar-unit.frequency",
         "scalar-unit.time",
         "version",
+        "tosca.datatypes.network.PortDef",
         "PortDef",
+        PortSpec.TYPE_URI,
         PortSpec.SHORTNAME,
         "any",
     )

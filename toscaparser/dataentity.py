@@ -198,11 +198,11 @@ class DataEntity(object):
             if entry_schema:
                 DataEntity.validate_entry(value, entry_schema, custom_def)
             return value
-        elif type == Schema.PORTSPEC:
+        elif type in [Schema.PORTSPEC, Schema.PORTSPEC_FULLNAME]:
             ps = PortSpec.make(value)
             ps.validate()
             return ps
-        elif type == Schema.PORTDEF:
+        elif type in [Schema.PORTDEF, Schema.PORTDEF_FULLNAME]:
             return validateutils.validate_portdef(value, prop_name)
         elif not self:
             return DataEntity(type, value, custom_def).validate()
