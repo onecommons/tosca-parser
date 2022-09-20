@@ -87,7 +87,7 @@ class EntityTemplate(object):
         if metadata and 'additionalProperties' in metadata:
             self.additionalProperties = metadata['additionalProperties']
         else:
-            metadata = self.type_definition.get_definition('metadata')
+            metadata = self.type_definition.get_value('metadata', parent=True)
             if metadata and 'additionalProperties' in metadata:
                 self.additionalProperties = metadata['additionalProperties']
 
