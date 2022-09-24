@@ -239,11 +239,11 @@ def _create_interfacedefs(type_definition, entity_tpl=None):
         return tpl_interfaces
 
 
-def _merge_operations(baseDefs, operations, _source):
+def _merge_operations(baseDefs, operations, _source, cls):
     if 'operations' in baseDefs:
-        baseOps = baseDefs['operations'] or {}
+        baseOps = baseDefs['operations'] or cls()
     else:
-        baseOps = {k: v for k, v in baseDefs.items() if k not in INTERFACE_DEF_RESERVED_WORDS}
+        baseOps = cls({k: v for k, v in baseDefs.items() if k not in INTERFACE_DEF_RESERVED_WORDS})
 
     for op, baseDef in baseOps.items():
         if op in operations:
@@ -251,14 +251,15 @@ def _merge_operations(baseDefs, operations, _source):
             currentiDef = operations[op]
             if isinstance(baseDef, dict):
                 if not isinstance(currentiDef, dict):
-                    currentiDef = dict(implementation=currentiDef)
+                    currentiDef = cls(implementation=currentiDef)
                 if isinstance(baseDef.get('implementation'), dict) and _source:
                     # if implementation might be an inline artifact, save the baseDir of the source
                     baseDef['implementation']['_source'] = _source
-                operations[op] = dict(baseDef, **currentiDef)
+                cls2 = getattr(currentiDef, "mapCtor", currentiDef.__class__)
+                operations[op] = cls2(baseDef, **currentiDef)
                 if 'inputs' in baseDef and 'inputs' in currentiDef:
                     # merge inputs
-                    operations[op]['inputs'] = dict(baseDef['inputs'], **currentiDef['inputs'])
+                    operations[op]['inputs'] = cls2(baseDef['inputs'], **currentiDef['inputs'])
         else:
             operations[op] = baseDef
 
@@ -291,7 +292,7 @@ def merge_interfacedefs(base, derived, _source):
                     # if implementation might be an inline artifact, save the baseDir of the source
                     implementation['_source'] = _source
 
-            _merge_operations(baseDefs, operations, _source)
+            _merge_operations(baseDefs, operations, _source, cls)
 
             for key in ["type", "requirements", "description"]:
                 if key in baseDefs and key not in defs:
@@ -305,14 +306,16 @@ def merge_interfacedefs(base, derived, _source):
 
 def _create_operations(interfacesDefs, type_definition, template):
     interfaces = []
-    defaults = interfacesDefs.pop('defaults', {})
+    cls = getattr(interfacesDefs, "mapCtor", interfacesDefs.__class__)
+    defaults = interfacesDefs.pop('defaults', cls())
     for interface_type, value in interfacesDefs.items():
+        cls = getattr(value, "mapCtor", value.__class__)
         # merge in shared:
         # shared inputs
         inputs = value.get('inputs')
         defaultInputs = defaults.get('inputs')
         if inputs and defaultInputs:  # merge shared inputs
-            inputs = dict(defaultInputs, **inputs)
+            inputs = cls(defaultInputs, **inputs)
         else:
             inputs = inputs or defaultInputs
 
@@ -320,7 +323,7 @@ def _create_operations(interfacesDefs, type_definition, template):
         outputs = value.get('outputs')
         defaultOutputs = defaults.get('outputs')
         if outputs and defaultOutputs: # merge shared inputs
-            outputs = dict(defaultOutputs, **outputs)
+            outputs = cls(defaultOutputs, **outputs)
         else:
             outputs = outputs or defaultOutputs
 
@@ -330,7 +333,7 @@ def _create_operations(interfacesDefs, type_definition, template):
         # create an OperationDef for each operation
         _source = value.pop('_source', None)
         if 'operations' in value:
-            defs = value.get('operations') or {}
+            defs = value.get('operations') or cls()
         else:
             defs = value
 
@@ -339,7 +342,7 @@ def _create_operations(interfacesDefs, type_definition, template):
             if op in INTERFACE_DEF_RESERVED_WORDS:
                 continue
             if not isinstance(op_def, dict):
-                op_def = dict(implementation=op_def or implementation)
+                op_def = cls(implementation=op_def or implementation)
             elif implementation and not op_def.get('implementation'):
                 op_def['implementation'] = implementation
             if _source:
@@ -356,11 +359,11 @@ def _create_operations(interfacesDefs, type_definition, template):
         # add a "default" operation that has the shared inputs and implementation
         if inputs or implementation:
             iface = OperationDef(type_definition,
-                                  interface_type,
-                                  node_template=template,
-                                  name='default',
-                                  value=dict(implementation=implementation,
-                                              _source=_source),
-                                  inputs=inputs, outputs=outputs)
+                                 interface_type,
+                                 node_template=template,
+                                 name='default',
+                                 value=cls(implementation=implementation,
+                                            _source=_source),
+                                 inputs=inputs, outputs=outputs)
             interfaces.append(iface)
     return interfaces

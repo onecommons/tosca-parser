@@ -117,7 +117,7 @@ class EntityType(object):
             yield self
         for p in self.parent_types():
             if p.type not in seen:
-                seen.add( p.type )
+                seen.add(p.type)
                 yield p
                 for p in p.ancestors(seen):
                     yield p
@@ -158,10 +158,12 @@ class EntityType(object):
                                                 item['_source'] = p._source
                                 elif merge and isinstance(v, dict) and isinstance(value[k], dict):
                                     # merge value with parent and merge "metadata" keys if present
-                                    metadata = "metadata" in value[k]
-                                    value[k] = dict(v, **value[k])
+                                    value_value = value[k]
+                                    metadata = "metadata" in value_value
+                                    cls = getattr(value_value, "mapCtor", value_value.__class__)
+                                    value[k] = cls(v, **value_value)
                                     if metadata and "metadata" in v:
-                                        value[k]["metadata"] = dict(v["metadata"], **value[k]["metadata"])
+                                        value[k]["metadata"] = cls(v["metadata"], **value_value["metadata"])
 
                         if isinstance(value, list):
                             # append parent items if unique to list
@@ -182,7 +184,8 @@ class EntityType(object):
         # XXX validate that the derived type is compatible with the base type
         return self.get_value(ndtype, parent=True, merge=True)
 
-def update_definitions(exttools, version, loader = toscaparser.utils.yamlparser.load_yaml):
+
+def update_definitions(exttools, version, loader=toscaparser.utils.yamlparser.load_yaml):
     extension_defs_file = exttools.get_defs_file(version)
     nfv_def_file = loader(extension_defs_file)
     if not nfv_def_file: # loading failed
