@@ -40,8 +40,11 @@ def str_to_num(value):
 
 def validate_numeric(value):
     if not isinstance(value, numbers.Number):
-        ExceptionCollector.appendException(
-            ValueError(_('"%s" is not a numeric.') % value))
+        try:
+            value = float(value)
+        except Exception:
+            ExceptionCollector.appendException(
+                ValueError(_('"%s" is not a numeric.') % value))
     return value
 
 
@@ -53,6 +56,7 @@ def validate_integer(value):
             ExceptionCollector.appendException(
                 ValueError(_('"%s" is not an integer.') % value))
     return value
+
 
 def validate_portdef(value, prop_name="PortDef"):
     if not isinstance(value, int):
@@ -67,8 +71,11 @@ def validate_portdef(value, prop_name="PortDef"):
 
 def validate_float(value):
     if not isinstance(value, float):
-        ExceptionCollector.appendException(
-            ValueError(_('"%s" is not a float.') % value))
+        try:
+            value = float(value)
+        except Exception:
+            ExceptionCollector.appendException(
+                ValueError(_('"%s" is not a float.') % value))
     return value
 
 

@@ -139,10 +139,10 @@ class PropertyTest(TestCase):
 
     def test_float_invalid(self):
         test_property_schema = {'type': 'float'}
-        propertyInstance = Property('test_property', 12,
+        propertyInstance = Property('test_property', '2015-04',
                                     test_property_schema)
         error = self.assertRaises(ValueError, propertyInstance.validate)
-        self.assertEqual(_('"12" is not a float.'), str(error))
+        self.assertEqual(_('"2015-04" is not a float.'), str(error))
 
     def test_timestamp(self):
         test_property_schema = {'type': 'timestamp'}
