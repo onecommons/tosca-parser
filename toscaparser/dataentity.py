@@ -14,6 +14,7 @@ from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import TypeMismatchError
 from toscaparser.common.exception import UnknownFieldError
+from toscaparser.common.exception import ValidationError
 from toscaparser.elements.constraints import Schema
 from toscaparser.elements.datatype import DataType
 from toscaparser.elements.portspectype import PortSpec
@@ -108,14 +109,14 @@ class DataEntity(object):
                         )
 
             # check default field
-            for def_key, def_value in list(default_props.items()):
-                if def_key not in list(self.value.keys()):
+            for def_key, def_value in default_props.items():
+                if def_key not in self.value:
                     self.value[def_key] = def_value
 
             # check missing field
             missingprop = []
             for req_key in required_props:
-                if req_key not in list(self.value.keys()):
+                if req_key not in self.value:
                     missingprop.append(req_key)
             if missingprop:
                 ExceptionCollector.appendException(
@@ -130,6 +131,11 @@ class DataEntity(object):
                 schema_name = self._find_schema(name)
                 if not schema_name or value is None:
                     continue
+                # skip validating null values, they need to be handled higher up in the stack
+                # if value is None and name in required_props:
+                #     msg = f'Field "{name}" of type "{self.datatype.type}" cannot be null.'
+                #     ExceptionCollector.appendException(ValidationError(message=msg))
+                #     continue
                 prop_schema = Schema(name, schema_name)
                 # check if field value meets type defined
                 DataEntity.validate_datatype(
@@ -138,7 +144,7 @@ class DataEntity(object):
                 # check if field value meets constraints defined
                 if prop_schema.constraints:
                     for constraint in prop_schema.constraints:
-                        if isinstance(value, list):
+                        if isinstance(value, collections.abc.MutableSequence):
                             for val in value:
                                 constraint.validate(val)
                         else:
@@ -214,7 +220,7 @@ class DataEntity(object):
         """Validate entries for map and list."""
         schema = Schema(None, entry_schema)
         valuelist = value
-        if isinstance(value, dict):
+        if isinstance(value, collections.abc.Mapping):
             valuelist = list(value.values())
         for v in valuelist:
             DataEntity.validate_datatype(
