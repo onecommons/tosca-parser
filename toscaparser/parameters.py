@@ -91,6 +91,10 @@ class Input(object):
             datatype = tosca[EntityType.DATATYPE_NETWORK_PREFIX + self.type]
 
         DataEntity.validate_datatype(self.type, value, None, datatype)
+        if self.constraints:
+            for constraint in self.constraints:
+                if constraint:
+                    constraint.validate(value)
 
 
 class Output(object):
