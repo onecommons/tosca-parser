@@ -487,6 +487,8 @@ class InRange(Constraint):
         Schema.SCALAR_UNIT_FREQUENCY,
         Schema.SCALAR_UNIT_TIME,
         Schema.RANGE,
+        Schema.PORTDEF_FULLNAME,
+        Schema.PORTDEF,
     )
 
     def __init__(self, property_name, property_type, constraint):

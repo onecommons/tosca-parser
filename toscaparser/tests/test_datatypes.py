@@ -207,6 +207,25 @@ class DataTypeTest(TestCase):
                            'range "(min:1, max:65535)".'),
                          err.__str__())
 
+    def test_built_in_nested_datatype_range_portdef(self):
+        tpl_snippet = '''
+        inputs:
+          db_port:
+            type: tosca.datatypes.network.PortDef
+            constraints:
+              - in_range: [1024, 10000]
+            default: 6379
+            description: Port for the Redis database
+        '''
+        inputs = yamlparser.simple_parse(tpl_snippet)['inputs']
+        name, attrs = list(inputs.items())[0]
+        input = Input(name, attrs)
+        self.assertIsNone(input.validate(6379))
+        err = self.assertRaises(exception.ValidationError, input.validate,
+                                20000)
+        self.assertEqual('The value "20000" of property "db_port" is out of range "(min:1024, max:10000)".',
+                         err.__str__())
+
     def test_custom_datatype(self):
         value_snippet = '''
         name: Mike
