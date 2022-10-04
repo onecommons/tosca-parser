@@ -237,6 +237,10 @@ class EntityTemplate(object):
                     ValidationError(message=msg))
 
     def _validate_properties(self):
+        if self.entity_tpl.get(self.IMPORTED):
+            # this is just a placeholder template for the imported one so it has no properties
+            properties = {}
+            return properties
         properties = self.type_definition.get_value(self.PROPERTIES, self.entity_tpl)
         if isinstance(properties, list):
             src = self.entity_tpl
