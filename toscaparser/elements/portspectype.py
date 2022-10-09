@@ -13,7 +13,7 @@
 import logging
 
 from toscaparser.common.exception import ExceptionCollector
-from toscaparser.common.exception import InvalidTypeAdditionalRequirementsError
+from toscaparser.common.exception import ValidationError
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.validateutils as validateutils
 
@@ -45,10 +45,10 @@ class PortSpec(dict):
             p = PortSpec(*args, **kw)
         else:
             spec = args[0]
-            if not spec:
-                p = PortSpec()
-            elif isinstance(spec, int):
+            if isinstance(spec, int):
                 p = PortSpec(source=spec, target=spec)
+            elif not spec:  # e.g. None or ""
+                return None
             elif isinstance(spec, str):
                 ports, sep, protocol = spec.partition('/')
                 d = dict(protocol=protocol or 'tcp')
@@ -113,8 +113,7 @@ class PortSpec(dict):
         if source is None and source_range is None and \
                 target is None and target_range is None:
             ExceptionCollector.appendException(
-                InvalidTypeAdditionalRequirementsError(
-                    type=PortSpec.TYPE_URI))
+                ValidationError(message=_("PortSpec %s is empty") % self))
 
         # Validate source value is in specified range
         if source_range:
