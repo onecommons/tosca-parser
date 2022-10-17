@@ -102,27 +102,27 @@ class ToscaTemplate(object):
             self.version = self._tpl_version()
             # XXX causes imports to be loaded twice
             self.description = self._tpl_description()
-            self.topology_template = self._topology_template()
+            custom_defs = self._get_all_custom_defs()
+            self.topology_template = self._topology_template(custom_defs)
             self.repositories = self._tpl_repositories()
             if self.topology_template.tpl:
                 self.inputs = self._inputs()
                 self.relationship_templates = self._relationship_templates()
                 self.outputs = self._outputs()
                 self.policies = self._policies()
-                self._handle_nested_tosca_templates_with_topology()
+                self._handle_nested_tosca_templates_with_topology(custom_defs)
                 # now that all the node templates have been loaded we can validated the relationships between them
                 self.topology_template.validate_relationships(self.strict)
                 for nested in self.nested_topologies.values():
                     nested.validate_relationships(self.strict)
 
-
         ExceptionCollector.stop()
         if verify:
             self.verify_template()
 
-    def _topology_template(self):
+    def _topology_template(self, custom_defs):
         return TopologyTemplate(self._tpl_topology_template(),
-                                self._get_all_custom_defs(),
+                                custom_defs,
                                 self.parsed_params,
                                 self)
 
@@ -238,11 +238,11 @@ class ToscaTemplate(object):
             if filename not in self.nested_tosca_tpls:
                 self.nested_tosca_tpls.update(tpl)
 
-    def _handle_nested_tosca_templates_with_topology(self):
+    def _handle_nested_tosca_templates_with_topology(self, custom_types):
         for filename, tosca_tpl in self.nested_tosca_tpls.items():
             topology_tpl = tosca_tpl.get(TOPOLOGY_TEMPLATE)
             if topology_tpl:
-                custom_types = self._get_all_custom_defs().copy()
+                custom_types = custom_types.copy()
                 custom_types.update(tosca_tpl.get('node_types', {})) # XXX isn't this redundant?
                 self.nested_topologies[filename] = TopologyTemplate(
                                 topology_tpl, custom_types, None, self)
