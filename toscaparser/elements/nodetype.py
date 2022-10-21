@@ -56,12 +56,15 @@ class NodeType(StatefulEntityType):
             return None
         pnode = self.derived_from(self.defs)
         if pnode:
-            if pnode and pnode == self.type:
+            if pnode == self.type:
                 # circular reference
                 ExceptionCollector.appendException(
                     InvalidTypeError(what=self.type))
                 return None
             return NodeType(pnode, self.custom_def)
+        elif self.type != "tosca.nodes.Root":
+            # if derived_from is missing, default to root type for nodes
+            return NodeType("tosca.nodes.Root", self.custom_def)
 
     @property
     def relationship(self):
