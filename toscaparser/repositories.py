@@ -21,8 +21,8 @@ import six
 from six.moves.urllib.parse import urlparse
 from toscaparser.dataentity import DataEntity
 
-SECTIONS = (DESCRIPTION, URL, CREDENTIAL, METADATA) = \
-           ('description', 'url', 'credential', 'metadata')
+SECTIONS = (DESCRIPTION, URL, CREDENTIAL, REVISION, METADATA) = \
+           ('description', 'url', 'credential', 'revision', 'metadata')
 
 
 class Repository(object):
