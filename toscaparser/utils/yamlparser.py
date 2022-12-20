@@ -13,6 +13,8 @@
 import codecs
 import urllib
 import yaml
+import certifi
+import ssl
 
 from collections import OrderedDict
 
@@ -33,7 +35,7 @@ def load_yaml(path, a_file=True, ctx=None, fragment=None):
         if a_file:
             f = codecs.open(path, encoding='utf-8', errors='strict')
         else:
-            f = urllib.request.urlopen(path)
+            f = urllib.request.urlopen(path, context=ssl.create_default_context(cafile=certifi.where()))
         contents = f.read()
         f.close()
         return yaml.load(contents, Loader=yaml_loader)
