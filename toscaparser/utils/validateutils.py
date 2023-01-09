@@ -182,11 +182,13 @@ def validate_timestamp(value):
 
 class TOSCAVersionProperty(object):
 
-    VERSION_RE = re.compile(r'^(?P<major_version>([0-9][0-9]*))'
-                            r'(\.(?P<minor_version>([0-9][0-9]*)))?'
-                            r'(\.(?P<fix_version>([0-9][0-9]*)))?'
+    VERSION_RE = re.compile(r'^(?P<major_version>([0-9]+))'
+                            r'(\.(?P<minor_version>([0-9]+)))?'
+                            r'(\.(?P<fix_version>([0-9]+)))?'
                             r'(\.(?P<qualifier>([0-9A-Za-z]+)))?'
-                            r'(\-(?P<build_version>[0-9])*)?$')
+                            r'(\-(?P<build_version>([0-9]+)))?'
+                            r'(\-(?P<pre_release>([0-9A-Za-z.\-]+)))?'
+                            r'(\+(?P<build_metadata>[0-9A-Za-z.\-])*)?$')
 
     def __init__(self, version):
         self.version = str(version)
@@ -203,7 +205,14 @@ class TOSCAVersionProperty(object):
         self.major_version = ver['major_version']
         self.fix_version = ver['fix_version']
         self.qualifier = self._validate_qualifier(ver['qualifier'])
+        self.pre_release = self._validate_qualifier(ver['pre_release'])
+        if self.pre_release and self.qualifier:
+            # mutually exclusive: pre_release is semver style only and the qualifier TOSCA/maven style only
+            ExceptionCollector.appendException(
+                InvalidTOSCAVersionPropertyException(what=(self.version)))
         self.build_version = self._validate_build(ver['build_version'])
+        # build_metadata comes after fix (aka patch) or pre_release
+        self.build_metadata = self._validate_qualifier(ver['build_metadata'])
         self._validate_major_version(self.major_version)
 
     def _validate_major_version(self, value):
