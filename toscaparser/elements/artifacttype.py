@@ -40,6 +40,11 @@ class ArtifactTypeDef(StatefulEntityType):
         "file_ext",
     )
 
+    properties = None
+    mime_type = None
+    file_ext = None
+
+
     def __init__(self, atype, custom_def=None):
         super(ArtifactTypeDef, self).__init__(atype, self.ARTIFACT_PREFIX, custom_def)
         self.custom_def = custom_def
