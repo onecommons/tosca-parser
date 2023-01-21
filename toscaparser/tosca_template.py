@@ -104,7 +104,7 @@ class ToscaTemplate(object):
             self.description = self._tpl_description()
             custom_defs = self._get_all_custom_defs()
             self.topology_template = self._topology_template(custom_defs)
-            self.repositories = self._tpl_repositories()
+            self._repositories = None
             if self.topology_template.tpl:
                 self.inputs = self._inputs()
                 self.relationship_templates = self._relationship_templates()
@@ -150,19 +150,22 @@ class ToscaTemplate(object):
     def _tpl_imports(self):
         return self.tpl.get(IMPORTS)
 
-    def _tpl_repositories(self):
-        repositories = {}
-        assert self.topology_template # sets self.nested_tosca_tpls
-        for filename, tosca_tpl in self.nested_tosca_tpls.items():
-            repositories.update(tosca_tpl.get(REPOSITORIES) or {})
-        repositories.update(self.tpl.get(REPOSITORIES) or {})
-        # we need to update the template because it is passed directly to the import loader
-        self.tpl[REPOSITORIES] = repositories
-        if self.import_resolver:
-            get_repository = self.import_resolver.get_repository
-        else:
-            get_repository = Repository
-        return {name:get_repository(name, val) for name, val in repositories.items()}
+    @property
+    def repositories(self):
+        if self._repositories is None:
+            repositories = {}
+            assert self.topology_template # sets self.nested_tosca_tpls
+            for filename, tosca_tpl in self.nested_tosca_tpls.items():
+                repositories.update(tosca_tpl.get(REPOSITORIES) or {})
+            repositories.update(self.tpl.get(REPOSITORIES) or {})
+            # we need to update the template because it is passed directly to the import loader
+            self.tpl[REPOSITORIES] = repositories
+            if self.import_resolver:
+                get_repository = self.import_resolver.get_repository
+            else:
+                get_repository = Repository
+            self._repositories = {name:get_repository(name, val) for name, val in repositories.items()}
+        return self._repositories
 
     def _tpl_relationship_templates(self):
         topology_template = self._tpl_topology_template()
