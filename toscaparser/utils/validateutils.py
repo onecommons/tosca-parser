@@ -182,7 +182,7 @@ def validate_timestamp(value):
 
 class TOSCAVersionProperty(object):
 
-    VERSION_RE = re.compile(r'^(?P<major_version>([0-9]+))'
+    VERSION_RE = re.compile(r'^v?(?P<major_version>([0-9]+))'
                             r'(\.(?P<minor_version>([0-9]+)))?'
                             r'(\.(?P<fix_version>([0-9]+)))?'
                             r'(\.(?P<qualifier>([0-9A-Za-z]+)))?'
@@ -260,3 +260,7 @@ class TOSCAVersionProperty(object):
 
     def get_version(self):
         return self.version
+
+    def is_semver_compatible_with(self, version):
+        """Return true if major verision is equal and minor version is less than or equal to the given version."""
+        self.major_version == version.major_version and int(self.minor_version) <= int(version.minor_version)
