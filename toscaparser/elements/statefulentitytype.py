@@ -123,6 +123,8 @@ class StatefulEntityType(EntityType):
 
     @property
     def interfaces(self):
+        if self.defs is None:
+            return {}
         cls = getattr(self.defs, "mapCtor", self.defs.__class__)
         interfaces = cls()
         # reversed so most derived is last
