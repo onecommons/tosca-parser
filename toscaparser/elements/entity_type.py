@@ -111,7 +111,7 @@ class EntityType(object):
         if parent:
             yield parent
 
-    def ancestors(self, seen=None):
+    def _ancestors(self, seen=None):
         if seen is None:
             seen = {self.type}
             yield self
@@ -119,7 +119,7 @@ class EntityType(object):
             if p.type not in seen:
                 seen.add(p.type)
                 yield p
-                for p in p.ancestors(seen):
+                for p in p._ancestors(seen):
                     yield p
 
     def get_value(self, ndtype, defs=None, parent=None, addPath=False, merge=False):
@@ -185,10 +185,14 @@ class EntityType(object):
         return self.get_value(ndtype, parent=True, merge=True)
 
 
+_last_version = None
 def update_definitions(exttools, version, loader=toscaparser.utils.yamlparser.load_yaml):
+    global _last_version
+    if _last_version == version:
+        return  # don't reload a version we already loaded
     extension_defs_file = exttools.get_defs_file(version)
     nfv_def_file = loader(extension_defs_file)
-    if not nfv_def_file: # loading failed
+    if not nfv_def_file:  # loading failed
         return
     for section in EntityType.TOSCA_DEF_SECTIONS:
         if section in nfv_def_file.keys():
@@ -199,3 +203,4 @@ def update_definitions(exttools, version, loader=toscaparser.utils.yamlparser.lo
                     EntityType.TOSCA_DEF[key].update(value[key])
                 else:
                     EntityType.TOSCA_DEF[key] = value[key]
+    _last_version = version

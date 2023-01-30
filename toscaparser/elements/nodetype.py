@@ -39,16 +39,6 @@ class NodeType(StatefulEntityType):
         self._requirement_definitions = None
         self._validate_keys()
 
-    def parent_types(self):
-        parents = self.entity_value(self.defs, 'derived_from')
-        if isinstance(parents, list):  # multiple inheritance
-            for pnode in parents:
-                yield NodeType(pnode, self.custom_def)
-        else:
-            parent = self.parent_type
-            if parent:
-                yield parent
-
     @property
     def parent_type(self):
         '''Return a node this node is derived from.'''

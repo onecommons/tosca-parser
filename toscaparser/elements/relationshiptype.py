@@ -32,16 +32,6 @@ class RelationshipType(StatefulEntityType):
         if self.defs:
             self._validate_keys()
 
-    def parent_types(self):
-        parents = self.entity_value(self.defs, 'derived_from')
-        if isinstance(parents, list): # multiple inheritance
-            for prel in parents:
-                yield RelationshipType(prel, self.custom_def)
-        else:
-            parent = self.parent_type
-            if parent:
-                yield parent
-
     @property
     def parent_type(self):
         '''Return a relationship this reletionship is derived from.'''

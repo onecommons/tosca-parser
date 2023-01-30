@@ -41,6 +41,8 @@ class StatefulEntityType(EntityType):
                                                     'remove_source',
                                                     'target_changed']
 
+    __parent_types = {}
+
     def __init__(self, entitytype, prefix, custom_def=None):
         entire_entitytype = entitytype
         if not isinstance(entitytype, str):
@@ -72,7 +74,40 @@ class StatefulEntityType(EntityType):
         self.type = entitytype
         self.custom_def = custom_def
         self._source = self.defs and self.defs.get("_source") or None
+        self.__ancestors = None
+        self._interfaces = None
+        self._property_defs = None
+        self._attribute_defs = None
         self._validate_interfaces()
+
+    def ancestors(self):
+        if self.__ancestors is None:
+            self.__ancestors = list(self._ancestors())
+        return self.__ancestors
+
+    def parent_types(self):
+        if self.type not in self.__parent_types:
+            parents = list(self._parent_types())
+            if self.__class__ is StatefulEntityType:
+                return parents
+            self.__parent_types[self.type] = parents
+        return self.__parent_types[self.type]
+
+    def _parent_types(self):
+        if not self.defs:
+            return
+        parents = self.entity_value(self.defs, 'derived_from')
+        if isinstance(parents, (list, tuple)):  # multiple inheritance
+            for pnode in parents:
+                if self.__class__ is StatefulEntityType:
+                    #  prefix is only used to expand "tosca:Type"
+                    yield self.__class__(pnode, self.NODE_PREFIX, self.custom_def)
+                else:
+                    yield self.__class__(pnode, self.custom_def)
+        else:
+            parent = self.parent_type
+            if parent:
+                yield parent
 
     @property
     def parent_type(self):
@@ -84,12 +119,14 @@ class StatefulEntityType(EntityType):
 
     def get_properties_def_objects(self):
         '''Return a list of property definition objects.'''
-        properties = []
-        props = self.get_definition(self.PROPERTIES)
-        if props:
-            for prop, schema in props.items():
-                properties.append(PropertyDef(prop, None, schema))
-        return properties
+        if self._property_defs is None:
+            properties = []
+            props = self.get_definition(self.PROPERTIES)
+            if props:
+                for prop, schema in props.items():
+                    properties.append(PropertyDef(prop, None, schema))
+            self._property_defs = properties
+        return self._property_defs
 
     def get_properties_def(self):
         '''Return a dictionary of property definition name-object pairs.'''
@@ -104,11 +141,14 @@ class StatefulEntityType(EntityType):
 
     def get_attributes_def_objects(self):
         '''Return a list of attribute definition objects.'''
-        attrs = self.get_definition(self.ATTRIBUTES)
-        if attrs:
-            return [PropertyDef(attr, None, schema)
-                    for attr, schema in attrs.items()]
-        return []
+        if self._attribute_defs is None:
+            _attribute_defs = []
+            attrs = self.get_definition(self.ATTRIBUTES)
+            if attrs:
+                _attribute_defs = [PropertyDef(attr, None, schema)
+                                   for attr, schema in attrs.items()]
+            self._attribute_defs = _attribute_defs
+        return self._attribute_defs
 
     def get_attributes_def(self):
         '''Return a dictionary of attribute definition name-object pairs.'''
@@ -125,14 +165,16 @@ class StatefulEntityType(EntityType):
     def interfaces(self):
         if self.defs is None:
             return {}
-        cls = getattr(self.defs, "mapCtor", self.defs.__class__)
-        interfaces = cls()
-        # reversed so most derived is last
-        for p in reversed(list(self.ancestors())):
-            p_interfaces = p.defs and p.defs.get(self.INTERFACES)
-            if p_interfaces:
-                interfaces = merge_interfacedefs(interfaces, p_interfaces, p._source)
-        return interfaces
+        if self._interfaces is None:
+            cls = getattr(self.defs, "mapCtor", self.defs.__class__)
+            interfaces = cls()
+            # reversed so most derived is last
+            for p in reversed(list(self.ancestors())):
+                p_interfaces = p.defs and p.defs.get(self.INTERFACES)
+                if p_interfaces:
+                    interfaces = merge_interfacedefs(interfaces, p_interfaces, p._source)
+            self._interfaces = interfaces
+        return self._interfaces
 
     def get_interface_requirements(self, entity_tpl=None):
         tpl_interfaces = self.get_value(self.INTERFACES, entity_tpl, True)
