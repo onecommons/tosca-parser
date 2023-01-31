@@ -73,11 +73,12 @@ class EntityType(object):
     DATATYPE_NETWORK_PREFIX = DATATYPE_PREFIX + 'network.'
     TOSCA = 'tosca'
     _source = None
+    _parent_types = None
 
     def derived_from(self, defs):
         '''Return a type this type is derived from.'''
         parent = self.entity_value(defs, 'derived_from')
-        if isinstance(parent, list): # multiple inheritance
+        if isinstance(parent, list):  # multiple inheritance
             return parent[0]
         else:
             return parent
@@ -187,6 +188,7 @@ class EntityType(object):
 
 _last_version = None
 def update_definitions(exttools, version, loader=toscaparser.utils.yamlparser.load_yaml):
+    EntityType._parent_types = {}
     global _last_version
     if _last_version == version:
         return  # don't reload a version we already loaded

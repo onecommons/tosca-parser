@@ -41,8 +41,6 @@ class StatefulEntityType(EntityType):
                                                     'remove_source',
                                                     'target_changed']
 
-    __parent_types = {}
-
     def __init__(self, entitytype, prefix, custom_def=None):
         entire_entitytype = entitytype
         if not isinstance(entitytype, str):
@@ -86,14 +84,14 @@ class StatefulEntityType(EntityType):
         return self.__ancestors
 
     def parent_types(self):
-        if self.type not in self.__parent_types:
-            parents = list(self._parent_types())
-            if self.__class__ is StatefulEntityType:
-                return parents
-            self.__parent_types[self.type] = parents
-        return self.__parent_types[self.type]
+        if self._parent_types is None or self.__class__ is StatefulEntityType:
+            return list(self._find_parent_types())
+        if self.type not in self._parent_types:
+            parents = list(self._find_parent_types())
+            self._parent_types[self.type] = parents
+        return self._parent_types[self.type]
 
-    def _parent_types(self):
+    def _find_parent_types(self):
         if not self.defs:
             return
         parents = self.entity_value(self.defs, 'derived_from')
