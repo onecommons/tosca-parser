@@ -32,9 +32,7 @@ class UnsupportedType(object):
     of un_supported_types. As tosca-parser move to provide support for version
     1.1 and higher, they will be removed.
     """
-    un_supported_types = ['tosca.test.invalidtype',
-                          'tosca.nodes.Storage.ObjectStorage',
-                          'tosca.nodes.Storage.BlockStorage']
+    un_supported_types = ['tosca.test.invalidtype']
 
     def __init__(self):
         pass
