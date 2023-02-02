@@ -13,12 +13,15 @@
 import copy
 import logging
 import os
+import threading
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import ValidationError
 from toscaparser.extensions.exttools import ExtTools
 import toscaparser.utils.yamlparser
 
 log = logging.getLogger('tosca')
+globals = threading.local()
+globals._parent_types = None
 
 
 class EntityType(object):
@@ -73,7 +76,14 @@ class EntityType(object):
     DATATYPE_NETWORK_PREFIX = DATATYPE_PREFIX + 'network.'
     TOSCA = 'tosca'
     _source = None
-    _parent_types = None
+
+    @staticmethod
+    def _parent_types():
+        return globals._parent_types
+
+    @staticmethod
+    def reset_caches():
+        globals._parent_types = {}
 
     def derived_from(self, defs):
         '''Return a type this type is derived from.'''
@@ -188,7 +198,6 @@ class EntityType(object):
 
 _last_version = None
 def update_definitions(exttools, version, loader=toscaparser.utils.yamlparser.load_yaml):
-    EntityType._parent_types = {}
     global _last_version
     if _last_version == version:
         return  # don't reload a version we already loaded

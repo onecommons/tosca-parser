@@ -84,12 +84,13 @@ class StatefulEntityType(EntityType):
         return self.__ancestors
 
     def parent_types(self):
-        if self._parent_types is None or self.__class__ is StatefulEntityType:
+        _parent_types = self._parent_types()
+        if _parent_types is None or self.__class__ is StatefulEntityType:
             return list(self._find_parent_types())
-        if self.type not in self._parent_types:
+        if self.type not in _parent_types:
             parents = list(self._find_parent_types())
-            self._parent_types[self.type] = parents
-        return self._parent_types[self.type]
+            _parent_types[self.type] = parents
+        return _parent_types[self.type]
 
     def _find_parent_types(self):
         if not self.defs:

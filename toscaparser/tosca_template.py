@@ -20,7 +20,7 @@ from toscaparser.common.exception import InvalidTemplateVersion
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
-from toscaparser.elements.entity_type import update_definitions
+from toscaparser.elements.entity_type import update_definitions, EntityType
 from toscaparser.extensions.exttools import ExtTools
 import toscaparser.imports
 from toscaparser.prereq.csar import CSAR
@@ -100,7 +100,7 @@ class ToscaTemplate(object):
             self.parsed_params = parsed_params
             self._validate_field()
             self.version = self._tpl_version()
-            # XXX causes imports to be loaded twice
+            EntityType.reset_caches()
             self.description = self._tpl_description()
             custom_defs = self._get_all_custom_defs()
             self.topology_template = self._topology_template(custom_defs)

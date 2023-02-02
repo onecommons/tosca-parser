@@ -152,7 +152,7 @@ class ToscaTemplateTest(TestCase):
                 self.assertEqual('Linux', os_type_prop)
 
     def test_node_inheritance_type(self):
-        NodeType._parent_types = {}
+        NodeType.reset_caches()
         wordpress_node = [
             node for node in self.tosca.nodetemplates
             if node.name == 'wordpress'][0]
