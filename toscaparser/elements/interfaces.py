@@ -338,10 +338,12 @@ def _create_operations(interfacesDefs, type_definition, template):
             defs = value
 
         for op in list(defs):
-            op_def = defs[op]
             if op in INTERFACE_DEF_RESERVED_WORDS:
                 continue
+            op_def = defs[op]
             if not isinstance(op_def, dict):
+                if op_def == "not_implemented":
+                    continue
                 op_def = cls(implementation=op_def or implementation)
             elif implementation and not op_def.get('implementation'):
                 op_def['implementation'] = implementation
