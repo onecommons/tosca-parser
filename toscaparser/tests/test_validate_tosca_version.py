@@ -132,3 +132,12 @@ class TOSCAVersionPropertyTest(TestCase):
         err = self.assertRaises(InvalidTOSCAVersionPropertyException,
                                 TOSCAVersionProperty, version)
         self.assertEqual(exp_msg, err.__str__())
+
+    def test_tosca_version_property_semver_compatibility(self):
+        assert TOSCAVersionProperty("v1.1.0").is_semver_compatible_with(
+                                    TOSCAVersionProperty("v1.2.0"))
+        assert not TOSCAVersionProperty("2.1.0").is_semver_compatible_with(
+                                    TOSCAVersionProperty("1.2.0"))
+        assert TOSCAVersionProperty("0.1.0").is_semver_compatible_with(
+                                    TOSCAVersionProperty("v0.1.0"))
+

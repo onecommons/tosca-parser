@@ -263,4 +263,4 @@ class TOSCAVersionProperty(object):
 
     def is_semver_compatible_with(self, version):
         """Return true if major verision is equal and minor version is less than or equal to the given version."""
-        self.major_version == version.major_version and int(self.minor_version) <= int(version.minor_version)
+        return self.major_version == version.major_version and int(self.minor_version) <= int(version.minor_version)
