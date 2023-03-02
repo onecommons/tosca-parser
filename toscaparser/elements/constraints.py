@@ -288,6 +288,7 @@ class GreaterThan(Constraint):
     valid_prop_types = (
         Schema.INTEGER,
         Schema.FLOAT,
+        Schema.NUMBER,
         Schema.TIMESTAMP,
         Schema.SCALAR_UNIT_SIZE,
         Schema.SCALAR_UNIT_FREQUENCY,
@@ -336,6 +337,7 @@ class GreaterOrEqual(Constraint):
     valid_prop_types = (
         Schema.INTEGER,
         Schema.FLOAT,
+        Schema.NUMBER,
         Schema.TIMESTAMP,
         Schema.SCALAR_UNIT_SIZE,
         Schema.SCALAR_UNIT_FREQUENCY,
@@ -386,6 +388,7 @@ class LessThan(Constraint):
     valid_prop_types = (
         Schema.INTEGER,
         Schema.FLOAT,
+        Schema.NUMBER,
         Schema.TIMESTAMP,
         Schema.SCALAR_UNIT_SIZE,
         Schema.SCALAR_UNIT_FREQUENCY,
@@ -432,6 +435,7 @@ class LessOrEqual(Constraint):
     valid_prop_types = (
         Schema.INTEGER,
         Schema.FLOAT,
+        Schema.NUMBER,
         Schema.TIMESTAMP,
         Schema.SCALAR_UNIT_SIZE,
         Schema.SCALAR_UNIT_FREQUENCY,
@@ -482,6 +486,7 @@ class InRange(Constraint):
     valid_prop_types = (
         Schema.INTEGER,
         Schema.FLOAT,
+        Schema.NUMBER,
         Schema.TIMESTAMP,
         Schema.SCALAR_UNIT_SIZE,
         Schema.SCALAR_UNIT_FREQUENCY,
@@ -501,14 +506,15 @@ class InRange(Constraint):
                 )
             )
 
-        msg = _('The property "in_range" expects comparable values.')
+        msg = _('The property "in_range" expects comparable values')
         for value in self.constraint_value:
             if not isinstance(value, self.valid_types):
-                ExceptionCollector.appendException(InvalidSchemaError(message=msg))
-            # The only string we allow for range is the special value
-            # 'UNBOUNDED'
-            if isinstance(value, six.string_types) and value != self.UNBOUNDED:
-                ExceptionCollector.appendException(InvalidSchemaError(message=msg))
+                ExceptionCollector.appendException(InvalidSchemaError(message=msg + f", not {type(value)}"))
+
+            # The only string we allow for range are scalars and the special value 'UNBOUNDED'
+            if isinstance(value, six.string_types):
+                if value != self.UNBOUNDED:
+                    ExceptionCollector.appendException(InvalidSchemaError(message=msg + f', not "{value}"'))
 
         self.min = self.constraint_value[0]
         self.max = self.constraint_value[1]

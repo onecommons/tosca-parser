@@ -459,7 +459,7 @@ class NodeTemplate(EntityTemplate):
                     valid = False
                     continue
                 if len(filter) != 1:
-                    msg = _('Invalid %s: only one condition allow per filter condition') % name
+                    msg = _('Invalid %s: only one property allowed per filter condition') % name
                     ExceptionCollector.appendException(ValidationError(message=msg))
                     valid = False
                     continue

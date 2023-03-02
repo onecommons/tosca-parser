@@ -443,7 +443,7 @@ class DataTypeTest(TestCase):
                           value, DataTypeTest.custom_type_def)
         err = self.assertRaises(exception.InvalidSchemaError,
                                 lambda: data.validate())
-        self.assertEqual(_('The property "in_range" expects comparable values.'
+        self.assertEqual(_('The property "in_range" expects comparable values, not "INFINITY"'
                            ),
                          err.__str__())
 
@@ -456,7 +456,7 @@ class DataTypeTest(TestCase):
                           value, DataTypeTest.custom_type_def)
         err = self.assertRaises(exception.InvalidSchemaError,
                                 lambda: data.validate())
-        self.assertEqual(_('The property "in_range" expects comparable values.'
+        self.assertEqual(_('The property "in_range" expects comparable values, not "INFINITY"'
                            ),
                          err.__str__())
 

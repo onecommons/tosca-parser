@@ -19,6 +19,7 @@ from toscaparser.utils import validateutils
 
 log = logging.getLogger('tosca')
 
+scalar_pattern = re.compile(r'([0-9.]+)\s*(\w+)')
 
 class ScalarUnit(object):
     '''Parent class for scalar-unit type.'''
@@ -56,7 +57,7 @@ class ScalarUnit(object):
             ExceptionCollector.appendException(ValueError(msg))
 
     def validate_scalar_unit(self):
-        regex = re.compile(r'([0-9.]+)\s*(\w+)')
+        regex = scalar_pattern
         try:
             result = regex.match(str(self.value)).groups()
             validateutils.str_to_num(result[0])
