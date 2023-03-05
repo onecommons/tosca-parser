@@ -90,25 +90,21 @@ class ImportsLoader(object):
     )
 
     def __init__(
-        self, importslist, path, type_definition_list=None, tpl=None, resolver=None
+        self, importslist, path, type_definition_list=None, repositories=None, resolver=None
     ):
         self.importslist = importslist
         self.custom_defs = {}
         self.nested_tosca_tpls = []
-        self.nested_imports = {}
         self.resolver = resolver or ImportResolver()
-        if not path and not tpl:
-            msg = _("Input tosca template is not provided.")
-            log.warning(msg)
-            ExceptionCollector.appendException(ValidationError(message=msg))
         self.path = path
-        self.repositories = (tpl and tpl.get("repositories")) or {}
-        self.tpl = tpl
-        self.type_definition_list = (
-            type_definition_list or []
-        )  # names of type definition sections
-        assert isinstance(self.type_definition_list, list)
+        self.repositories = repositories or {}
+        # names of type definition sections
+        self.type_definition_list = type_definition_list or []
         if importslist is not None:
+            if not path:
+                msg = _("Input tosca template is not provided.")
+                log.warning(msg)
+                ExceptionCollector.appendException(ValidationError(message=msg))
             self._validate_and_load_imports()
 
     def get_custom_defs(self):
@@ -116,9 +112,6 @@ class ImportsLoader(object):
 
     def get_nested_tosca_tpls(self):
         return self.nested_tosca_tpls
-
-    def get_nested_imports(self):
-        return self.nested_imports
 
     def _validate_and_load_imports(self):
         imports_names = set()
@@ -159,9 +152,6 @@ class ImportsLoader(object):
             if imported_tpl:
                 TypeValidation(imported_tpl, import_def)
                 self._update_custom_def(imported_tpl, namespace_prefix, full_file_name)
-                nested_imports = imported_tpl.get("imports")
-                if nested_imports:
-                    self.nested_imports.update({full_file_name: nested_imports})
             # XXX should save prefix too
             self._update_nested_tosca_tpls(full_file_name, imported_tpl)
 

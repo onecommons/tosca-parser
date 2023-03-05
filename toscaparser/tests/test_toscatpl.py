@@ -750,7 +750,7 @@ class ToscaTemplateTest(TestCase):
         params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
                   'db_root_pwd': 'mypasswd'}
 
-        tosca = ToscaTemplate(parsed_params=params,
+        tosca = ToscaTemplate(test_tpl, parsed_params=params,
                               yaml_dict_tpl=yaml_dict_tpl)
 
         self.assertEqual(tosca.version, "tosca_simple_yaml_1_0")
@@ -783,7 +783,7 @@ class ToscaTemplateTest(TestCase):
         params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
                   'db_root_pwd': 'mypasswd'}
 
-        tosca = ToscaTemplate(parsed_params=params,
+        tosca = ToscaTemplate(test_tpl, parsed_params=params,
                               yaml_dict_tpl=yaml_dict_tpl)
 
         self.assertEqual(tosca.version, "tosca_simple_yaml_1_0")
