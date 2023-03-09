@@ -130,8 +130,7 @@ class EntityTemplate(object):
                   { dep['name'] : dict(node = dep.get('match'), metadata = dep) } for dep in dependencies
                 ]
             else:
-                self._requirements = self.type_definition.get_value(
-                                     self.REQUIREMENTS, self.entity_tpl) or []
+                self._requirements = self.entity_tpl.get(self.REQUIREMENTS) or []
         return self._requirements
 
     def get_properties_objects(self):

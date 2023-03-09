@@ -153,6 +153,10 @@ class NodeTemplate(EntityTemplate):
         reqDef = typeReqDef.copy()
         if isinstance(value, dict):
             # see 3.8.2 Requirement assignment p. 140 for value
+            if typeReqDef.get("metadata") and "metadata" in value:
+                if value["metadata"]:
+                    typeReqDef["metadata"].update(value["metadata"])
+                value["metadata"] = typeReqDef["metadata"]
             reqDef.update(value)
         else:
             reqDef['node'] = value
