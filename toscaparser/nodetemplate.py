@@ -102,9 +102,9 @@ class NodeTemplate(EntityTemplate):
                     node = req_on_type.get('node')
                     is_template = node and self.find_node_related_template(node)
                     if is_template:
-                        reqDef, relTpl = self._relationship_from_req(name, req_on_type)
+                        relTpl = self._relationship_from_req(name, req_on_type)
                         if relTpl:
-                            self._relationships.append( (relTpl, {name: reqDef}, reqDef) )
+                            self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
                     elif "occurrences" not in req_on_type or req_on_type["occurrences"][0]:
                         # minimum occurrences is not 0
                         self._missing_requirements[name] = req_on_type
@@ -160,21 +160,21 @@ class NodeTemplate(EntityTemplate):
             reqDef.update(value)
         else:
             reqDef['node'] = value
-        return self._relationship_from_req(name, reqDef)
+        return reqDef, self._relationship_from_req(name, reqDef)
 
     def _relationship_from_req(self, name, reqDef):
         relationship = reqDef['relationship']
         relTpl = None
         type = None
         if isinstance(relationship, dict):
-          type = relationship.get('type')
-          if not type:
-              ExceptionCollector.appendException(
-                  MissingRequiredFieldError(
-                      what=_('"relationship" used in template '
-                             '"%s"') % self.name,
-                      required=self.TYPE))
-              return reqDef, None
+            type = relationship.get('type')
+            if not type:
+                ExceptionCollector.appendException(
+                    MissingRequiredFieldError(
+                        what=_('"relationship" used in template '
+                              '"%s"') % self.name,
+                        required=self.TYPE))
+                return None
         elif (relationship in self.custom_def
                 or relationship in self.type_definition.RELATIONSHIP_TYPE):
             type = relationship
@@ -191,7 +191,7 @@ class NodeTemplate(EntityTemplate):
                   ValidationError(message = _('Relationship template "%(relationship)s" was not found'
                        ' for requirement "%(rname)s" of node "%(nname)s".')
                      % {'relationship': relationship, 'rname': name, 'nname': self.name}))
-                return reqDef, None
+                return None
 
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == type, (relationship, type)
@@ -200,6 +200,12 @@ class NodeTemplate(EntityTemplate):
 
         node = reqDef.get('node')
         node_filter = reqDef.get('node_filter')
+        capability = reqDef.get('capability')
+        min_required = reqDef.get("occurrences", [1])[0]
+        if min_required == 0 and not node and not node_filter:
+            # no criteria for target was specified and requirement isn't required
+            # so assume there isn't a target
+            return None
         related_node = None
         related_capability = None
         if node:
@@ -212,19 +218,19 @@ class NodeTemplate(EntityTemplate):
                             ValidationError(message = _('No matching capability "%(cname)s" found'
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'cname': reqDef['capability'], 'tname': related_node.name}))
-                        return reqDef, None
+                        return None
                     else:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No capability with a matching target type found'
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'tname': related_node.name}))
-                        return reqDef, None
+                        return None
                 related_capability = capabilities[0] # first one is best match
-        elif 'capability' not in reqDef and not relTpl.type_definition.valid_target_types and not node_filter:
+        elif not capability and not relTpl.type_definition.valid_target_types and not node_filter:
             ExceptionCollector.appendException(
               ValidationError(message='requirement "%s" of node "%s" must specify a node_filter, a node or a capability' %
                               (name, self.name)))
-            return reqDef, None
+            return None
 
         if not related_node:
             # check if "node" is a node type
@@ -233,7 +239,6 @@ class NodeTemplate(EntityTemplate):
                 found_cap = None
                 # check if node name is node type
                 if not node or nodeTemplate.is_derived_from(node):
-                    capability = reqDef.get('capability')
                     # should have already returned an error if this assertion is false
                     if capability or relTpl.type_definition.valid_target_types:
                         capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
@@ -260,7 +265,7 @@ class NodeTemplate(EntityTemplate):
                           ValidationError(message=
       'requirement "%s" of node ""%s" is ambiguous, targets more than one template: "%s" and "%s"' %
                                         (name, self.name, related_node.name, found.name)))
-                            return reqDef, None
+                            return None
                     else:
                         related_node = found
                         related_capability = found_cap
@@ -284,8 +289,8 @@ class NodeTemplate(EntityTemplate):
             else:
                 ExceptionCollector.appendException(
                     ValidationError(message = msg))
-            return reqDef, None
-        return reqDef, relTpl
+            return None
+        return relTpl
 
     def get_relationship_templates(self):
         """Returns a list of RelationshipTemplates that target this node"""
