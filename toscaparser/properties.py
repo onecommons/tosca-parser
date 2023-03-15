@@ -72,8 +72,10 @@ class Property(object):
 
     def _validate(self, value):
         '''Validate if not a reference property.'''
+        if value is None:
+            return value
         if not functions.is_function(value):
-            if self.type == Schema.STRING and value is not None:
+            if self.type == Schema.STRING:
                 value = str(value)
             metadata = self.schema.metadata
             if metadata and metadata.get('default_unit'):
@@ -82,7 +84,7 @@ class Property(object):
                     # no unit specified, append the default unit
                     if get_scalarunit_class(self.type)._check_unit_in_scalar_standard_units(metadata['default_unit']):
                         value = str(value) + metadata['default_unit']
-                except:
+                except Exception:
                     pass
             value = DataEntity.validate_datatype(self.type, value,
                                                       self.entry_schema,
