@@ -1210,9 +1210,9 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                   capability: log_endpoint
                   occurrences: [0, -1]
         '''
-        expectedmessage = _('Value of property "[0, -1]" is invalid.')
+        expectedmessage = _('Value "[0, -1]" of "occurrences" is invalid: invalid range.')
         err = self.assertRaises(
-            exception.InvalidPropertyValueError,
+            exception.InvalidOccurrences,
             lambda: self._single_node_template_content_test(tpl_snippet))
         self.assertEqual(expectedmessage, err.__str__())
 
@@ -1255,9 +1255,9 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                   capability: log_endpoint
                   occurrences: [5, 1]
         '''
-        expectedmessage = _('Value of property "[5, 1]" is invalid.')
+        expectedmessage = _('Value "[5, 1]" of "occurrences" is invalid: invalid range.')
         err = self.assertRaises(
-            exception.InvalidPropertyValueError,
+            exception.InvalidOccurrences,
             lambda: self._single_node_template_content_test(tpl_snippet))
         self.assertEqual(expectedmessage, err.__str__())
 
@@ -1270,9 +1270,9 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
                   capability: log_endpoint
                   occurrences: [0, 0]
         '''
-        expectedmessage = _('Value of property "[0, 0]" is invalid.')
+        expectedmessage = _('Value "[0, 0]" of "occurrences" is invalid: invalid range.')
         err = self.assertRaises(
-            exception.InvalidPropertyValueError,
+            exception.InvalidOccurrences,
             lambda: self._single_node_template_content_test(tpl_snippet))
         self.assertEqual(expectedmessage, err.__str__())
 

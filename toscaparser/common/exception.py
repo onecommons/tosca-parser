@@ -149,6 +149,10 @@ class InvalidPropertyValueError(TOSCAException):
     msg_fmt = _('Value of property "%(what)s" is invalid.')
 
 
+class InvalidOccurrences(TOSCAException):
+    msg_fmt = _('Value "%(what)s" of "occurrences" is invalid: %(why)s.')
+
+
 class InvalidTemplateVersion(TOSCAException):
     msg_fmt = _('The template version "%(what)s" is invalid. '
                 'Valid versions are "%(valid_versions)s".')
