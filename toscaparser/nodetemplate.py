@@ -413,12 +413,12 @@ class NodeTemplate(EntityTemplate):
             ExceptionCollector.appendException(
                 InvalidOccurrences(what=(occurrences), why="not a list with 2 items"))
             return
-        DataEntity.validate_datatype('integer', occurrences[0])
-        if occurrences[1] != "UNBOUNDED":
-            DataEntity.validate_datatype('integer', occurrences[1])
-            if not (0 <= occurrences[0] <= occurrences[1]) or occurrences[1] == 0:
-                ExceptionCollector.appendException(
-                    InvalidOccurrences(what=(occurrences), why="invalid range"))
+        if isinstance(DataEntity.validate_datatype('integer', occurrences[0]), int):
+            if occurrences[1] != "UNBOUNDED":
+                if isinstance(DataEntity.validate_datatype('integer', occurrences[1]), int):
+                    if not (0 <= occurrences[0] <= occurrences[1]) or occurrences[1] == 0:
+                        ExceptionCollector.appendException(
+                            InvalidOccurrences(what=(occurrences), why="invalid range"))
 
     def _validate_instancekeys(self):
         template = self.entity_tpl
