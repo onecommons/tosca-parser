@@ -19,6 +19,24 @@ from toscaparser.elements.statefulentitytype import StatefulEntityType
 from toscaparser.common.exception import InvalidTypeError, InvalidTypeDefinition
 
 
+def _find_key_in_list(seq, key):
+    for i, item in enumerate(seq):
+        if isinstance(item, dict) and len(item) == 1 and key in item:
+            return i
+    return -1
+
+
+def _merge_dict_lists(base, current):
+    merged = current[:]
+    for item in base:
+        key = next(iter(item))
+        # add base item if not present in current
+        index = _find_key_in_list(current, key)
+        if index == -1:
+            merged.append(item)
+    return merged
+
+
 class NodeType(StatefulEntityType):
     '''TOSCA built-in node type.'''
     SECTIONS = (DERIVED_FROM, METADATA, PROPERTIES, VERSION, DESCRIPTION, ATTRIBUTES,
@@ -177,6 +195,21 @@ class NodeType(StatefulEntityType):
     def requirements(self):
         return self.get_value(self.REQUIREMENTS, None, True)
 
+    @staticmethod
+    def merge_requirement_definition(base, current):
+        tpl = dict(base, **current)
+        if base.get('node_filter') and current.get('node_filter'):
+            tpl["node_filter"] = {}
+            bfilters = base["node_filter"]
+            cfilters = current["node_filter"]
+            for key in ["requirements", "properties"]:
+                if bfilters.get(key):
+                    tpl["node_filter"][key] = _merge_dict_lists(bfilters[key], cfilters.get(key, []))
+        if base.get('metadata') and current.get('metadata'):
+            # merge metadata
+            tpl['metadata'] = dict(base['metadata'], **current['metadata'])
+        return tpl
+
     def get_all_requirements(self):
         # requirements with any shorthand syntax normalized
         reqs_tpl = self.requirements
@@ -195,10 +228,7 @@ class NodeType(StatefulEntityType):
                     # diverges from 3.7.3.2.1 Simple grammar (Capability Type only)
                     tpl = {name: dict(value, node = current)}
                 else:
-                    tpl = {name: dict(value, **current)}
-                    if value.get('metadata') and current.get('metadata'):
-                        # merge metadata
-                        tpl[name]['metadata'] = dict(value['metadata'], **current['metadata'])
+                    tpl = {name: self.merge_requirement_definition(value, current)}
             elif isinstance(value, str):
                 # diverges from 3.7.3.2.1 Simple grammar (Capability Type only)
                 tpl = {name : dict(node = value)}

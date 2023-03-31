@@ -26,6 +26,7 @@ from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.utils.gettextutils import _
 from toscaparser.artifacts import Artifact
 from toscaparser.activities import ConditionClause
+from toscaparser.elements.nodetype import NodeType
 
 log = logging.getLogger('tosca')
 
@@ -151,15 +152,11 @@ class NodeTemplate(EntityTemplate):
         one with type "tosca.relationships.Root" will be returned.
         """
         typeReqDef = self.type_definition.get_requirement_definition(name)
-        reqDef = typeReqDef.copy()
         if isinstance(value, dict):
             # see 3.8.2 Requirement assignment p. 140 for value
-            if typeReqDef.get("metadata") and "metadata" in value:
-                if value["metadata"]:
-                    typeReqDef["metadata"].update(value["metadata"])
-                value["metadata"] = typeReqDef["metadata"]
-            reqDef.update(value)
+            reqDef = NodeType.merge_requirement_definition(typeReqDef, value)
         else:
+            reqDef = typeReqDef.copy()
             reqDef['node'] = value
         return reqDef, self._relationship_from_req(name, reqDef)
 
