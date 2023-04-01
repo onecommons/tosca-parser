@@ -78,6 +78,10 @@ class ImportResolver(object):
     def load_yaml(self, importsLoader, path, isFile=True, fragment=None):
         return YAML_LOADER(path, isFile, importsLoader, fragment)
 
+    def load_imports(self, importsLoader, importslist):
+        importsLoader.importslist = importslist
+        importsLoader._validate_and_load_imports()
+
 
 class ImportsLoader(object):
 

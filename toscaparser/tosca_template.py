@@ -195,6 +195,8 @@ class ToscaTemplate(object):
         custom_defs, nested_imports = self.load_imports(path, tpl)
         for imported in nested_imports:
             filename, import_tpl = list(imported.items())[0]
+            if filename not in self.nested_tosca_tpls:
+                self.nested_tosca_tpls.update(imported)
             import_defs = self._get_custom_defs(import_tpl, filename)
             custom_defs_final.update(import_defs)
         if custom_defs:
@@ -213,21 +215,14 @@ class ToscaTemplate(object):
 
         type_sections = self.get_type_sections()
         imports_loader = toscaparser.imports.ImportsLoader(
-            imports, path, type_sections, self.tpl.get("repositories"), self.import_resolver
+            None, path, type_sections, self.tpl.get("repositories"), self.import_resolver
         )
+        imports_loader.resolver.load_imports(imports_loader, imports)
         # nested_tosca_tpls is list of {file_path : tpl} of the imported templates
         nested_tosca_tpls = imports_loader.get_nested_tosca_tpls()
         # custom defs are merged together (with possibly namespace prefix)
         custom_defs = imports_loader.get_custom_defs()
-        self._update_nested_tosca_tpls(nested_tosca_tpls)
         return custom_defs, nested_tosca_tpls
-
-    def _update_nested_tosca_tpls(self, nested_tosca_tpls):
-        for tpl in nested_tosca_tpls:
-            # add every import (even if it doesn't have a topology)
-            filename, tosca_tpl = list(tpl.items())[0]
-            if filename not in self.nested_tosca_tpls:
-                self.nested_tosca_tpls.update(tpl)
 
     def _handle_nested_tosca_templates_with_topology(self, custom_types):
         for filename, tosca_tpl in self.nested_tosca_tpls.items():
