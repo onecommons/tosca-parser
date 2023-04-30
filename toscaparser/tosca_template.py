@@ -96,6 +96,7 @@ class ToscaTemplate(object):
                 ValueError(_('No path or yaml_dict_tpl was provided. '
                              'There is nothing to parse.')))
 
+        self.topology_template = None
         if self.tpl:
             self.parsed_params = parsed_params
             self._validate_field()
@@ -231,31 +232,14 @@ class ToscaTemplate(object):
             topology_tpl = tosca_tpl.get(TOPOLOGY_TEMPLATE)
             if topology_tpl:
                 custom_types = custom_types.copy()
-                custom_types.update(tosca_tpl.get('node_types', {})) # XXX isn't this redundant?
+                custom_types.update(tosca_tpl.get('node_types', {}))  # XXX isn't this redundant?
                 self.nested_topologies[filename] = TopologyTemplate(
                                 topology_tpl, custom_types, None, self)
-
-        # if a nodetemplate should be substituted, set its sub_mapping_tosca_template
-        for nodetemplate in self.nodetemplates:
-            if "substitute" not in nodetemplate.directives:
-                continue
-            for topology in self.nested_topologies.values():
-                if not topology.substitution_mappings:
-                    continue
-                if topology.substitution_mappings.type == nodetemplate.type:
-                    # the node template's properties treated as inputs
-                    inputs = self._get_params_for_nested_template(nodetemplate)
-                    # create a new substitution mapping object for the mapped node
-                    # XXX SubstitutionMappings is just a simple wrapper around the def dict, only performs validation
-                    # and sub_mapping_tosca_template is never unused!
-                    nodetemplate.sub_mapping_tosca_template = SubstitutionMappings(
-                        topology.substitution_mappings.sub_mapping_def,
-                        topology,
-                        inputs,
-                        topology.outputs,
-                        nodetemplate,
-                        topology.custom_defs)
-                    break
+        substitutable_topologies = [t for t in self.nested_topologies.values() if t.substitution_mappings]
+        self.topology_template._do_substitutions(substitutable_topologies)
+        if self.topology_template.substitution_mappings and not self.topology_template.substitution_mappings.node:
+            # create a node template for the root topology's substitution mapping
+            self.topology_template.substitution_mappings.substitute(None, None)
 
     def _validate_field(self):
         version = self._tpl_version()
@@ -319,30 +303,3 @@ class ToscaTemplate(object):
                 msg = _('The pre-parsed input successfully passed validation.')
 
             log.info(msg)
-
-    def _is_sub_mapped_node(self, nodetemplate, tosca_tpl):
-        """Return True if the nodetemple is substituted."""
-        # NOTE(ueha): Since condition "not nodetemplate.sub_mapping_tosca_\
-        #             template" was deleted as a fix for bug/1883220, there is
-        #             some possibility of breaking something on translator side
-        #             that current tests not coverd.
-        #             And this enhancement does not align with TOSCA standard
-        #             but needed for ETSI NFV-SOL 001.
-        if (nodetemplate and
-                self.get_sub_mapping_node_type(tosca_tpl) == nodetemplate.type
-                and len(nodetemplate.interfaces) < 1):
-            return True
-        else:
-            return False
-
-    def _get_params_for_nested_template(self, nodetemplate):
-        """Return total params for nested_template."""
-        parsed_params = {input.name : input for input in self.topology_template.inputs}
-        if nodetemplate:
-            parsed_params.update(nodetemplate.get_properties())
-        return list(parsed_params.values())
-
-    def _has_substitution_mappings(self):
-        """Return True if the template has valid substitution mappings."""
-        return self.topology_template is not None and \
-            self.topology_template.substitution_mappings is not None

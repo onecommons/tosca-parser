@@ -37,21 +37,32 @@ class NodeTemplate(EntityTemplate):
                  available_rel_tpls=None):
         node_templates = topology_template._tpl_nodetemplates()
         ExceptionCollector.near = f' in node template "{name}"'
+        self.topology_template = topology_template
         super(NodeTemplate, self).__init__(name, node_templates[name],
                                            'node_type',
                                            custom_def)
-        self.topology_template = topology_template
         self.templates = node_templates
         self.custom_def = custom_def
         self.related = {}
         self.relationship_tpl = []
         self.available_rel_tpls = available_rel_tpls or []
         self._relationships = None
-        self.sub_mapping_tosca_template = None
+        self.substitution = None
         self._artifacts = None
         self._instance_keys = None
         self._all_requirements = None
         self._missing_requirements = None
+
+    def _should_validate_properties(self):
+        for name in ("select", "substitute"):
+            if name in self.directives:
+                return False
+        # if we're in a nested topology and we're the root node, defer validation till substitution
+        root_topology = self.topology_template.tosca_template and self.topology_template.tosca_template.topology_template
+        if root_topology and root_topology is not self.topology_template:
+            if self.name == self.topology_template._tpl_substitution_mappings().get("node"):
+                return False
+        return super()._should_validate_properties()
 
     @property
     def all_requirements(self):
@@ -90,17 +101,30 @@ class NodeTemplate(EntityTemplate):
             requires = self.requirements
             type_requirements = self.type_definition.requirement_definitions
             names = []
+
+            if self.topology_template.substitution_mappings:
+                # if this node_template is substituted one, add or replace the outer node templates requirements
+                # (set in outer_reqs)
+                substituted = self.topology_template.substitution_mappings._update_requirements(self)
+            else:
+                substituted = []
+
             if requires and isinstance(requires, list):
                 for r in requires:
-                    name, value = next(iter(r.items())) # list only has one item
+                    name, value = next(iter(r.items()))  # list only has one item
+                    if name in substituted:
+                        continue
                     names.append(name)
                     reqDef, relTpl = self._get_explicit_relationship(name, value)
                     if relTpl:
                         self._relationships.append( (relTpl, r, reqDef) )
+                        if self.substitution:
+                            # this needs to be called before the substituted node.relationships is called
+                            self.substitution.add_relationship(name, value, relTpl)
 
             # add requirements on the type definition that were not defined by the template
             for name, req_on_type in type_requirements.items():
-                if name not in names:
+                if name not in names and name not in substituted:
                     node = req_on_type.get('node')
                     is_template = node and self.find_node_related_template(node)
                     if is_template:
@@ -436,11 +460,15 @@ class NodeTemplate(EntityTemplate):
                     ValidationError(message=msg))
 
     def _validate_nodefilter_filter(self, node_filter, cap_label=''):
-        valid = True
         if cap_label:
             name = 'capability "%s" on nodefilter on template "%s"' % (cap_label, self.name)
         else:
             name = 'nodefilter on template "%s"' % self.name
+        return self.validate_filter(node_filter, name)
+
+    @staticmethod
+    def validate_filter(node_filter, name):
+        valid = True
         if not isinstance(node_filter, dict):
             ExceptionCollector.appendException(
                 TypeMismatchError(

@@ -251,10 +251,16 @@ class EntityTemplate(object):
                   what='"properties" of template "%s"' % self.name,
                   type='dict'))
             return {}
-        if not self.entity_tpl.get(self.IMPORTED):
+        if self._should_validate_properties():
             # this is just a placeholder template for the imported one so it might not have properties
             self._common_validate_properties(self.type_definition, properties, self.additionalProperties)
         return properties
+
+    def _should_validate_properties(self):
+        return not self.entity_tpl.get(self.IMPORTED)
+
+    def revalidate_properties(self):
+        self._common_validate_properties(self.type_definition, self._properties_tpl, self.additionalProperties)
 
     def _validate_capabilities(self):
         type_capabilities = self.type_definition.get_capabilities_def()

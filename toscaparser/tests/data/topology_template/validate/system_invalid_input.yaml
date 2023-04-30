@@ -19,6 +19,8 @@ topology_template:
   node_templates:
     mq:
       type: example.QueuingSubsystem
+      directives:
+      - substitute
       properties:
         server_ip: { get_input: mq_server_ip }
         server_port: { get_input: mq_server_port }

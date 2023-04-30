@@ -48,7 +48,6 @@ class TopologyTemplate(object):
                  parsed_params=None,
                  tosca_template=None):
         self.tpl = template
-        self.sub_mapped_node_template = None
         self.tosca_template = tosca_template
         if self.tpl:
             self.custom_defs = custom_defs or {}
@@ -63,12 +62,18 @@ class TopologyTemplate(object):
             self.policies = self._policies()
             self.workflows = self._workflows()
             if not exception.ExceptionCollector.exceptionsCaught():
-              if self.processIntrinsicFunctions:
-                self._process_intrinsic_functions()
-              else:
-                self._validate_intrinsic_functions()
+                if self.processIntrinsicFunctions:
+                    self._process_intrinsic_functions()
+                else:
+                    self._validate_intrinsic_functions()
 
-            self.substitution_mappings = self._substitution_mappings()
+            self.substitution_mappings = None
+            tpl_substitution_mapping = self._tpl_substitution_mappings()
+            if tpl_substitution_mapping:
+                self.substitution_mappings = SubstitutionMappings(tpl_substitution_mapping, self)
+
+    def copy(self):
+        return TopologyTemplate(self.tpl, self.custom_defs, self.parsed_params, self.tosca_template)
 
     def _inputs(self):
         inputs = []
@@ -115,7 +120,7 @@ class TopologyTemplate(object):
                 nodetemplates[name] = tpl
         return nodetemplates
 
-    def add_template(self, name, tpl):
+    def add_template(self, name, tpl, get_relationships=True):
         # if name in self.node_templates:
         #     exception.ExceptionCollector.appendException(
         #           exception.ValidationError(message=
@@ -129,7 +134,10 @@ class TopologyTemplate(object):
             self.custom_defs,
             self.relationship_templates)
         node.validate(self)
-        node.relationships # this will update the relationship_tpl of the target node
+        if get_relationships:
+            # this will update the relationship_tpl of the target node
+            # call after topology is complete
+            node.relationships
         self.node_templates[name] = node
         return node
 
@@ -151,14 +159,26 @@ class TopologyTemplate(object):
 
     def _substitution_mappings(self):
         tpl_substitution_mapping = self._tpl_substitution_mappings()
-        # if tpl_substitution_mapping and self.sub_mapped_node_template:
         if tpl_substitution_mapping:
-            return SubstitutionMappings(tpl_substitution_mapping,
-                                        self,
-                                        self.inputs,
-                                        self.outputs,
-                                        self.sub_mapped_node_template,
-                                        self.custom_defs)
+            return SubstitutionMappings(tpl_substitution_mapping, self)
+
+    def _do_substitutions(self, nested_topologies):
+        # if a node template should be substituted, set its substitution
+        remaining_topologies = [t for t in nested_topologies if t is not self]
+        for nodetemplate in self.nodetemplates:
+            if "substitute" not in nodetemplate.directives:
+                continue
+            for topology in remaining_topologies:
+                mappings = topology.substitution_mappings
+                if mappings.match(nodetemplate):
+                    # the node template's properties treated as inputs
+                    # create a new substitution mapping object for the mapped node
+                    nodetemplate.substitution = mappings.substitute(nodetemplate, remaining_topologies)
+                    break
+            else:
+                exception.ExceptionCollector.appendException(
+                      exception.ValidationError(message=
+                          'No substitute topology found for "%s"' % nodetemplate.name))
 
     def _policies(self):
         policies = []
@@ -412,6 +432,7 @@ class TopologyTemplate(object):
         for output in self.outputs:
             ExceptionCollector.near = f' in output "{output.name}"'
             functions.get_function(self, self.outputs, output.value)
+        ExceptionCollector.near = ""
 
     def validate_relationships(self, strict):
         if not hasattr(self, 'nodetemplates'):
@@ -428,7 +449,10 @@ class TopologyTemplate(object):
                             functions.get_function(self,
                                                    rel_tpl,
                                                    value)
-            if strict:
+
+            if node_template.substitution:
+                node_template.substitution.topology.validate_relationships(strict)
+            elif strict:
                 for name in node_template.missing_requirements:
                     msg = f'Required requirement "{name}" not defined'
                     ExceptionCollector.appendException(

@@ -39,6 +39,8 @@ topology_template:
 
   substitution_mappings:
     node_type: example.QueuingSubsystem
+    properties:
+      server_port: [server_port]
 
   node_templates:
     tran_app:
@@ -66,7 +68,7 @@ topology_template:
             version: 14.04
 
   outputs:
-    receiver_ip:
+    server_ip:
       description: private IP address of the message receiver application
       value: { get_attribute: [ server, private_address ] }
 

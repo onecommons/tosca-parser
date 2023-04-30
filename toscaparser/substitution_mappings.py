@@ -22,49 +22,108 @@ from toscaparser.common.exception import UnknownOutputError
 from toscaparser.common.exception import ValidationError
 from toscaparser.elements.nodetype import NodeType
 from toscaparser.utils.gettextutils import _
+from toscaparser.nodetemplate import NodeTemplate
 
-log = logging.getLogger('tosca')
+log = logging.getLogger("tosca")
 
 
 class SubstitutionMappings(object):
-    '''SubstitutionMappings class declaration
+    """SubstitutionMappings class declaration
 
     SubstitutionMappings exports the topology template as an
     implementation of a Node type.
-    '''
+    """
 
-    SECTIONS = (NODE, NODE_TYPE, REQUIREMENTS, CAPABILITIES, PROPERTIES,
-                        SUBSTITUTION_FILTER, ATTRIBUTES, INTERFACES) = \
-               ('node', 'node_type', 'requirements', 'capabilities', 'properties',
-               'substitution_filter', 'attributes', 'interfaces')
+    # added in 1.3: substitution_filter, attributes, interfaces (and node is an extension)
+    SECTIONS = (
+        NODE,
+        NODE_TYPE,
+        REQUIREMENTS,
+        CAPABILITIES,
+        PROPERTIES,
+        SUBSTITUTION_FILTER,
+        ATTRIBUTES,
+        INTERFACES,
+    ) = (
+        "node",
+        "node_type",
+        "requirements",
+        "capabilities",
+        "properties",
+        "substitution_filter",
+        "attributes",
+        "interfaces",
+    )
 
-    # XXX added in 1.3: substitution_filter, attributes, interfaces,
-    # XXX currently only supports property name to input name mapping
+    OPTIONAL_OUTPUTS = ["tosca_id", "tosca_name", "state"]
 
-    OPTIONAL_OUTPUTS = ['tosca_id', 'tosca_name', 'state']
-
-    def __init__(self, sub_mapping_def, topology, inputs, outputs,
-                 sub_mapped_node_template, custom_defs):
+    def __init__(self, sub_mapping_def, topology):
         self.topology = topology
         self.sub_mapping_def = sub_mapping_def
-        self.inputs = {input.name : input for input in inputs} if inputs else {}
-        self.outputs = outputs or []
-        self.sub_mapped_node_template = sub_mapped_node_template
-        self.custom_defs = custom_defs or {}
-        self.node_definition = None
+        if topology:
+            self.inputs = {input.name: input for input in topology.inputs}
+            self.outputs = topology.outputs or []
+        else:
+            self.inputs = {}
+            self.outputs = []
+        self.sub_mapped_node_template = None
+        self.node_type = None
         self._capabilities = None
         self._requirements = None
         self._properties = None
+        self._node_template = None
+        self._outer_relationships = []
         self._validate()
+
+    def match(self, nodetemplate):
+        if self.node_type and self.node_type.is_derived_from(nodetemplate.type):
+            if self.substitution_filter:
+                return nodetemplate.match_nodefilter(self.substitution_filter)
+            return True
+        return False
+
+    def _make_node(self):
+        tpl = dict(type=self.node_type.type, properties=self.properties)
+        # XXX capabilities, requirements, attributes
+        return self.topology.add_template("_substitution_mapping", tpl, False)
+
+    def substitute(self, nodetemplate, remaining_topologies):
+        if nodetemplate:
+            assert not self._outer_relationships
+            # each substituted node template should have its own topology
+            topology = self.topology.copy()
+            return topology.substitution_mappings._substitute(
+                nodetemplate, remaining_topologies
+            )
+        else:
+            return self._substitute(nodetemplate, remaining_topologies)
+
+    def _substitute(self, nodetemplate, remaining_topologies):
+        if not self._node_template:
+            self._node_template = self._make_node()
+
+        if nodetemplate:
+            # update our node template with the substituted template's properties:
+            current_props = self._node_template.get_properties()
+            for p in nodetemplate.get_properties_objects():
+                if p.name in current_props:
+                    # XXX what if schema is incompatible?
+                    current_props[p.name].value = p.value
+                else:
+                    self._node_template._properties.append(p)
+            nodetemplate.substitution = self
+            self.sub_mapped_node_template = nodetemplate
+
+        self._node_template.revalidate_properties()
+        # topology might have to do its own substitutions:
+        if remaining_topologies:
+            self.topology._do_substitutions(remaining_topologies)
+        return self
 
     @property
     def type(self):
         if self.sub_mapping_def:
             return self.sub_mapping_def.get(self.NODE_TYPE)
-
-    @property
-    def node_type(self):
-        return self.sub_mapping_def.get(self.NODE_TYPE)
 
     @property
     def node(self):
@@ -79,22 +138,70 @@ class SubstitutionMappings(object):
         return self.sub_mapping_def.get(self.REQUIREMENTS)
 
     @property
+    def substitution_filter(self):
+        return self.sub_mapping_def.get(self.SUBSTITUTION_FILTER)
+
+    @property
     def properties(self):
+        # 3.8.8 Property mapping
         if self._properties is None:
             self._properties = {}
             mapping = self.sub_mapping_def.get(self.PROPERTIES)
-            if mapping:
-                self._map(mapping, self.inputs, self._properties)
+            if mapping is not None:
+                self._map(mapping, self._properties)
+            else:
+                # property mapping not defined, use all the inputs
+                inputs = self.topology.parsed_params or {}
+                for name, input in self.inputs.items():
+                    if name in inputs:
+                        value = inputs[name]
+                    else:
+                        value = input.default
+                    self._properties[name] = value
         return self._properties
 
-    def _map(self, mapping, source, dest):
+    def add_relationship(self, name, reqDef, rel):
+        # this is called in NodeTemplate.relationships by the outer node template
+        self._outer_relationships.append((name, reqDef, rel))
+
+    def _update_requirements(self, node):
+        # traceback.print_stack()
+        # this is called in NodeTemplate.relationships by the inner node template
+        names = []
+        if node is self._node_template:
+            for name, reqDef, rel in self._outer_relationships:
+                names.append(name)
+                node._relationships.append((rel, {name: reqDef}, reqDef))
+        self._outer_relationships = []
+        return names
+
+    def _map(self, mapping, dest):
+        inputs = self.topology.parsed_params or {}
         for propname, value in mapping.items():
             # map property from input
+            if isinstance(value, dict):
+                if "mapping" not in value:
+                    ExceptionCollector.appendException(
+                        UnknownFieldError(what="SubstitutionMappings", field=value)
+                    )
+                    continue
+                value = value["mapping"]
             if isinstance(value, list):
                 input = value[0]
             else:
                 input = value
-            dest[propname] = source[input]
+            if input in inputs:
+                dest[propname] = inputs[input]
+            elif input in self.inputs:
+                dest[propname] = self.inputs[input].default
+            else:
+                ExceptionCollector.appendException(
+                    MissingRequiredInputError(
+                        what=_("SubstitutionMappings with node_type ")
+                        + self.node_type.type,
+                        input_name=input,
+                    )
+                )
 
     def _validate(self):
         # Basic validation
@@ -102,11 +209,21 @@ class SubstitutionMappings(object):
         if not self._validate_type():
             return
 
-        # SubstitutionMapping class syntax validation
-        # XXX self._validate_inputs()
-        self._validate_capabilities()
-        self._validate_requirements()
-        self._validate_properties()
+        if self.node:
+            for key in [self.PROPERTIES, self.REQUIREMENTS, self.CAPABILITIES]:
+                if key in self.sub_mapping_def:
+                    ExceptionCollector.appendException(
+                        ValidationError(
+                            message=_(
+                                "substitution_mappings with explicit node declaration can not have a %s mapping declared"
+                            )
+                            % key
+                        )
+                    )
+        if self.substitution_filter:
+            NodeTemplate.validate_filter(
+                self.substitution_filter, "substitution_filter"
+            )
         self._validate_outputs()
 
     def _validate_keys(self):
@@ -114,8 +231,8 @@ class SubstitutionMappings(object):
         for key in self.sub_mapping_def.keys():
             if key not in self.SECTIONS:
                 ExceptionCollector.appendException(
-                    UnknownFieldError(what=_('SubstitutionMappings'),
-                                      field=key))
+                    UnknownFieldError(what=_("SubstitutionMappings"), field=key)
+                )
 
     def _validate_type(self):
         """validate the node_type of substitution mappings."""
@@ -123,127 +240,32 @@ class SubstitutionMappings(object):
             node = self.topology.node_templates.get(self.node)
             if not node:
                 ExceptionCollector.appendException(
-                  ValidationError(message=_('Unknown node "%s" declared on substitution_mappings') % self.node)
+                    ValidationError(
+                        message=_('Unknown node "%s" declared on substitution_mappings')
+                        % self.node
+                    )
                 )
             else:
-                self.node_definition = node.type_definition
+                self._node_template = node
+                self.node_type = node.type_definition
             return
 
         node_type = self.sub_mapping_def.get(self.NODE_TYPE)
         if not node_type:
             ExceptionCollector.appendException(
                 MissingRequiredFieldError(
-                    what=_('SubstitutionMappings used in topology_template'),
-                    required=self.NODE_TYPE))
+                    what=_("SubstitutionMappings used in topology_template"),
+                    required=self.NODE_TYPE,
+                )
+            )
             return False
 
-        node_type_def = self.custom_defs.get(node_type)
+        node_type_def = self.topology.custom_defs.get(node_type)
         if not node_type_def:
-            ExceptionCollector.appendException(
-                InvalidNodeTypeError(what=node_type))
+            ExceptionCollector.appendException(InvalidNodeTypeError(what=node_type))
             return False
-        self.node_definition = NodeType(self.node_type, self.custom_defs)
+        self.node_type = NodeType(node_type, self.topology.custom_defs)
         return True
-
-
-    def _validate_inputs(self):
-        """validate the inputs of substitution mappings.
-
-        The inputs defined by the topology template have to match the
-        properties of the node type or the substituted node. If there are
-        more inputs than the substituted node has properties, default values
-        must be defined for those inputs.
-        """
-        # reverse property name to input name mapping
-        reverse_property_mappings = {v : n for n,v in self.sub_mapping_def.get(self.PROPERTIES, {}).items()}
-        all_inputs = set([reverse_property_mappings.get(input, input) for input in self.inputs])
-        required_properties = set([p.name for p in
-                                   self.node_definition.
-                                   get_properties_def_objects()
-                                   if p.required and p.default is None])
-        # Must provide inputs for required properties of node type.
-        for property in required_properties:
-            # Check property which is 'required' and has no 'default' value
-            if property not in all_inputs:
-                ExceptionCollector.appendException(
-                    MissingRequiredInputError(
-                        what=_('SubstitutionMappings with node_type ')
-                        + self.node_type,
-                        input_name=property))
-
-        # If the optional properties of node type need to be customized by
-        # substituted node, it also is necessary to define inputs for them,
-        # otherwise they are not mandatory to be defined.
-        customized_parameters = set(self.sub_mapped_node_template
-                                    .get_properties().keys()
-                                    if self.sub_mapped_node_template else [])
-        all_properties = set(self.node_definition.get_properties_def())
-        for parameter in customized_parameters - all_inputs:
-            if parameter in all_properties:
-                ExceptionCollector.appendException(
-                    MissingRequiredInputError(
-                        what=_('SubstitutionMappings with node_type ')
-                        + self.node_type,
-                        input_name=parameter))
-
-        # Additional inputs are not in the properties of node type must
-        # provide default values. Currently the scenario may not happen
-        # because of parameters validation in nodetemplate, here is a
-        # guarantee.
-        for input in self.inputs.values():
-            if input.name in all_inputs - all_properties \
-               and input.default is None:
-                ExceptionCollector.appendException(
-                    MissingDefaultValueError(
-                        what=_('SubstitutionMappings with node_type ')
-                        + self.node_type,
-                        input_name=input.name))
-
-    def _validate_capabilities(self):
-        """validate the capabilities of substitution mappings."""
-
-        # The capabilites must be in node template which be mapped.
-        tpls_capabilities = self.sub_mapping_def.get(self.CAPABILITIES)
-        node_capabilities = self.sub_mapped_node_template.get_capabilities() \
-            if self.sub_mapped_node_template else None
-        for cap in node_capabilities.keys() if node_capabilities else []:
-            if (tpls_capabilities and
-                    cap not in list(tpls_capabilities.keys())):
-                pass
-                # ExceptionCollector.appendException(
-                #    UnknownFieldError(what='SubstitutionMappings',
-                #                      field=cap))
-
-    def _validate_requirements(self):
-        """validate the requirements of substitution mappings."""
-
-        # The requirements must be in node template wchich be mapped.
-        tpls_requirements = self.sub_mapping_def.get(self.REQUIREMENTS)
-        node_requirements = self.sub_mapped_node_template.requirements \
-            if self.sub_mapped_node_template else None
-        for req in node_requirements if node_requirements else []:
-            if (tpls_requirements and
-                    req not in list(tpls_requirements.keys())):
-                pass
-                # ExceptionCollector.appendException(
-                #    UnknownFieldError(what='SubstitutionMappings',
-                #                      field=req))
-
-    def _validate_properties(self):
-        """validate the properties of substitution mappings."""
-        # The properties in the substitution_mappings must be present
-        # in the node template properties.
-        tpls_properties = self.sub_mapping_def.get(self.PROPERTIES)
-        node_properties = \
-            self.sub_mapped_node_template.get_properties_objects() \
-            if self.sub_mapped_node_template else None
-        for req in node_properties if node_properties else []:
-            if (tpls_properties and
-                    req not in list(tpls_properties.keys())):
-                pass
-                # ExceptionCollector.appendException(
-                #    UnknownFieldError(what='SubstitutionMappings',
-                #                      field=req))
 
     def _validate_outputs(self):
         """validate the outputs of substitution mappings.
@@ -260,9 +282,11 @@ class SubstitutionMappings(object):
         # it's reasonable that there are more inputs than the node type
         # has properties, the specification will be amended?
         for output in self.outputs:
-            if output.name not in self.node_definition.get_attributes_def():
+            if output.name not in self.node_type.get_attributes_def():
                 ExceptionCollector.appendException(
                     UnknownOutputError(
-                        where=_('SubstitutionMappings with node_type ')
+                        where=_("SubstitutionMappings with node_type ")
                         + self.node_type,
-                        output_name=output.name))
+                        output_name=output.name,
+                    )
+                )

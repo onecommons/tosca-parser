@@ -195,8 +195,7 @@ class TopologyTemplateTest(TestCase):
             'to verify valid values.')
         err = self.assertRaises(
             exception.UnknownFieldError,
-            lambda: SubstitutionMappings(sub_mappings, None, None,
-                                         None, None, None))
+            lambda: SubstitutionMappings(sub_mappings, None))
         self.assertEqual(expected_message, err.__str__())
 
     def test_missing_required_keyname(self):
@@ -213,8 +212,7 @@ class TopologyTemplateTest(TestCase):
                              'is missing required field "node_type".')
         err = self.assertRaises(
             exception.MissingRequiredFieldError,
-            lambda: SubstitutionMappings(sub_mappings, None, None,
-                                         None, None, None))
+            lambda: SubstitutionMappings(sub_mappings, None))
         self.assertEqual(expected_message, err.__str__())
 
     def test_invalid_nodetype(self):
@@ -228,17 +226,14 @@ class TopologyTemplateTest(TestCase):
         '''
         sub_mappings = (toscaparser.utils.yamlparser.
                         simple_parse(tpl_snippet))['substitution_mappings']
-        custom_defs = self._get_custom_types()
         expected_message = _('Node type "example.DatabaseSubsystem1" '
                              'is not a valid type.')
         err = self.assertRaises(
             exception.InvalidNodeTypeError,
-            lambda: SubstitutionMappings(sub_mappings, None, None,
-                                         None, None, custom_defs))
+            lambda: SubstitutionMappings(sub_mappings, self.topo))
         self.assertEqual(expected_message, err.__str__())
 
     def test_system_with_input_validation(self):
-        return # XXX
         tpl_path0 = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "data/topology_template/validate/system_invalid_input.yaml")
@@ -246,6 +241,7 @@ class TopologyTemplateTest(TestCase):
             os.path.dirname(os.path.abspath(__file__)),
             "data/topology_template/validate/"
             "queuingsubsystem_invalid_input.yaml")
+
         errormsg = _('SubstitutionMappings with node_type '
                      'example.QueuingSubsystem is missing '
                      'required input definition of input "server_port".')
@@ -256,7 +252,7 @@ class TopologyTemplateTest(TestCase):
         exception.ExceptionCollector.assertExceptionMessage(
             exception.MissingRequiredInputError, errormsg)
 
-        # Subtemplate deploy standaolone is also invalid.
+        # Subtemplate deploy standalone is also invalid.
         self.assertRaises(exception.ValidationError,
                           lambda: ToscaTemplate(tpl_path1))
         exception.ExceptionCollector.assertExceptionMessage(
