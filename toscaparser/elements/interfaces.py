@@ -267,6 +267,8 @@ def _merge_operations(baseDefs, operations, _source, cls):
 def merge_interfacedefs(base, derived, _source):
     # merge the interfaces defined on the type with the template's interface definitions
     for iName, defs in derived.items():
+        if not isinstance(defs, dict):
+            continue
         # for each interface, see if base defines it too
         cls = getattr(defs, "mapCtor", defs.__class__)
         defs = cls(defs)

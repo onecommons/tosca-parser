@@ -201,7 +201,7 @@ class StatefulEntityType(EntityType):
                 operation_names = None
                 if not isinstance(value, dict):
                     ExceptionCollector.appendException(TypeMismatchError(
-                                                       what=value,
+                                                       what=f"interface {name}",
                                                        type="dict"))
                     continue
                 if name == 'Mock':

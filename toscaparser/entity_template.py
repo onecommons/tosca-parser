@@ -407,3 +407,6 @@ class EntityTemplate(object):
         :return: capability object if found, None otherwise
         """
         return self.get_capabilities().get(name)
+
+    def __repr__(self):
+        return f"{self.__class__}({self.name})"
