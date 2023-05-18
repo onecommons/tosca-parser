@@ -72,7 +72,7 @@ class SubstitutionMappings(object):
         self._requirements = None
         self._properties = None
         self._node_template = None
-        self._outer_relationships = []
+        self._outer_relationships = {}
         self._validate()
 
     def match(self, nodetemplate):
@@ -160,19 +160,39 @@ class SubstitutionMappings(object):
                     self._properties[name] = value
         return self._properties
 
+    def has_property_mapping(self):
+        return self.PROPERTIES in self.sub_mapping_def and not self.node
+
+    def get_declared_properties(self):
+        if self.node:
+            node = self.topology.node_templates.get(self.node)
+            if node:
+                return node._properties_tpl
+        else:
+            return self.properties
+        return {}
+
+    def get_declared_requirement_names(self):
+        if self.node:
+            node = self.topology.node_templates.get(self.node)
+            if node:
+                 # list only has one item
+                return [next(iter(r)) for r in node.requirements]
+        return []  # XXX extract from requirement mapping
+
     def add_relationship(self, name, reqDef, rel):
         # this is called in NodeTemplate.relationships by the outer node template
-        self._outer_relationships.append((name, reqDef, rel))
+        self._outer_relationships.setdefault(name, []).append((name, reqDef, rel))
 
     def _update_requirements(self, node):
         # traceback.print_stack()
         # this is called in NodeTemplate.relationships by the inner node template
         names = []
         if node is self._node_template:
-            for name, reqDef, rel in self._outer_relationships:
-                names.append(name)
-                node._relationships.append((rel, {name: reqDef}, reqDef))
-        self._outer_relationships = []
+            for rels in self._outer_relationships.values():
+                for name, reqDef, rel in rels:
+                    names.append(name)
+                    node._relationships.append((rel, {name: reqDef}, reqDef))
         return names
 
     def _map(self, mapping, dest):
