@@ -83,6 +83,8 @@ class SubstitutionMappings(object):
         return False
 
     def _make_node(self):
+        if not self.node_type:
+            return None
         tpl = dict(type=self.node_type.type, properties=self.properties)
         # XXX capabilities, requirements, attributes
         return self.topology.add_template("_substitution_mapping", tpl, False)
@@ -101,8 +103,13 @@ class SubstitutionMappings(object):
     def _substitute(self, nodetemplate, remaining_topologies):
         if not self._node_template:
             self._node_template = self._make_node()
+        if not self._node_template:
+            return self
 
         if nodetemplate:
+            # we only care about outputs matching attributes when we have a node to substitute
+            self._validate_outputs()
+
             # update our node template with the substituted template's properties:
             current_props = self._node_template.get_properties()
             for p in nodetemplate.get_properties_objects():
@@ -244,7 +251,6 @@ class SubstitutionMappings(object):
             NodeTemplate.validate_filter(
                 self.substitution_filter, "substitution_filter"
             )
-        self._validate_outputs()
 
     def _validate_keys(self):
         """validate the keys of substitution mappings."""
@@ -265,26 +271,24 @@ class SubstitutionMappings(object):
                         % self.node
                     )
                 )
-            else:
-                self._node_template = node
-                self.node_type = node.type_definition
-            return
-
-        node_type = self.sub_mapping_def.get(self.NODE_TYPE)
-        if not node_type:
-            ExceptionCollector.appendException(
-                MissingRequiredFieldError(
-                    what=_("SubstitutionMappings used in topology_template"),
-                    required=self.NODE_TYPE,
+                return False
+            self._node_template = node
+            self.node_type = node.type_definition
+        else:
+            node_type = self.sub_mapping_def.get(self.NODE_TYPE)
+            if not node_type:
+                ExceptionCollector.appendException(
+                    MissingRequiredFieldError(
+                        what=_("SubstitutionMappings used in topology_template"),
+                        required=self.NODE_TYPE,
+                    )
                 )
-            )
-            return False
-
-        node_type_def = self.topology.custom_defs.get(node_type)
-        if not node_type_def:
-            ExceptionCollector.appendException(InvalidNodeTypeError(what=node_type))
-            return False
-        self.node_type = NodeType(node_type, self.topology.custom_defs)
+                return False
+            node_type_def = self.topology.custom_defs.get(node_type)
+            if not node_type_def:
+                ExceptionCollector.appendException(InvalidNodeTypeError(what=node_type))
+                return False
+            self.node_type = NodeType(node_type, self.topology.custom_defs)
         return True
 
     def _validate_outputs(self):
@@ -306,7 +310,7 @@ class SubstitutionMappings(object):
                 ExceptionCollector.appendException(
                     UnknownOutputError(
                         where=_("SubstitutionMappings with node_type ")
-                        + self.node_type,
+                        + self.node_type.type,
                         output_name=output.name,
                     )
                 )

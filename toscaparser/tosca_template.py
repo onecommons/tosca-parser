@@ -228,6 +228,7 @@ class ToscaTemplate(object):
         return custom_defs, nested_tosca_tpls
 
     def _handle_nested_tosca_templates_with_topology(self, custom_types):
+        ExceptionCollector.near = ""
         for filename, tosca_tpl in self.nested_tosca_tpls.items():
             topology_tpl = tosca_tpl.get(TOPOLOGY_TEMPLATE)
             if topology_tpl:
