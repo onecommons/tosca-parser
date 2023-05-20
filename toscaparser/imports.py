@@ -235,9 +235,11 @@ class ImportsLoader(object):
         if path is not None:
             try:
                 doc = self.resolver.load_yaml(self, path, a_file, fragment)
-            except:
+            except Exception as e:
                 msg = _('Import "%s" is not valid.') % path
-                ExceptionCollector.appendException(URLException(what=msg))
+                url_exc = URLException(what=msg)
+                url_exc.__cause__ = e
+                ExceptionCollector.appendException(url_exc)
                 return None, None
             return getattr(doc, "path", path), doc
         else:

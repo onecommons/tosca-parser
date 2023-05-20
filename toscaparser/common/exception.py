@@ -227,21 +227,33 @@ class ExceptionCollector(object):
     @staticmethod
     def getTraceString(traceList):
         traceString = ''
-        for entry in traceList:
-            f, l, m, c = entry[0], entry[1], entry[2], entry[3]
-            traceString += (_('\t\tFile %(file)s, line %(line)s, in '
-                              '%(method)s\n\t\t\t%(call)s\n')
-                            % {'file': f, 'line': l, 'method': m, 'call': c})
+        if traceList:
+          for entry in traceList:
+              f, l, m, c = entry[0], entry[1], entry[2], entry[3]
+              traceString += (_('\t\tFile %(file)s, line %(line)s, in '
+                                '%(method)s\n\t\t\t%(call)s\n')
+                              % {'file': f, 'line': l, 'method': m, 'call': c})
         return traceString
 
     @staticmethod
     def getExceptionReportEntry(exception, full=True, extra=True):
         entry = exception.__class__.__name__ + ': ' + str(exception)
         if extra and getattr(exception, 'near', None):
-          entry += exception.near
+            entry += exception.near
+        if exception.__cause__:
+            entry += f"\nCaused by:{exception.__cause__.__class__.__name__}:{exception.__cause__}\n"
         if full:
             entry += '\n' + ExceptionCollector.getTraceString(exception.trace)
+            if exception.__cause__:
+                cause = exception.__cause__
+                if cause.__traceback__:
+                    cause.trace = traceback.extract_tb(cause.__traceback__)[:-1]
+                else:
+                    cause.trace = ()
+                entry += '\n' + ExceptionCollector.getExceptionReportEntry(cause, full, extra)
         return entry
+
+
 
     @staticmethod
     def getExceptions():
