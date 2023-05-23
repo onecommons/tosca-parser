@@ -60,7 +60,7 @@ class NodeTemplate(EntityTemplate):
         # if we're in a nested topology and we're the root node, defer validation till substitution
         root_topology = self.topology_template.tosca_template and self.topology_template.tosca_template.topology_template
         if root_topology and root_topology is not self.topology_template:
-            if self.name == self.topology_template._tpl_substitution_mappings().get("node"):
+            if self.name in ("_substitution_mapping", self.topology_template._tpl_substitution_mappings().get("node")):
                 return False
         return super()._should_validate_properties()
 
@@ -285,7 +285,7 @@ class NodeTemplate(EntityTemplate):
                         else:
                             ExceptionCollector.appendException(
                           ValidationError(message=
-      'requirement "%s" of node ""%s" is ambiguous, targets more than one template: "%s" and "%s"' %
+      'requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"' %
                                         (name, self.name, related_node.name, found.name)))
                             return None
                     else:

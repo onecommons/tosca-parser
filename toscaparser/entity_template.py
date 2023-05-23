@@ -260,7 +260,7 @@ class EntityTemplate(object):
         return not self.entity_tpl.get(self.IMPORTED)
 
     def revalidate_properties(self):
-        self._common_validate_properties(self.type_definition, self._properties_tpl, self.additionalProperties)
+        self._common_validate_properties(self.type_definition, self.get_properties(), self.additionalProperties)
 
     def _validate_capabilities(self):
         type_capabilities = self.type_definition.get_capabilities_def()
