@@ -126,11 +126,11 @@ class ImportsLoader(object):
             ExceptionCollector.appendException(ValidationError(message=msg))
             return
 
-        for import_def in self.importslist:
-            if isinstance(import_def, dict):
-                if len(import_def) == 1 and "file" not in import_def:
+        for import_tpl in self.importslist:
+            if isinstance(import_tpl, dict):
+                if len(import_tpl) == 1 and "file" not in import_tpl:
                     # old style {name: uri}
-                    import_name, import_uri = list(import_def.items())[0]
+                    import_name, import_def = list(import_tpl.items())[0]
                     if import_name in imports_names:
                         msg = _('Duplicate import name "%s" was found.') % import_name
                         log.error(msg)
@@ -138,23 +138,21 @@ class ImportsLoader(object):
                     imports_names.add(import_name)
                 else:  # new style {"file": uri}
                     import_name = None
-                    import_uri = import_def
+                    import_def = import_tpl
 
             else:  # import_def is just the uri string
                 import_name = None
-                import_uri = import_def
+                import_def = import_tpl
 
-            full_file_name, imported_tpl = self._load_import_template(
-                import_name, import_uri
-            )
+            full_file_name, imported_tpl = self.load_yaml(import_def, import_name)
             if full_file_name is None:
                 return
 
             namespace_prefix = None
-            if isinstance(import_uri, dict):
-                namespace_prefix = import_uri.get(self.NAMESPACE_PREFIX)
+            if isinstance(import_def, dict):
+                namespace_prefix = import_def.get(self.NAMESPACE_PREFIX)
             if imported_tpl:
-                TypeValidation(imported_tpl, import_def)
+                TypeValidation(imported_tpl, import_tpl)
                 self._update_custom_def(imported_tpl, namespace_prefix, full_file_name)
             # XXX should save prefix too
             self._update_nested_tosca_tpls(full_file_name, imported_tpl)
@@ -209,7 +207,22 @@ class ImportsLoader(object):
                     )
                 )
 
-    def _load_import_template(self, import_name, import_uri_def):
+    def load_yaml(self, import_uri_def, import_name=None):
+        path, a_file, fragment = self.resolve_import(import_uri_def, import_name)
+        if path is not None:
+            try:
+                doc = self.resolver.load_yaml(self, path, a_file, fragment)
+            except Exception as e:
+                msg = _('Import "%s" is not valid.') % path
+                url_exc = URLException(what=msg)
+                url_exc.__cause__ = e
+                ExceptionCollector.appendException(url_exc)
+                return None, None
+            return getattr(doc, "path", path), doc
+        else:
+            return None, None
+
+    def resolve_import(self, import_uri_def, import_name=None):
         """Handle custom types defined in imported template files
 
         This method loads the custom type definitions referenced in "imports"
@@ -229,21 +242,39 @@ class ImportsLoader(object):
         | URL      | URL    | OK                           |
         +----------+--------+------------------------------+
         """
-        path, a_file, fragment = self._resolve_import_template(
-            import_name, import_uri_def
-        )
-        if path is not None:
-            try:
-                doc = self.resolver.load_yaml(self, path, a_file, fragment)
-            except Exception as e:
-                msg = _('Import "%s" is not valid.') % path
-                url_exc = URLException(what=msg)
-                url_exc.__cause__ = e
-                ExceptionCollector.appendException(url_exc)
-                return None, None
-            return getattr(doc, "path", path), doc
+        fragment = None
+        repository_name, file_name = self._resolve_import_template(import_name, import_uri_def)
+        is_url = toscaparser.utils.urlutils.UrlUtils.validate_url(file_name)
+        if is_url:
+            # it's an absolute URL, ignore repository
+            repository_name = None
+            is_file = False
+        elif repository_name:
+            is_file = None  # unknown, depends on repository
         else:
-            return None, None
+            if self.path:
+                file_name, is_file, fragment = self._resolve_to_local_path(file_name)
+                if file_name is None:
+                    return None, None, None
+            else:  # template is pre-parsed
+                if file_name and os.path.isabs(file_name):
+                    is_file = True
+                else:
+                    msg = _(
+                        'Relative file name "%(name)s" cannot be used '
+                        "in a pre-parsed input template."
+                    ) % {"name": file_name}
+                    log.error(msg)
+                    ExceptionCollector.appendException(ImportError(msg))
+                    return None, None, None
+
+        url_info = self.resolver.get_url(self, repository_name, file_name, is_file)
+        if not url_info:
+            msg = _('Import "%s" is not valid.') % import_uri_def
+            log.error(msg)
+            ExceptionCollector.appendException(ImportError(msg))
+            return None, None, None
+        return url_info[0], url_info[1], url_info[2] or fragment
 
     def _resolve_import_template(self, import_name, import_uri_def):
         short_import_notation = False
@@ -259,7 +290,7 @@ class ImportsLoader(object):
                             message=_('Repository not found: "%s"') % repository
                         )
                     )
-                    return None, None, None
+                    return None, None
         else:
             file_name = import_uri_def
             repository = None
@@ -272,115 +303,56 @@ class ImportsLoader(object):
             ) % {"import_name": import_name}
             log.error(msg)
             ExceptionCollector.appendException(ValidationError(message=msg))
-            return None, None, None
+        return repository, file_name
 
-        if toscaparser.utils.urlutils.UrlUtils.validate_url(file_name):
-            # it's an absolute URL
-            return self.resolver.get_url(self, repository, file_name, False)
-
-        if not repository:
-            fragment = None
-            import_template = None
-            if self.path:
-                if toscaparser.utils.urlutils.UrlUtils.validate_url(self.path):
-                    if os.path.isabs(file_name):
-                        msg = _(
-                            'Absolute file name "%(name)s" cannot be '
-                            "used in a URL-based input template "
-                            '"%(template)s".'
-                        ) % {"name": file_name, "template": self.path}
-                        log.error(msg)
-                        ExceptionCollector.appendException(ImportError(msg))
-                        return None, None, None
-                    import_template = toscaparser.utils.urlutils.UrlUtils.join_url(
-                        self.path, file_name
-                    )
-                    assert import_template
-                    a_file = False
-                else:
-                    a_file = True
-                    main_a_file = os.path.isfile(self.path)
-                    if "#" in file_name:
-                        file_name, sep, fragment = file_name.rpartition("#")
-                    if os.path.isabs(file_name):
-                        import_template = file_name
-                    elif os.path.isdir(self.path):
-                        import_template = os.path.join(self.path, file_name)
-                    elif main_a_file:
-                        if os.path.isfile(file_name):
-                            import_template = file_name
-                        else:
-                            full_path = os.path.join(
-                                os.path.dirname(os.path.abspath(self.path)), file_name
-                            )
-                            if os.path.isfile(full_path):
-                                import_template = full_path
-                            else:
-                                file_path = file_name.rpartition(os.path.sep)
-                                dir_path = os.path.dirname(os.path.abspath(self.path))
-                                if file_path[0] != "" and dir_path.endswith(
-                                    file_path[0]
-                                ):
-                                    import_template = os.path.join(
-                                        dir_path, file_path[2]
-                                    )
-                                    if not os.path.isfile(import_template):
-                                        msg = _(
-                                            '"%(import_template)s" is'
-                                            "not a valid file"
-                                        ) % {"import_template": import_template}
-                                        log.error(msg)
-                                        ExceptionCollector.appendException
-                                        (ValueError(msg))
-                                else:
-                                    import_template = full_path  # try anyway
-
-            else:  # template is pre-parsed
-                if os.path.isabs(file_name) and os.path.isfile(file_name):
-                    a_file = True
+    def _resolve_to_local_path(self, file_name):
+        fragment = None
+        import_template = None
+        assert self.path
+        is_url = toscaparser.utils.urlutils.UrlUtils.validate_url(self.path)
+        if is_url:
+            if os.path.isabs(file_name):
+                msg = _(
+                    'Absolute file name "%(name)s" cannot be '
+                    "used in a URL-based input template "
+                    '"%(template)s".'
+                ) % {"name": file_name, "template": self.path}
+                log.error(msg)
+                ExceptionCollector.appendException(ImportError(msg))
+                return None, None, None
+            import_template = toscaparser.utils.urlutils.UrlUtils.join_url(
+                self.path, file_name
+            )
+            assert import_template
+        else:
+            main_a_file = os.path.isfile(self.path)
+            if "#" in file_name:
+                file_name, sep, fragment = file_name.rpartition("#")
+            if os.path.isabs(file_name):
+                import_template = file_name
+            elif os.path.isdir(self.path):
+                import_template = os.path.join(self.path, file_name)
+            elif main_a_file:
+                if os.path.isfile(file_name):
                     import_template = file_name
                 else:
-                    msg = _(
-                        'Relative file name "%(name)s" cannot be used '
-                        "in a pre-parsed input template."
-                    ) % {"name": file_name}
-                    log.error(msg)
-                    ExceptionCollector.appendException(ImportError(msg))
-                    return None, None, None
-
-            if not import_template:
-                ExceptionCollector.appendException(
-                    ImportError(_('Import "%s" is not valid.') % import_uri_def)
-                )
-                return None, None, None
-
-            url_info = self.resolver.get_url(self, repository, import_template, a_file)
-            if not url_info:
-                log.error(_('Import "%s" is not valid.') % import_uri_def)
-                ExceptionCollector.appendException(
-                    ImportError(_('Import "%s" is not valid.') % import_uri_def)
-                )
-                return None, None, None
-            return url_info[0], url_info[1], fragment
-
-        if short_import_notation:
-            log.error('Import "%(name)s" is not valid.' % import_uri_def)
-            ExceptionCollector.appendException(
-                ImportError(_('Import "%s" is not valid.') % import_uri_def)
-            )
-            return None, None, None
-
-        assert repository
-        return self._resolve_from_repository(repository, import_name, file_name)
-
-    def _resolve_from_repository(self, repository, import_name, file_name):
-        url_info = self.resolver.get_url(self, repository, file_name)
-        if not url_info:
-            msg = _(
-                'repository url "%(n_uri)s" is not valid in import '
-                'definition "%(tpl)s".'
-            ) % {"n_uri": self.repositories[repository]["url"], "tpl": import_name}
-            log.error(msg)
-            ExceptionCollector.appendException(ImportError(msg))
-            return None, None, None
-        return url_info
+                    dir_path = os.path.dirname(os.path.abspath(self.path))
+                    full_path = os.path.join(dir_path, file_name)
+                    if os.path.isfile(full_path):
+                        import_template = full_path
+                    else:
+                        rel_dir, sep, rel_file = file_name.rpartition(os.path.sep)
+                        if rel_dir and dir_path.endswith(rel_dir):
+                            # if dir parts overlap just try the file part
+                            import_template = os.path.join(dir_path, rel_file)
+                            if not os.path.isfile(import_template):
+                                msg = _(
+                                    '"%(import_template)s" is'
+                                    "not a valid file"
+                                ) % {"import_template": import_template}
+                                log.error(msg)
+                                ExceptionCollector.appendException
+                                (ValueError(msg))
+                        else:
+                            import_template = full_path  # try anyway
+        return import_template, not is_url, fragment
