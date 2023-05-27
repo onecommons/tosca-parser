@@ -1,10 +1,10 @@
 tosca_definitions_version: tosca_simple_yaml_1_0
 imports:
   - test_prefix_defs:
-      file: custom_types/nested_rsyslog.yaml
+      file: nested_rsyslog.yaml
       namespace_prefix: test_namespace_prefix
   - test_second_time_with_another_prefix:
-      file: custom_types/nested_rsyslog.yaml
+      file: nested_rsyslog.yaml
       namespace_prefix: test_2nd_namespace_prefix
 
 node_types:

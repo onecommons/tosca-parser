@@ -5,7 +5,7 @@ description: >
 
 imports:
   - test_import:
-       file: custom_types/logstash.yaml
+       file: logstash.yaml
 
 node_types:
   Rsyslog:
