@@ -70,10 +70,12 @@ class ImportResolver(object):
         return path
 
     def resolve_url(self, importsLoader, base, file_name, repository_name):
-        return os.path.join(base, file_name)
+        path = os.path.join(base, file_name)
+        return path, not is_url(path)
 
-    def load_yaml(self, importsLoader, path, isFile=True, fragment=None):
-        return YAML_LOADER(path, isFile, importsLoader, fragment)
+    def load_yaml(self, importsLoader, path, fragment, ctx):
+        isFile = ctx
+        return YAML_LOADER(path, isFile, importsLoader, fragment), None
 
     def load_imports(self, importsLoader, importslist):
         importsLoader.importslist = importslist
@@ -205,10 +207,11 @@ class ImportsLoader(object):
                 )
 
     def load_yaml(self, import_uri_def, import_name=None):
-        path, fragment = self.resolve_import(import_uri_def, import_name)
-        if path is not None:
+        url_info = self.resolve_import(import_uri_def, import_name)
+        if url_info is not None:
             try:
-                doc = self.resolver.load_yaml(self, path, not is_url(path), fragment)
+                path, fragment, ctx = url_info
+                doc, ctx = self.resolver.load_yaml(self, path, fragment, ctx)
             except Exception as e:
                 msg = _('Import "%s" is not valid.') % path
                 url_exc = URLException(what=msg)
@@ -250,15 +253,15 @@ class ImportsLoader(object):
                     'when a repository is specified ("%(repository)").'
                 ) % {"name": file_name, "repository": repository_name}
                 ExceptionCollector.appendException(ImportError(msg))
-                return None, None
+                return None
 
             base = self.resolver.get_repository_url(self, repository_name)
             if base is None:  # couldn't resolve
-                return None, None
+                return None
             if self.path and not is_url(base) and not os.path.isabs(base):
                 # repository is set to a relative local path
                 base = os.path.normpath(os.path.join(doc_base, base))
-            path = self.resolver.resolve_url(self, base, os.path.normpath(path), repository_name)
+            path, ctx = self.resolver.resolve_url(self, base, os.path.normpath(path), repository_name)
         else:
             base = ""
             if not is_url(path):
@@ -270,7 +273,7 @@ class ImportsLoader(object):
                             '"%(template)s".'
                         ) % {"name": file_name, "template": self.path}
                         ExceptionCollector.appendException(ImportError(msg))
-                        return None, None
+                        return None
                 else:
                     # its a relative path
                     path = os.path.normpath(path)
@@ -280,11 +283,11 @@ class ImportsLoader(object):
                             "in a pre-parsed input template."
                         ) % {"name": file_name}
                         ExceptionCollector.appendException(ImportError(msg))
-                        return None, None
+                        return None
                     base = doc_base
                     # so join with the current location of import
-            path = self.resolver.resolve_url(self, base, path, repository_name)
-        return path, fragment
+            path, ctx = self.resolver.resolve_url(self, base, path, repository_name)
+        return path, fragment, ctx
 
     def _resolve_import_template(self, import_name, import_uri_def):
         if isinstance(import_uri_def, dict):
