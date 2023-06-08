@@ -283,7 +283,7 @@ def merge_interfacedefs(base, derived, _source):
             # add in base's ops and merge interface-level inputs
             baseInputs = baseDefs.get('inputs')
             if baseInputs:  # merge shared inputs
-                inputs = dict(baseInputs, **inputs)
+                inputs = cls(baseInputs, **inputs)
                 defs['inputs'] = inputs
 
             # set shared implementation
