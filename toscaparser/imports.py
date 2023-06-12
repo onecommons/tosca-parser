@@ -65,17 +65,15 @@ class ImportResolver(object):
         repo_def = importsLoader.repositories[repository_name]
         url = repo_def["url"].strip()
         path = normalize_path(url)
-        if not is_url(path):
-            return path
         return path
 
     def resolve_url(self, importsLoader, base, file_name, repository_name):
         path = os.path.join(base, file_name)
         return path, not is_url(path)
 
-    def load_yaml(self, importsLoader, path, fragment, ctx):
+    def load_yaml(self, path, fragment, ctx):
         isFile = ctx
-        return YAML_LOADER(path, isFile, importsLoader, fragment), None
+        return YAML_LOADER(path, isFile, fragment), None
 
     def load_imports(self, importsLoader, importslist):
         importsLoader.importslist = importslist
@@ -211,7 +209,7 @@ class ImportsLoader(object):
         if url_info is not None:
             try:
                 path, fragment, ctx = url_info
-                doc, ctx = self.resolver.load_yaml(self, path, fragment, ctx)
+                doc, ctx = self.resolver.load_yaml(path, fragment, ctx)
             except Exception as e:
                 msg = _('Import "%s" is not valid.') % path
                 url_exc = URLException(what=msg)

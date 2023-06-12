@@ -29,7 +29,7 @@ else:
     yaml_loader = yaml.SafeLoader
 
 
-def load_yaml(path, a_file=True, ctx=None, fragment=None):
+def load_yaml(path, a_file=True, fragment=None):
     f = None
     try:
         if a_file:
