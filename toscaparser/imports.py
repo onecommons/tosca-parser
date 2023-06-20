@@ -99,9 +99,9 @@ class ImportsLoader(object):
         self.resolver = resolver or ImportResolver()
         self.repository_root = None
         if repository_root:
-            repository_root = normalize_path(repository_root)
-            if not is_url(repository_root):
-                self.repository_root = get_base(repository_root)
+            if not is_url(normalize_path(repository_root)):
+                repository_root = get_base(repository_root)
+            self.repository_root = repository_root
         self.path = path
         self.repositories = repositories or {}
         # names of type definition sections
