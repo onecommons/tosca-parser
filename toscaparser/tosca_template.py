@@ -183,7 +183,7 @@ class ToscaTemplate(object):
                  DATA_TYPES, ARTIFACT_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
 
     def _get_all_custom_defs(self):
-        custom_defs, nested_tosca_tpls = self._get_custom_defs(self.tpl, self.path)
+        custom_defs, nested_tosca_tpls = self._get_custom_defs(self.tpl, self.path, None)
         self.nested_tosca_tpls = nested_tosca_tpls
         # Handle custom types defined in current template file
         for type_def in self.get_type_sections():
@@ -192,21 +192,20 @@ class ToscaTemplate(object):
                 custom_defs.update(inner_custom_types)
         return custom_defs
 
-    def _get_custom_defs(self, tpl, path):
+    def _get_custom_defs(self, tpl, path, root_path):
         custom_defs_final = {}
         tosca_tpls = {}
-        custom_defs, nested_imports = self.load_imports(path, tpl)
-        for imported in nested_imports:
-            filename, import_tpl = list(imported.items())[0]
-            tosca_tpls.update(imported)
-            import_defs, nested_tosca_tpls = self._get_custom_defs(import_tpl, filename)
+        custom_defs, nested_imports = self.load_imports(path, tpl, root_path)
+        for filename, (import_tpl, repository) in nested_imports.items():
+            tosca_tpls[filename] = import_tpl
+            import_defs, nested_tosca_tpls = self._get_custom_defs(import_tpl, filename, repository)
             custom_defs_final.update(import_defs)
             tosca_tpls.update(nested_tosca_tpls)
         if custom_defs:
             custom_defs_final.update(custom_defs)
         return custom_defs_final, tosca_tpls
 
-    def load_imports(self, path, tpl):
+    def load_imports(self, path, tpl, root_path):
         """Handle custom types defined in imported template files
 
         This method loads the custom type definitions referenced in "imports"
@@ -218,10 +217,11 @@ class ToscaTemplate(object):
 
         type_sections = self.get_type_sections()
         imports_loader = toscaparser.imports.ImportsLoader(
-            None, path, type_sections, self.tpl.get("repositories"), self.import_resolver
+            None, path, type_sections, self.tpl.get("repositories"),
+            self.import_resolver, root_path
         )
         imports_loader.resolver.load_imports(imports_loader, imports)
-        # nested_tosca_tpls is list of {file_path : tpl} of the imported templates
+        # nested_tosca_tpls is Dict[file_path, (tpl, repository_name)] of the imported templates
         nested_tosca_tpls = imports_loader.get_nested_tosca_tpls()
         # custom defs are merged together (with possibly namespace prefix)
         custom_defs = imports_loader.get_custom_defs()
