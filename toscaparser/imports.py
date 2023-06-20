@@ -260,6 +260,8 @@ class ImportsLoader(object):
                 # repository is set to a relative local path
                 base = os.path.normpath(os.path.join(doc_base, base))
             path, ctx = self.resolver.resolve_url(self, base, os.path.normpath(path), repository_name)
+            if path is None:
+                return None
         else:
             base = ""
             if not is_url(path):
@@ -285,6 +287,8 @@ class ImportsLoader(object):
                     base = doc_base
                     # so join with the current location of import
             path, ctx = self.resolver.resolve_url(self, base, path, repository_name)
+            if path is None:
+                return None
         return path, fragment, ctx
 
     def _resolve_import_template(self, import_name, import_uri_def):
