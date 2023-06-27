@@ -98,7 +98,7 @@ class ImportsLoader(object):
         self.nested_tosca_tpls = {}
         self.resolver = resolver or ImportResolver()
         self.repository_root = None
-        if repository_root:
+        if repository_root is not None:
             if not is_url(normalize_path(repository_root)):
                 repository_root = get_base(repository_root)
             self.repository_root = repository_root

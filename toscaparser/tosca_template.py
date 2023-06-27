@@ -183,7 +183,7 @@ class ToscaTemplate(object):
                  DATA_TYPES, ARTIFACT_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
 
     def _get_all_custom_defs(self):
-        custom_defs, nested_tosca_tpls = self._get_custom_defs(self.tpl, self.path, None)
+        custom_defs, nested_tosca_tpls = self._get_custom_defs(self.tpl, self.path, self.path)
         self.nested_tosca_tpls = nested_tosca_tpls
         # Handle custom types defined in current template file
         for type_def in self.get_type_sections():
@@ -196,9 +196,9 @@ class ToscaTemplate(object):
         custom_defs_final = {}
         tosca_tpls = {}
         custom_defs, nested_imports = self.load_imports(path, tpl, root_path)
-        for filename, (import_tpl, repository) in nested_imports.items():
+        for filename, (import_tpl, root_path) in nested_imports.items():
             tosca_tpls[filename] = import_tpl
-            import_defs, nested_tosca_tpls = self._get_custom_defs(import_tpl, filename, repository)
+            import_defs, nested_tosca_tpls = self._get_custom_defs(import_tpl, filename, root_path)
             custom_defs_final.update(import_defs)
             tosca_tpls.update(nested_tosca_tpls)
         if custom_defs:
