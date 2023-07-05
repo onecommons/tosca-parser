@@ -196,7 +196,7 @@ class ToscaTemplate(object):
         custom_defs_final = {}
         tosca_tpls = {}
         custom_defs, nested_imports = self.load_imports(path, tpl, root_path)
-        for filename, (import_tpl, root_path) in nested_imports.items():
+        for filename, (import_tpl, root_path, prefix) in nested_imports.items():
             tosca_tpls[filename] = import_tpl
             import_defs, nested_tosca_tpls = self._get_custom_defs(import_tpl, filename, root_path)
             custom_defs_final.update(import_defs)
@@ -221,7 +221,7 @@ class ToscaTemplate(object):
             self.import_resolver, root_path
         )
         imports_loader.resolver.load_imports(imports_loader, imports)
-        # nested_tosca_tpls is Dict[file_path, (tpl, repository_name)] of the imported templates
+        # nested_tosca_tpls is Dict[file_path, (tpl, repository_name, prefix)] of the imported templates
         nested_tosca_tpls = imports_loader.get_nested_tosca_tpls()
         # custom defs are merged together (with possibly namespace prefix)
         custom_defs = imports_loader.get_custom_defs()

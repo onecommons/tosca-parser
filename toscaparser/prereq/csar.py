@@ -179,7 +179,7 @@ class CSAR(object):
 
                 # Validate external references of each nested template.
                 if nested_tosca_tpls:
-                    for filename, (tpl, repository_name) in nested_tosca_tpls.items():
+                    for filename, (tpl, repository_name, prefix) in nested_tosca_tpls.items():
                         self._validate_external_artifact_imports(
                             tpl,
                             filename)

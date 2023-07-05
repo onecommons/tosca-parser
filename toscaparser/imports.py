@@ -159,9 +159,8 @@ class ImportsLoader(object):
             if imported_tpl:
                 TypeValidation(imported_tpl, import_tpl)
                 self._update_custom_def(imported_tpl, namespace_prefix, full_file_name)
-            # XXX should save prefix too
             root_path = base if repository_name else self.repository_root
-            self._update_nested_tosca_tpls(full_file_name, root_path, imported_tpl)
+            self._update_nested_tosca_tpls(full_file_name, root_path, imported_tpl, namespace_prefix)
 
     def _update_custom_def(self, imported_tpl, namespace_prefix, path):
         path = os.path.normpath(path)
@@ -186,9 +185,9 @@ class ImportsLoader(object):
                 else:
                     self.custom_defs.update(outer_custom_types)
 
-    def _update_nested_tosca_tpls(self, full_file_name, root_path, custom_tpl):
+    def _update_nested_tosca_tpls(self, full_file_name, root_path, custom_tpl, namespace_prefix):
         if full_file_name and custom_tpl:
-            self.nested_tosca_tpls[full_file_name] = (custom_tpl, root_path)
+            self.nested_tosca_tpls[full_file_name] = (custom_tpl, root_path, namespace_prefix)
 
     def _validate_import_keys(self, import_name, import_uri_def):
         if self.FILE not in import_uri_def.keys():
