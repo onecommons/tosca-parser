@@ -71,7 +71,10 @@ class StatefulEntityType(EntityType):
                     MissingTypeError(what=entitytype))
         self.type = entitytype
         self.custom_def = custom_def
-        self._source = self.defs and self.defs.get("_source") or None
+        source = self.defs and self.defs.get("_source") or None
+        if isinstance(source, dict):
+            source = source.get("path")
+        self._source = source
         self.__ancestors = None
         self._interfaces = None
         self._property_defs = None

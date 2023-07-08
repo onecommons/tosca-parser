@@ -155,14 +155,18 @@ class ImportsLoader(object):
             if isinstance(import_def, dict):
                 namespace_prefix = import_def.get(self.NAMESPACE_PREFIX)
                 repository_name = import_def.get(self.REPOSITORY)
+                file_name = import_def.get(self.FILE)
+            else:
+                file_name = import_def
 
+            root_path = base if repository_name else self.repository_root
             if imported_tpl:
                 TypeValidation(imported_tpl, import_tpl)
-                self._update_custom_def(imported_tpl, namespace_prefix, full_file_name)
-            root_path = base if repository_name else self.repository_root
+                self._update_custom_def(imported_tpl, namespace_prefix, full_file_name,
+                                        root_path, repository_name, base, file_name)
             self._update_nested_tosca_tpls(full_file_name, root_path, imported_tpl, namespace_prefix)
 
-    def _update_custom_def(self, imported_tpl, namespace_prefix, path):
+    def _update_custom_def(self, imported_tpl, namespace_prefix, path, root_path, repository_name, base, file_name):
         path = os.path.normpath(path)
         for type_def_section in self.type_definition_list:
             outer_custom_types = imported_tpl.get(type_def_section)
@@ -173,7 +177,9 @@ class ImportsLoader(object):
                     "artifact_types",
                 ]:
                     for custom_def in outer_custom_types.values():
-                        custom_def["_source"] = path
+                        custom_def["_source"] = dict(path=path, prefix=namespace_prefix,
+                                                     root=root_path, repository=repository_name,
+                                                     base=base, file=file_name)
                 if namespace_prefix:
                     prefix_custom_types = {}
                     for type_def_key in outer_custom_types:
