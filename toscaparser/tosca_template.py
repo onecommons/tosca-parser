@@ -69,12 +69,13 @@ class ToscaTemplate(object):
 
     '''Load the template data.'''
     def __init__(self, path=None, parsed_params=None, a_file=True,
-                 yaml_dict_tpl=None, import_resolver=None, verify=True):
+                 yaml_dict_tpl=None, import_resolver=None, verify=True, fragment=""):
 
         ExceptionCollector.start()
         self.a_file = a_file
         self.input_path = None
         self.path = None
+        self.fragment = ""
         self.tpl = None
         self.import_resolver = import_resolver
         self.nested_tosca_tpls = {}
