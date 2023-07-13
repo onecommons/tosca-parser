@@ -261,7 +261,7 @@ class ImportsLoader(object):
             if is_url(path) or os.path.isabs(path):
                 msg = _(
                     'Absolute URL "%(name)s" cannot be used '
-                    'when a repository is specified ("%(repository)").'
+                    'when a repository is specified ("%(repository)s").'
                 ) % {"name": file_name, "repository": repository_name}
                 ExceptionCollector.appendException(ImportError(msg))
                 return None
