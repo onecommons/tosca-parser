@@ -346,6 +346,7 @@ def _create_operations(interfacesDefs, type_definition, template):
             if not isinstance(op_def, dict):
                 if op_def == "not_implemented":
                     continue
+                # if empty, copy the shared implementation
                 op_def = cls(implementation=op_def or implementation)
             elif implementation and not op_def.get('implementation'):
                 op_def['implementation'] = implementation

@@ -159,15 +159,19 @@ class ImportsLoader(object):
             else:
                 file_name = import_def
 
-            root_path = base if repository_name else self.repository_root
             if imported_tpl:
                 TypeValidation(imported_tpl, import_tpl)
                 self._update_custom_def(imported_tpl, namespace_prefix, full_file_name,
-                                        root_path, repository_name, base, file_name)
+                                        repository_name, base, file_name)
+            root_path = base if repository_name else self.repository_root
             self._update_nested_tosca_tpls(full_file_name, root_path, imported_tpl, namespace_prefix)
 
-    def _update_custom_def(self, imported_tpl, namespace_prefix, path, root_path, repository_name, base, file_name):
+    def _update_custom_def(self, imported_tpl, namespace_prefix, path, repository_name, base, file_name):
         path = os.path.normpath(path)
+        if repository_name:
+            root_path = self.resolver.get_repository_url(self, repository_name)
+        else:
+            root_path = self.repository_root
         for type_def_section in self.type_definition_list:
             outer_custom_types = imported_tpl.get(type_def_section)
             if outer_custom_types:
