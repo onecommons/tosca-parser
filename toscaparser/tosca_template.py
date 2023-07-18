@@ -75,7 +75,7 @@ class ToscaTemplate(object):
         self.a_file = a_file
         self.input_path = None
         self.path = None
-        self.fragment = ""
+        self.fragment = fragment
         self.tpl = None
         self.import_resolver = import_resolver
         self.nested_tosca_tpls = {}
