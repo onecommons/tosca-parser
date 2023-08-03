@@ -128,13 +128,17 @@ class OperationDef:
         elif interfacename == MOCK:
             self.interfacetype = MOCK
         if not self.interfacetype:
-            ExceptionCollector.appendException(
-                TypeError(
-                    'Interface type for interface "{0}" not found'.format(
-                        self.interfacename
+            if interfaces:
+                ExceptionCollector.appendException(
+                    TypeError(
+                        'Interface type for interface "{0}" not found'.format(
+                            self.interfacename
+                        )
                     )
                 )
-            )
+            else:
+                # not calling for a type with an "interfaces" definition -- assume its name is the type
+                self.interfacetype = interfacename
         self.type = self.interfacetype
         if value:
             if isinstance(self.value, dict):
@@ -310,7 +314,7 @@ def _create_operations(interfacesDefs, type_definition, template):
     interfaces = []
     cls = getattr(interfacesDefs, "mapCtor", interfacesDefs.__class__)
     defaults = interfacesDefs.pop('defaults', cls())
-    for interface_type, value in interfacesDefs.items():
+    for interface_name, value in interfacesDefs.items():
         cls = getattr(value, "mapCtor", value.__class__)
         # merge in shared:
         # shared inputs
@@ -353,7 +357,7 @@ def _create_operations(interfacesDefs, type_definition, template):
             if _source:
                 op_def['_source'] = _source
             iface = OperationDef(type_definition,
-                                 interface_type,
+                                 interface_name,
                                  node_template=template,
                                  name=op,
                                  value=op_def,
@@ -364,7 +368,7 @@ def _create_operations(interfacesDefs, type_definition, template):
         # add a "default" operation that has the shared inputs and implementation
         if inputs or implementation:
             iface = OperationDef(type_definition,
-                                 interface_type,
+                                 interface_name,
                                  node_template=template,
                                  name='default',
                                  value=cls(implementation=implementation,
