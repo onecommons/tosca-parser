@@ -133,11 +133,10 @@ class EntityType(object):
                 for p in p._ancestors(seen):
                     yield p
 
-    def get_value(self, ndtype, defs=None, parent=None, addPath=False, merge=False):
+    def get_value(self, ndtype, defs=None, parent=None, merge=False):
         '''
         If set, `defs` should be from the template otherwise uses defs from this type
         `parent` merges in defs from this type and ancestors
-        `addPath` adds a `_source` key to the value if the parent type has a `_source` attribute
         '''
         value = None
         if defs is None:
@@ -163,10 +162,6 @@ class EntityType(object):
                             for k, v in parent_value.items():
                                 if k not in value:
                                     value[k] = v
-                                    if addPath and p._source:
-                                        for item in v.values():
-                                            if isinstance(item, dict):
-                                                item['_source'] = p._source
                                 elif merge and isinstance(v, dict) and isinstance(value[k], dict):
                                     # merge value with parent and merge "metadata" keys if present
                                     value_value = value[k]
@@ -176,7 +171,7 @@ class EntityType(object):
                                     if metadata and "metadata" in v:
                                         value[k]["metadata"] = cls(v["metadata"], **value_value["metadata"])
 
-                        if isinstance(value, list):
+                        elif merge and isinstance(value, list):
                             # append parent items if unique to list
                             assert isinstance(parent_value, list), ndtype
                             for p_value in parent_value:
@@ -184,16 +179,12 @@ class EntityType(object):
                                     value.append(p_value)
                     else:
                         value = copy.copy(parent_value)
-                        if addPath and p._source and isinstance(value, dict):
-                            for item in value.values():
-                                if isinstance(item, dict):
-                                    item['_source'] = p._source
         return value
 
     def get_definition(self, ndtype):
         # retrieves property and attribute definitions
         # XXX validate that the derived type is compatible with the base type
-        return self.get_value(ndtype, parent=True, merge=True)
+        return self.get_value(ndtype, None, True, True)
 
 
 _last_version = None

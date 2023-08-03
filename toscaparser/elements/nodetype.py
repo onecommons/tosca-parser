@@ -193,7 +193,7 @@ class NodeType(StatefulEntityType):
 
     @property
     def requirements(self):
-        return self.get_value(self.REQUIREMENTS, None, True)
+        return self.get_value(self.REQUIREMENTS, None, True, True)
 
     @staticmethod
     def merge_requirement_definition(base, current):
