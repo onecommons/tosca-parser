@@ -24,7 +24,7 @@ from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.properties import Property
 from toscaparser.unsupportedtype import UnsupportedType
 from toscaparser.utils.gettextutils import _
-from toscaparser.elements.capabilitytype import CapabilityTypeDef
+from toscaparser.elements.capabilitytype import CapabilityType
 from toscaparser.elements.artifacttype import ArtifactTypeDef
 
 class EntityTemplate(object):
@@ -182,7 +182,7 @@ class EntityTemplate(object):
     def _create_capability(self, capabilitydefs, name, ctype, props):
         c = capabilitydefs.get(name)
         if ctype and (not c or ctype != c.type):
-            c = CapabilityTypeDef(name, ctype, self.type_definition.type,
+            c = CapabilityType(name, ctype, self.type_definition.type,
                                     self.type_definition.custom_def)
         properties = {}
         # first use the definition default value

@@ -12,7 +12,7 @@
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
-from toscaparser.elements.capabilitytype import CapabilityTypeDef
+from toscaparser.elements.capabilitytype import CapabilityType
 import toscaparser.elements.interfaces as ifaces
 from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.elements.statefulentitytype import StatefulEntityType
@@ -181,7 +181,7 @@ class NodeType(StatefulEntityType):
             # 'value' is a dict { 'type': <capability type name> }
             for name, value in caps.items():
                 ctype = value.get('type')
-                cap = CapabilityTypeDef(name, ctype, self.type,
+                cap = CapabilityType(name, ctype, self.type,
                                         self.custom_def)
                 typecapabilities.append(cap)
         return typecapabilities

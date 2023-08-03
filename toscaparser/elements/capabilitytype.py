@@ -14,13 +14,13 @@ from toscaparser.elements.property_definition import PropertyDef
 from toscaparser.elements.statefulentitytype import StatefulEntityType
 
 
-class CapabilityTypeDef(StatefulEntityType):
+class CapabilityType(StatefulEntityType):
     '''TOSCA built-in capabilities type.'''
     TOSCA_TYPEURI_CAPABILITY_ROOT = 'tosca.capabilities.Root'
 
     def __init__(self, name, ctype, ntype, custom_def=None):
         self.name = name
-        super(CapabilityTypeDef, self).__init__(ctype, self.CAPABILITY_PREFIX,
+        super(CapabilityType, self).__init__(ctype, self.CAPABILITY_PREFIX,
                                                 custom_def)
         self.nodetype = ntype
         self.properties = None
@@ -35,7 +35,7 @@ class CapabilityTypeDef(StatefulEntityType):
             return None
         pnode = self.derived_from(self.defs)
         if pnode:
-            return CapabilityTypeDef(self.name, pnode,
+            return CapabilityType(self.name, pnode,
                                      self.nodetype, self.custom_def)
 
     def inherits_from(self, type_names):
