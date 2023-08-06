@@ -104,7 +104,7 @@ class NodeTemplate(EntityTemplate):
 
             if self.topology_template.substitution_mappings:
                 # if this node_template is substituted one, add or replace the outer node templates requirements
-                # (set in outer_reqs)
+                # (set in substitution.add_relationship)
                 substituted = self.topology_template.substitution_mappings._update_requirements(self)
             else:
                 substituted = []
@@ -278,8 +278,10 @@ class NodeTemplate(EntityTemplate):
                 if found:
                     if related_node:
                         if "default" in found.directives:
+                            # this is a default, stick with the first one we found
                             continue
                         elif "default" in related_node.directives:
+                            # replace the default node that we had previously found
                             related_node = found
                             related_capability = found_cap
                         else:
@@ -293,6 +295,10 @@ class NodeTemplate(EntityTemplate):
                         related_capability = found_cap
 
         if related_node:
+            if self.topology_template.substitution_mappings:
+                # the outer topology's node template might have overridden this requirement
+                # (in substitution.add_relationship)
+                related_node, related_capability = self.topology_template.substitution_mappings.maybe_substitute(related_node, related_capability)
             # if relTpl is in available_rel_tpls what if target and source are already assigned?
             relTpl.target = related_node
             relTpl.capability = related_capability
