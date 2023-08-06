@@ -25,9 +25,9 @@ class ScalarUnit(object):
     '''Parent class for scalar-unit type.'''
 
     SCALAR_UNIT_TYPES = (
-        SCALAR_UNIT_SIZE, SCALAR_UNIT_FREQUENCY, SCALAR_UNIT_TIME
+        SCALAR_UNIT_SIZE, SCALAR_UNIT_FREQUENCY, SCALAR_UNIT_TIME, SCALAR_UNIT_BITRATE
     ) = (
-        'scalar-unit.size', 'scalar-unit.frequency', 'scalar-unit.time'
+        'scalar-unit.size', 'scalar-unit.frequency', 'scalar-unit.time', 'scalar-unit.bitrate'
     )
 
     def __init__(self, value):
@@ -136,10 +136,21 @@ class ScalarUnit_Frequency(ScalarUnit):
                         'MHz': 1000000, 'GHz': 1000000000}
 
 
+class ScalarUnit_Bitrate(ScalarUnit):
+
+    SCALAR_UNIT_DEFAULT = 'bps'
+    SCALAR_UNIT_UNITARY = 'bps'
+    SCALAR_UNIT_DICT = {'bps': 1, 'Kbps': 1000, 'Kibps': 1024, 'Mbps': 1000000,
+                        'Mibps': 1048576, 'Gbps': 1000000000,
+                        'Gibps': 1073741824, 'Tbps': 1000000000000,
+                        'Tibps': 1099511627776}
+
+
 scalarunit_mapping = {
     ScalarUnit.SCALAR_UNIT_FREQUENCY: ScalarUnit_Frequency,
     ScalarUnit.SCALAR_UNIT_SIZE: ScalarUnit_Size,
     ScalarUnit.SCALAR_UNIT_TIME: ScalarUnit_Time,
+    ScalarUnit.SCALAR_UNIT_BITRATE: ScalarUnit_Bitrate,
 }
 
 
