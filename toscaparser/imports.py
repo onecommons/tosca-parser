@@ -258,6 +258,8 @@ class ImportsLoader(object):
         +----------+--------+------------------------------+
         """
         repository_name, file_name = self._resolve_import_template(import_name, import_uri_def)
+        if file_name is None:
+            return None
         file_name, sep, fragment = file_name.partition("#")
         path = normalize_path(file_name)
         doc_base = get_base(self.path)
