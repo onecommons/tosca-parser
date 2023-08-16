@@ -231,15 +231,24 @@ class GetAttribute(Function):
     def _find_host_containing_attribute(self, node_template_name=SELF):
         node_template = self._find_node_template(node_template_name)
         if node_template:
-            hosted_on_rel = EntityType.TOSCA_DEF[HOSTED_ON]
             for r in node_template.requirements:
                 for requirement, target_name in r.items():
                     target_node = self._find_node_template(target_name)
+                    if not target_node:
+                      continue
                     target_type = target_node.type_definition
                     for capability in target_type.get_capability_typedefs():
-                        if capability.inherits_from(
-                                hosted_on_rel['valid_target_types']):
+                        if capability:
                             if self._attribute_exists_in_type(target_type):
+                                return target_node
+                            # If requirement was not found, look in node
+                            # template's capabilities
+                            if (len(self.args) > 2 and
+                                    self._get_capability_attribute(target_node,
+                                                                  self.args[1],
+                                                                  self.args[2],
+                                                                  False)
+                                    is not None):
                                 return target_node
                             return self._find_host_containing_attribute(
                                 target_name)
@@ -318,7 +327,8 @@ class GetAttribute(Function):
     def _get_capability_attribute(self,
                                   node_template,
                                   capability_name,
-                                  attr_name):
+                                  attr_name,
+                                  throw_errors=True):
         """Gets a node template capability attribute."""
         caps = node_template.get_capabilities()
         if caps and capability_name in caps.keys():
@@ -327,7 +337,9 @@ class GetAttribute(Function):
             attrs = cap.type_definition.get_attributes_def()
             if attrs and attr_name in attrs.keys():
                 attribute = attrs[attr_name]
-            if not attribute:
+            if attrs and attr_name in attrs:
+                attribute = attrs[attr_name]
+            if attribute is None and throw_errors:
                 ExceptionCollector.appendException(
                     KeyError(_('Attribute "%(attr)s" was not found in '
                                'capability "%(cap)s" of node template '
@@ -337,12 +349,15 @@ class GetAttribute(Function):
                                                   'ntpl1': node_template.name,
                                                   'ntpl2': self.context.name}))
             return attribute
-        msg = _('Requirement/Capability "{0}" referenced from node template '
-                '"{1}" was not found in node template "{2}".').format(
-                    capability_name,
-                    self.context.name,
-                    node_template.name)
-        ExceptionCollector.appendException(KeyError(msg))
+        if throw_errors:
+            msg = _('Requirement/Capability "{0}" referenced from node template '
+                    '"{1}" was not found in node template "{2}".').format(
+                        capability_name,
+                        self.context.name,
+                        node_template.name)
+            ExceptionCollector.appendException(KeyError(msg))
+        else:
+            return None
 
     @property
     def node_template_name(self):
@@ -449,7 +464,7 @@ class GetProperty(Function):
             cap = caps[capability_name]
             property = None
             props = cap.get_properties()
-            if props and property_name in props.keys():
+            if props and property_name in props:
                 property = props[property_name].value
             if property is None and throw_errors:
                 ExceptionCollector.appendException(
@@ -593,10 +608,8 @@ class GetProperty(Function):
                                                self.args[1],
                                                self.context.name)))
 
-    # Add this functions similar to get_attribute case
     def _find_host_containing_property(self, node_template_name=SELF):
         node_template = self._find_node_template(node_template_name)
-        hosted_on_rel = EntityType.TOSCA_DEF[HOSTED_ON]
         for r in node_template.requirements:
             for requirement, target_name in r.items():
                 target_node = self._find_node_template(target_name)
@@ -604,8 +617,7 @@ class GetProperty(Function):
                   continue
                 target_type = target_node.type_definition
                 for capability in target_type.get_capability_typedefs():
-                    if capability.inherits_from(
-                            hosted_on_rel['valid_target_types']):
+                    if capability:
                         if self._property_exists_in_type(target_type):
                             return target_node
                         # If requirement was not found, look in node

@@ -501,7 +501,6 @@ relationship_types:
 
   tosca.relationships.HostedOn:
     derived_from: tosca.relationships.Root
-    valid_target_types: [tosca.capabilities.Container]
 
   tosca.relationships.ConnectsTo:
     derived_from: tosca.relationships.Root
