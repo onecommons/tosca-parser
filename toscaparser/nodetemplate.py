@@ -184,10 +184,8 @@ class NodeTemplate(EntityTemplate):
             reqDef['node'] = value
         return reqDef, self._relationship_from_req(name, reqDef)
 
-    def _relationship_from_req(self, name, reqDef):
-        relationship = reqDef['relationship']
+    def _get_rel_type(self, relationship):
         relTpl = None
-        type = None
         if isinstance(relationship, dict):
             type = relationship.get('type')
             if not type:
@@ -196,7 +194,7 @@ class NodeTemplate(EntityTemplate):
                         what=_('"relationship" used in template '
                               '"%s"') % self.name,
                         required=self.TYPE))
-                return None
+                return None, None, None
         elif (relationship in self.custom_def
                 or relationship in self.type_definition.RELATIONSHIP_TYPE):
             type = relationship
@@ -211,9 +209,15 @@ class NodeTemplate(EntityTemplate):
             else:
                 ExceptionCollector.appendException(
                   ValidationError(message = _('Relationship template "%(relationship)s" was not found'
-                       ' for requirement "%(rname)s" of node "%(nname)s".')
-                     % {'relationship': relationship, 'rname': name, 'nname': self.name}))
-                return None
+                        ' for requirement "%(rname)s" of node "%(nname)s".')
+                      % {'relationship': relationship, 'rname': name, 'nname': self.name}))
+                return None, None, None
+        return relationship, relTpl, type
+
+    def _relationship_from_req(self, name, reqDef):
+        relationship, relTpl, type = self._get_rel_type(reqDef['relationship'])
+        if relationship is None:
+            return None
 
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == type, (relationship, type)
