@@ -58,6 +58,8 @@ INTERFACE_DEF_RESERVED_WORDS = [
     "description",
     "implementation",
     "requirements",
+    "derived_from",
+    "metadata",
 ]
 
 IMPLEMENTATION_DEF_RESERVED_WORDS = (
