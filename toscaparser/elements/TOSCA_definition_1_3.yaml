@@ -215,6 +215,7 @@ node_types:
     derived_from: tosca.nodes.Storage.BlockStorage
     properties:
       name:
+        type: string
         default: ""
 
   tosca.nodes.Storage.ObjectStorage:
