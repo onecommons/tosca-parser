@@ -241,10 +241,15 @@ class Constraint(object):
         self.value_msg = value
         if self.property_type in scalarunit.ScalarUnit.SCALAR_UNIT_TYPES:
             value = scalarunit.get_scalarunit_value(self.property_type, value)
-        if not self._is_valid(value):
+        try:
+            if not self._is_valid(value):
+                err_msg = self._err_msg(value)
+                ExceptionCollector.appendException(ValidationError(message=err_msg))
+        except Exception as e:
             err_msg = self._err_msg(value)
-            ExceptionCollector.appendException(ValidationError(message=err_msg))
-
+            exc = ValidationError(message=err_msg)
+            exc.__cause__ = e
+            ExceptionCollector.appendException(exc)
 
 class Equal(Constraint):
     """Constraint class for "equal"
@@ -708,6 +713,8 @@ class Pattern(Constraint):
         self.match = re.compile(self.constraint_value).match
 
     def _is_valid(self, value):
+        if not isinstance(value, str):
+            return False
         match = self.match(value)
         return match is not None and match.end() == len(value)
 
