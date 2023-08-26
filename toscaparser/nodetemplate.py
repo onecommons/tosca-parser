@@ -214,6 +214,58 @@ class NodeTemplate(EntityTemplate):
                 return None, None, None
         return relationship, relTpl, type
 
+    def _find_matching_node(self, relTpl, req_name, nodetype, capability, node_filter):
+        related_node = None
+        related_capability = None
+        for nodeTemplate in self.topology_template.node_templates.values():
+            found = None
+            found_cap = None
+            # check if node name is node type
+            if not nodetype or nodeTemplate.is_derived_from(nodetype):
+                # should have already returned an error if this assertion is false
+                if capability or relTpl.type_definition.valid_target_types:
+                    capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
+                    if capabilities:
+                        found = nodeTemplate
+                        found_cap = capabilities[0] # first is best match
+                    else:
+                        continue # didn't match capabilities, don't check node_filter
+                if node_filter:
+                    if nodeTemplate.match_nodefilter(node_filter):
+                        found = nodeTemplate
+                    else:
+                        continue
+
+            if found:
+                if related_node:
+                    if "default" in found.directives:
+                        # this is a default, stick with the first one we found
+                        continue
+                    elif "default" in related_node.directives:
+                        # replace the default node that we had previously found
+                        related_node = found
+                        related_capability = found_cap
+                    else:
+                        ExceptionCollector.appendException(
+                      ValidationError(message=
+  'requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"' %
+                                    (req_name, self.name, related_node.name, found.name)))
+                        return None, None
+                else:
+                    related_node = found
+                    related_capability = found_cap
+        return related_node, related_capability
+
+    def _set_relationship(self, related_node, related_capability, relTpl):
+        if self.topology_template.substitution_mappings:
+            # the outer topology's node template might have overridden this requirement
+            # (in substitution.add_relationship)
+            related_node, related_capability = self.topology_template.substitution_mappings.maybe_substitute(related_node, related_capability)
+        # if relTpl is in available_rel_tpls what if target and source are already assigned?
+        relTpl.target = related_node
+        relTpl.capability = related_capability
+        related_node.relationship_tpl.append(relTpl)
+
     def _relationship_from_req(self, name, reqDef):
         relationship, relTpl, type = self._get_rel_type(reqDef['relationship'])
         if relationship is None:
@@ -227,11 +279,6 @@ class NodeTemplate(EntityTemplate):
         node = reqDef.get('node')
         node_filter = reqDef.get('node_filter')
         capability = reqDef.get('capability')
-        min_required = reqDef.get("occurrences", [1])[0]
-        if min_required == 0 and not node and not node_filter:
-            # no criteria for target was specified and requirement isn't required
-            # so assume there isn't a target
-            return None
         related_node = None
         related_capability = None
         if node:
@@ -253,60 +300,26 @@ class NodeTemplate(EntityTemplate):
                         return None
                 related_capability = capabilities[0] # first one is best match
         elif not capability and not relTpl.type_definition.valid_target_types and not node_filter:
-            ExceptionCollector.appendException(
-              ValidationError(message='requirement "%s" of node "%s" must specify a node_filter, a node or a capability' %
-                              (name, self.name)))
+            min_required = reqDef.get("occurrences", [1])[0]
+            if min_required != 0:
+                ExceptionCollector.appendException(
+                  ValidationError(message='requirement "%s" of node "%s" must specify a node_filter, a node or a capability' %
+                                  (name, self.name)))
+            # else: not an error if requirement is optional
             return None
 
-        if not related_node:
-            # check if "node" is a node type
-            for nodeTemplate in self.topology_template.node_templates.values():
-                found = None
-                found_cap = None
-                # check if node name is node type
-                if not node or nodeTemplate.is_derived_from(node):
-                    # should have already returned an error if this assertion is false
-                    if capability or relTpl.type_definition.valid_target_types:
-                        capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
-                        if capabilities:
-                            found = nodeTemplate
-                            found_cap = capabilities[0] # first is best match
-                        else:
-                            continue # didn't match capabilities, don't check node_filter
-                    if node_filter:
-                        if nodeTemplate.match_nodefilter(node_filter):
-                            found = nodeTemplate
-                        else:
-                            continue
-
-                if found:
-                    if related_node:
-                        if "default" in found.directives:
-                            # this is a default, stick with the first one we found
-                            continue
-                        elif "default" in related_node.directives:
-                            # replace the default node that we had previously found
-                            related_node = found
-                            related_capability = found_cap
-                        else:
-                            ExceptionCollector.appendException(
-                          ValidationError(message=
-      'requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"' %
-                                        (name, self.name, related_node.name, found.name)))
-                            return None
-                    else:
-                        related_node = found
-                        related_capability = found_cap
+        resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
+        if resolver and resolver.find_matching_node:
+            if related_node:
+                # call the resolver hook even if a match was found
+                relTpl.target = related_node
+                relTpl.capability = related_capability
+            related_node, related_capability = resolver.find_matching_node(relTpl, name, reqDef)
+        elif not related_node:
+            related_node, related_capability = self._find_matching_node(relTpl, name, node, capability, node_filter)
 
         if related_node:
-            if self.topology_template.substitution_mappings:
-                # the outer topology's node template might have overridden this requirement
-                # (in substitution.add_relationship)
-                related_node, related_capability = self.topology_template.substitution_mappings.maybe_substitute(related_node, related_capability)
-            # if relTpl is in available_rel_tpls what if target and source are already assigned?
-            relTpl.target = related_node
-            relTpl.capability = related_capability
-            related_node.relationship_tpl.append(relTpl)
+            self._set_relationship(related_node, related_capability, relTpl)
         else:
             if node:
                 msg = _('Could not find target template "%(node)s"'

@@ -79,6 +79,18 @@ class ImportResolver(object):
         importsLoader.importslist = importslist
         importsLoader._validate_and_load_imports()
 
+    def find_matching_node(self, relTpl, req_name, req_def):
+        if relTpl.target:
+            return relTpl.target, relTpl.capability
+        source = relTpl.source
+        node = req_def.get('node')
+        node_filter = req_def.get('node_filter')
+        capability = req_def.get('capability')
+        return source._find_matching_node(relTpl, req_name, node, capability, node_filter)
+
+    def find_implementation(self, op):
+        return None
+
 
 class ImportsLoader(object):
 
