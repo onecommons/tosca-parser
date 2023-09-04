@@ -191,11 +191,14 @@ class ImportsLoader(object):
                     "node_types",
                     "relationship_types",
                     "artifact_types",
+                    "data_types",
+                    "capability_types"
                 ]:
                     for custom_def in outer_custom_types.values():
                         custom_def["_source"] = dict(path=path, prefix=namespace_prefix,
                                                      root=root_path, repository=repository_name,
-                                                     base=base, file=file_name)
+                                                     base=base, file=file_name,
+                                                     section=type_def_section)
                 if namespace_prefix:
                     prefix_custom_types = {}
                     for type_def_key in outer_custom_types:
