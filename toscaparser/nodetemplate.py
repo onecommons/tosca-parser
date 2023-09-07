@@ -14,7 +14,7 @@
 import logging
 
 
-from toscaparser.common.exception import ExceptionCollector
+from toscaparser.common.exception import ExceptionCollector, TOSCAException
 from toscaparser.common.exception import InvalidPropertyValueError
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import TypeMismatchError
@@ -123,15 +123,35 @@ class NodeTemplate(EntityTemplate):
                             self.substitution.add_relationship(name, value, relTpl)
 
             # add requirements on the type definition that were not defined by the template
+            resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
             for name, req_on_type in type_requirements.items():
                 if name not in names and name not in substituted:
+                    relTpl = None
                     node = req_on_type.get('node')
                     is_template = node and self.find_node_related_template(node)
                     if is_template:
                         relTpl = self._relationship_from_req(name, req_on_type)
                         if relTpl:
                             self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
-                    elif "occurrences" not in req_on_type or req_on_type["occurrences"][0]:
+                    elif resolver:
+                        # if we are able to create a RelationshipTemplate, see if the resolver can find a match
+                        relationship, relTpl, type = self._get_rel_type(req_on_type['relationship'])
+                        if relationship and not relTpl:
+                            try:
+                                ExceptionCollector.pause()
+                                relTpl = RelationshipTemplate(relationship, name, self.custom_def)
+                            except TOSCAException as e:
+                                logging.debug("relationship %s isn't valid: %s", relationship, str(e))
+                                relTpl = None
+                            finally:
+                                ExceptionCollector.resume()
+                        if relTpl:
+                            relTpl.source = self
+                            related_node, related_capability = resolver.find_matching_node(relTpl, name, req_on_type)
+                            if related_node:
+                                self._set_relationship(related_node, related_capability, relTpl)
+                                self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
+                    if not relTpl and ("occurrences" not in req_on_type or req_on_type["occurrences"][0]):
                         # minimum occurrences is not 0
                         self._missing_requirements[name] = req_on_type
         return self._relationships
@@ -278,6 +298,7 @@ class NodeTemplate(EntityTemplate):
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == type, (relationship, type)
             relTpl = RelationshipTemplate(relationship, name, self.custom_def)
+
         relTpl.source = self
 
         node = reqDef.get('node')
@@ -312,15 +333,12 @@ class NodeTemplate(EntityTemplate):
             # else: not an error if requirement is optional
             return None
 
-        resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
-        if resolver and resolver.find_matching_node:
-            if related_node:
-                # call the resolver hook even if a match was found
-                relTpl.target = related_node
-                relTpl.capability = related_capability
-            related_node, related_capability = resolver.find_matching_node(relTpl, name, reqDef)
-        elif not related_node:
+        if not related_node:
             related_node, related_capability = self._find_matching_node(relTpl, name, node, capability, node_filter)
+        if not related_node:
+            resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
+            if resolver and resolver.find_matching_node:
+                related_node, related_capability = resolver.find_matching_node(relTpl, name, reqDef)
 
         if related_node:
             self._set_relationship(related_node, related_capability, relTpl)
