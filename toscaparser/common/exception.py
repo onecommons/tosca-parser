@@ -187,6 +187,7 @@ class ExceptionCollector(object):
     exceptions = []
     collecting = False
     near = None
+    previous = False
 
     @staticmethod
     def clear():
@@ -202,6 +203,15 @@ class ExceptionCollector(object):
     def stop():
         ExceptionCollector.collecting = False
         ExceptionCollector.near = None
+
+    @staticmethod
+    def pause():
+        ExceptionCollector.previous = ExceptionCollector.collecting
+        ExceptionCollector.collecting = False
+
+    @staticmethod
+    def resume():
+        ExceptionCollector.collecting = ExceptionCollector.previous
 
     @staticmethod
     def contains(exception):
