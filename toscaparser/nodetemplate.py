@@ -233,6 +233,10 @@ class NodeTemplate(EntityTemplate):
                 if node_filter:
                     if nodeTemplate.match_nodefilter(node_filter):
                         found = nodeTemplate
+                        if not found_cap:
+                            capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
+                            assert capabilities
+                            found_cap = capabilities[0]
                     else:
                         continue
 
@@ -589,4 +593,5 @@ class NodeTemplate(EntityTemplate):
                     return False
                 if not self._match_filter(cap, filter):
                     return False
-        return True
+            return True
+        return False
