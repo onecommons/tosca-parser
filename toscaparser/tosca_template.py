@@ -113,14 +113,20 @@ class ToscaTemplate(object):
                 self.outputs = self._outputs()
                 self.policies = self._policies()
                 self._handle_nested_tosca_templates_with_topology(custom_defs)
-                # now that all the node templates have been loaded we can validated the relationships between them
-                self.topology_template.validate_relationships(self.strict)
-                for nested in self.nested_topologies.values():
-                    nested.validate_relationships(self.strict)
 
-        ExceptionCollector.stop()
         if verify:
-            self.verify_template()
+            if self.tpl and self.topology_template.tpl:
+                # now that all the node templates have been loaded we can validated the relationships between them
+                self.validate_relationships()
+            ExceptionCollector.stop()
+            self.raise_validation_errors()
+        else:
+            ExceptionCollector.stop()
+
+    def validate_relationships(self):
+        self.topology_template.validate_relationships(self.strict)
+        for nested in self.nested_topologies.values():
+            nested.validate_relationships(self.strict)
 
     def _topology_template(self, custom_defs):
         return TopologyTemplate(self._tpl_topology_template(),
@@ -284,7 +290,7 @@ class ToscaTemplate(object):
                 ValueError(_('"%(path)s" is not a valid file.')
                            % {'path': path}))
 
-    def verify_template(self):
+    def raise_validation_errors(self):
         if ExceptionCollector.exceptionsCaught():
             if self.input_path:
                 raise ValidationError(
