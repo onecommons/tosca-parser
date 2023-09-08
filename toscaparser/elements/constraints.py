@@ -16,7 +16,6 @@ import re
 import json
 import six
 
-import toscaparser
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import InvalidSchemaError
 from toscaparser.common.exception import ValidationError
@@ -238,7 +237,11 @@ class Constraint(object):
         return _('Property "%s" could not be validated.') % self.property_name
 
     def validate(self, value):
+        import toscaparser.functions
+
         self.value_msg = value
+        if toscaparser.functions.is_function(value):
+            return
         if self.property_type in scalarunit.ScalarUnit.SCALAR_UNIT_TYPES:
             value = scalarunit.get_scalarunit_value(self.property_type, value)
         try:
@@ -363,8 +366,7 @@ class GreaterOrEqual(Constraint):
             )
 
     def _is_valid(self, value):
-        if value is not None and (toscaparser.functions.is_function(value) or
-                                  value >= self.constraint_value):
+        if value is not None and value >= self.constraint_value:
             return True
         return False
 
