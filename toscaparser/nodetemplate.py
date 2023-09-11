@@ -84,7 +84,7 @@ class NodeTemplate(EntityTemplate):
             # add requirements on the type definition that were not defined by the template
             for name, req_on_type in type_requirements.items():
                 if name not in names:
-                    self._all_requirements.append({name: req_on_type})
+                    self._all_requirements.append({name: {}})
         return self._all_requirements
 
     @property
@@ -130,7 +130,7 @@ class NodeTemplate(EntityTemplate):
                     node = req_on_type.get('node')
                     is_template = node and self.find_node_related_template(node)
                     if is_template:
-                        relTpl = self._relationship_from_req(name, req_on_type)
+                        relTpl = self._relationship_from_req(name, req_on_type, None)
                         if relTpl:
                             self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
                     elif resolver:
@@ -198,11 +198,13 @@ class NodeTemplate(EntityTemplate):
         typeReqDef = self.type_definition.get_requirement_definition(name)
         if isinstance(value, dict):
             # see 3.8.2 Requirement assignment p. 140 for value
+            node = value.get("node")
             reqDef = NodeType.merge_requirement_definition(typeReqDef, value)
         else:
             reqDef = typeReqDef.copy()
             reqDef['node'] = value
-        return reqDef, self._relationship_from_req(name, reqDef)
+            node = value
+        return reqDef, self._relationship_from_req(name, reqDef, node)
 
     def _get_rel_type(self, relationship):
         relTpl = None
@@ -270,10 +272,11 @@ class NodeTemplate(EntityTemplate):
                         related_node = found
                         related_capability = found_cap
                     else:
-                        ExceptionCollector.appendException(
-                      ValidationError(message=
-  'requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"' %
-                                    (req_name, self.name, related_node.name, found.name)))
+                        if node_filter:
+                            ExceptionCollector.appendException(
+                          ValidationError(message=
+      'requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"' %
+                                        (req_name, self.name, related_node.name, found.name)))
                         return None, None
                 else:
                     related_node = found
@@ -290,7 +293,7 @@ class NodeTemplate(EntityTemplate):
         relTpl.capability = related_capability
         related_node.relationship_tpl.append(relTpl)
 
-    def _relationship_from_req(self, name, reqDef):
+    def _relationship_from_req(self, name, reqDef, node_on_template):
         relationship, relTpl, type = self._get_rel_type(reqDef['relationship'])
         if relationship is None:
             return None
@@ -344,18 +347,23 @@ class NodeTemplate(EntityTemplate):
             self._set_relationship(related_node, related_capability, relTpl)
         else:
             if node:
-                msg = _('Could not find target template "%(node)s"'
-                           ' for requirement "%(rname)s"'
-                        ) % {'node': node, 'rname': name}
+                if not node_on_template and (node in self.custom_def or node in NodeType.TOSCA_DEF):
+                    # not an error if "node" wasn't explicitly declared on the template and referenced a type name
+                    msg = None
+                else:
+                    msg = _('Could not find target template "%(node)s"'
+                              ' for requirement "%(rname)s"'
+                            ) % {'node': node, 'rname': name}
             else:
                 msg = _('No matching target template found'
                            ' for requirement "%(rname)s"'
                            ) % {'rname': name}
-            if "default" in self.directives:
-                log.warning(f'{msg} on default node template "{self.name}"')
-            else:
-                ExceptionCollector.appendException(
-                    ValidationError(message = msg))
+            if msg:
+                if "default" in self.directives:
+                    log.warning(f'{msg} on default node template "{self.name}"')
+                else:
+                    ExceptionCollector.appendException(
+                        ValidationError(message = msg))
             return None
         return relTpl
 
