@@ -74,18 +74,6 @@ class SubstitutionMappings(object):
         self._node_template = None
         self._outer_relationships = {}
         self._validate()
-        if self.node_type:
-            default_templates = {
-                n.name: n for n in topology.nodetemplates if "default" in n.directives
-            }
-            # find the requirements that reference placeholder (default) node templates
-            self._placeholder_requirements = {
-                n["node"]: name
-                for name, n in self.node_type.requirement_definitions.items()
-                if n.get("node") and n.get("node") in default_templates
-            }
-        else:
-            self._placeholder_requirements = {}
 
     def match(self, nodetemplate):
         if self.node_type and self.node_type.is_derived_from(nodetemplate.type):
@@ -206,14 +194,14 @@ class SubstitutionMappings(object):
         self._outer_relationships.setdefault(name, []).append((name, reqDef, rel))
 
     def maybe_substitute(self, node, capability):
-        if node.name in self._placeholder_requirements:
-            requirement_name = self._placeholder_requirements[node.name]
-            if requirement_name in self._outer_relationships:
+        if node.name in self._outer_relationships:
+                requirement_name = node.name
                 name, reqDef, rel = self._outer_relationships[requirement_name][0]
                 if rel and rel.target:
                     if capability:
                         capability = rel.target.get_capabilities()[capability.name]
-                    return rel.target, capability
+                    log.debug(f"replaced {requirement_name} on {node.name} with {rel.target.name}")
+                    return rel.target, capability            
         return node, capability
 
     def _update_requirements(self, node):
