@@ -346,6 +346,9 @@ class NodeTemplate(EntityTemplate):
         if related_node:
             self._set_relationship(related_node, related_capability, relTpl)
         else:
+            min_required = reqDef.get("occurrences", [1])[0]
+            if min_required == 0:
+                return None
             if node:
                 if not node_on_template and (node in self.custom_def or node in NodeType.TOSCA_DEF):
                     # not an error if "node" wasn't explicitly declared on the template and referenced a type name
