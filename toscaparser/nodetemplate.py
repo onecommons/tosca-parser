@@ -141,7 +141,7 @@ class NodeTemplate(EntityTemplate):
                                 ExceptionCollector.pause()
                                 relTpl = RelationshipTemplate(relationship, name, self.custom_def)
                             except TOSCAException as e:
-                                logging.debug("relationship %s isn't valid: %s", relationship, str(e))
+                                log.debug("relationship %s isn't valid: %s", relationship, str(e))
                                 relTpl = None
                             finally:
                                 ExceptionCollector.resume()
