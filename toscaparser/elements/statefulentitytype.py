@@ -49,9 +49,9 @@ class StatefulEntityType(EntityType):
                                                type="string"))
             self.defs = None
             self.type = str(entitytype)
-            return
-        if UnsupportedType.validate_type(entire_entitytype):
+        elif UnsupportedType.validate_type(entire_entitytype):
             self.defs = None
+            self.type = entitytype
         else:
             if entitytype.startswith(self.TOSCA + ":"):
                 entitytype = entitytype[(len(self.TOSCA) + 1):]
@@ -69,7 +69,7 @@ class StatefulEntityType(EntityType):
                 self.defs = None
                 ExceptionCollector.appendException(
                     MissingTypeError(what=entitytype))
-        self.type = entitytype
+            self.type = entitytype
         self.custom_def = custom_def
         source = self.defs and self.defs.get("_source") or None
         if isinstance(source, dict):
@@ -79,6 +79,8 @@ class StatefulEntityType(EntityType):
         self._interfaces = None
         self._property_defs = None
         self._attribute_defs = None
+        if not self.defs:
+            return
         self._validate_interfaces()
 
     def ancestors(self):

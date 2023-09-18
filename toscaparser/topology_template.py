@@ -47,30 +47,29 @@ class TopologyTemplate(object):
     def __init__(self, template, custom_defs,
                  parsed_params=None,
                  tosca_template=None):
-        self.tpl = template
+        self.tpl = template or {}
         self.tosca_template = tosca_template
-        if self.tpl:
-            self.custom_defs = custom_defs or {}
-            self.parsed_params = parsed_params
-            self._validate_field()
-            self.description = self._tpl_description()
-            self.inputs = self._inputs()
-            self.relationship_templates = self._relationship_templates()
-            self.node_templates = self._nodetemplates()
-            self.outputs = self._outputs()
-            self.groups = self._groups()
-            self.policies = self._policies()
-            self.workflows = self._workflows()
-            if not exception.ExceptionCollector.exceptionsCaught():
-                if self.processIntrinsicFunctions:
-                    self._process_intrinsic_functions()
-                else:
-                    self._validate_intrinsic_functions()
+        self.custom_defs = custom_defs or {}
+        self.parsed_params = parsed_params
+        self._validate_field()
+        self.description = self._tpl_description()
+        self.inputs = self._inputs()
+        self.relationship_templates = self._relationship_templates()
+        self.node_templates = self._nodetemplates()
+        self.outputs = self._outputs()
+        self.groups = self._groups()
+        self.policies = self._policies()
+        self.workflows = self._workflows()
+        if not exception.ExceptionCollector.exceptionsCaught():
+            if self.processIntrinsicFunctions:
+                self._process_intrinsic_functions()
+            else:
+                self._validate_intrinsic_functions()
 
-            self.substitution_mappings = None
-            tpl_substitution_mapping = self._tpl_substitution_mappings()
-            if tpl_substitution_mapping:
-                self.substitution_mappings = SubstitutionMappings(tpl_substitution_mapping, self)
+        self.substitution_mappings = None
+        tpl_substitution_mapping = self._tpl_substitution_mappings()
+        if tpl_substitution_mapping:
+            self.substitution_mappings = SubstitutionMappings(tpl_substitution_mapping, self)
 
     def copy(self):
         return TopologyTemplate(self.tpl, self.custom_defs, self.parsed_params, self.tosca_template)
