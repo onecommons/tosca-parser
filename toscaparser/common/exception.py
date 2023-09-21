@@ -165,6 +165,8 @@ class InvalidTOSCAVersionPropertyException(TOSCAException):
 class URLException(TOSCAException):
     msg_fmt = _('%(what)s')
 
+class FatalToscaImportError(TOSCAException):
+    msg_fmt = _('%(message)s')
 
 class ToscaExtImportError(TOSCAException):
     msg_fmt = _('Unable to import extension "%(ext_name)s". '

@@ -24,6 +24,8 @@ from toscaparser.tests.base import TestCase
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.yamlparser
+from toscaparser import imports
+imports.TREAT_IMPORTS_AS_FATAL = False
 
 from testtools.testcase import skip
 

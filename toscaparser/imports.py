@@ -14,7 +14,7 @@ import logging
 import os
 
 from toscaparser.common.exception import ExceptionCollector
-from toscaparser.common.exception import InvalidPropertyValueError
+from toscaparser.common.exception import FatalToscaImportError
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
@@ -28,6 +28,7 @@ from toscaparser.repositories import Repository
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
 
+TREAT_IMPORTS_AS_FATAL = True
 
 def is_url(url):
     return toscaparser.utils.urlutils.UrlUtils.validate_url(url)
@@ -156,6 +157,12 @@ class ImportsLoader(object):
 
             base, full_file_name, imported_tpl = self.load_yaml(import_def, import_name)
             if full_file_name is None:
+                if TREAT_IMPORTS_AS_FATAL:
+                    import_repr = import_def if isinstance(import_def, (str, type(None))) or not import_def.get("file") else import_def["file"]
+                    error = FatalToscaImportError(message=f'Aborting parsing of service template: can not import "{import_repr}"')
+                    if ExceptionCollector.exceptions:
+                        error.__cause__ = ExceptionCollector.exceptions[-1]
+                    raise error
                 return
 
             namespace_prefix = None
