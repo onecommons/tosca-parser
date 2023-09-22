@@ -27,9 +27,9 @@ class PropertyDef(object):
     PROPERTY_REQUIRED_DEFAULT = True
 
     VALID_REQUIRED_VALUES = ['true', 'false']
-    VALID_STATUS_VALUES = (PROPERTY_STATUS_SUPPORTED,
-                           PROPERTY_STATUS_EXPERIMENTAL) = \
-        ('supported', 'experimental')
+    VALID_STATUS_VALUES = (PROPERTY_STATUS_SUPPORTED, PROPERTY_STATUS_SUPPORTED,
+                           PROPERTY_STATUS_EXPERIMENTAL, STATUS_DEPRECATED, STATUS_REMOVED) = \
+        ('supported', 'unsupported', 'experimental', 'deprecated', 'removed')
 
     PROPERTY_STATUS_DEFAULT = PROPERTY_STATUS_SUPPORTED
 
