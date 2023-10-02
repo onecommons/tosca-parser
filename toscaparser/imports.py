@@ -88,6 +88,9 @@ class ImportResolver(object):
     def find_implementation(self, op):
         return None
 
+    def path_to_repository(self, base_path, name, tpl):
+        return None
+
 
 class ImportsLoader(object):
 
