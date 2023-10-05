@@ -68,9 +68,17 @@ class ToscaTemplate(object):
     ADDITIONAL_SECTIONS.update(exttools.get_sections())
 
     '''Load the template data.'''
-    def __init__(self, path=None, parsed_params=None, a_file=True,
-                 yaml_dict_tpl=None, import_resolver=None, verify=True, fragment=""):
-
+    def __init__(
+        self,
+        path=None,
+        parsed_params=None,
+        a_file=True,
+        yaml_dict_tpl=None,
+        import_resolver=None,
+        verify=True,
+        fragment="",
+        base_dir=None,
+    ):
         ExceptionCollector.start()
         self.a_file = a_file
         self.input_path = None
@@ -88,6 +96,7 @@ class ToscaTemplate(object):
             else:
                 self.path = self._get_path(path)
                 self.tpl = YAML_LOADER(self.path, self.a_file)
+        self.base_dir = base_dir or (self.path and os.path.dirname(self.path)) or "."
 
         if yaml_dict_tpl:
             self.tpl = yaml_dict_tpl
@@ -190,7 +199,7 @@ class ToscaTemplate(object):
                  DATA_TYPES, ARTIFACT_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
 
     def _get_all_custom_defs(self):
-        custom_defs, nested_tosca_tpls = self._get_custom_defs(self.tpl, self.path, self.path)
+        custom_defs, nested_tosca_tpls = self._get_custom_defs(self.tpl, self.path, self.base_dir)
         self.nested_tosca_tpls = nested_tosca_tpls
         # Handle custom types defined in current template file
         for type_def in self.get_type_sections():
