@@ -88,7 +88,7 @@ class ImportResolver(object):
     def find_implementation(self, op):
         return None
 
-    def path_to_repository(self, base_path, name, tpl):
+    def find_repository_path(self, name, tpl=None, base_path=None):
         return None
 
 
