@@ -69,6 +69,9 @@ class ImportResolver(object):
         return path
 
     def resolve_url(self, importsLoader, base, file_name, repository_name):
+        if is_url(base) and not repository_name:
+            # urls will not have had file component stripped (defer to the resolver implementation)
+            base = os.path.dirname(base)
         path = os.path.join(base, file_name)
         return path, not is_url(path)
 
@@ -283,7 +286,7 @@ class ImportsLoader(object):
             return None
         file_name, sep, fragment = file_name.partition("#")
         path = normalize_path(file_name)
-        doc_base = get_base(self.path)
+        doc_base = self.path if is_url(self.path) else get_base(self.path)
         if repository_name:
             if is_url(path) or os.path.isabs(path):
                 msg = _(
