@@ -202,7 +202,7 @@ class NodeType(StatefulEntityType):
             tpl["node_filter"] = {}
             bfilters = base["node_filter"]
             cfilters = current["node_filter"]
-            for key in ["requirements", "properties"]:
+            for key in ["requirements", "properties", "match"]:
                 if bfilters.get(key):
                     tpl["node_filter"][key] = _merge_dict_lists(bfilters[key], cfilters.get(key, []))
                 elif key in cfilters:
