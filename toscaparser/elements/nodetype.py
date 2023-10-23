@@ -26,7 +26,7 @@ def _find_key_in_list(seq, key):
     return -1
 
 
-def _merge_dict_lists(base, current):
+def _merge_dict_lists(base, current, mergefn=None):
     merged = current[:]
     for item in base:
         key = next(iter(item))
@@ -34,6 +34,8 @@ def _merge_dict_lists(base, current):
         index = _find_key_in_list(current, key)
         if index == -1:
             merged.append(item)
+        elif mergefn:
+            merged[index] = {key: mergefn(item[key], current[index][key])}
     return merged
 
 
@@ -204,7 +206,8 @@ class NodeType(StatefulEntityType):
             cfilters = current["node_filter"]
             for key in ["requirements", "properties", "match"]:
                 if bfilters.get(key):
-                    tpl["node_filter"][key] = _merge_dict_lists(bfilters[key], cfilters.get(key, []))
+                    mergefn = NodeType.merge_requirement_definition if key == "requirements" else None
+                    tpl["node_filter"][key] = _merge_dict_lists(bfilters[key], cfilters.get(key, []), mergefn)
                 elif key in cfilters:
                     tpl["node_filter"][key] = cfilters[key]
         if base.get('metadata') and current.get('metadata'):

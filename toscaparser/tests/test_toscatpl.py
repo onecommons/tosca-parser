@@ -885,6 +885,80 @@ class ToscaTemplateTest(TestCase):
         filter_match = t.topology_template.node_templates['test'].relationships[0][0].target.name
         assert filter_match == 'server_large', filter_match
 
+
+    def test_node_filters_merged(self):
+        custom_def = '''
+        tosca.nodes.WebApplication.TestApp:
+          derived_from: tosca.nodes.WebApplication
+          requirements:
+            - container:
+                node_filter:
+                  properties:
+                    - public_ports:
+                        q: true
+                  requirements:
+                      - host:
+                          node_filter:
+                            match:
+                                - get_nodes_of_type: tosca.nodes.WebApplication
+
+        '''
+        tpl_snippet = '''
+        node_templates:
+          my_webserver:
+            type: tosca.nodes.WebApplication.TestApp
+            description: Requires a particular node type with a filter.
+                         To be fullfilled via lookup into node repository.
+            requirements:
+              - container:
+                  node_filter:
+                    requirements:
+                    - host:
+                        node_filter:
+                            requirements:
+                              - host:
+                                  description: A compute instance with at least 2000 MB of RAM memory.
+                                  node_filter:
+                                      properties:
+                                        - mem_size:
+                                            in_range: [2gb, 20gb]
+        '''
+        node_template = _get_nodetemplate(tpl_snippet, 'my_webserver', custom_def)
+        typeReqDef = node_template.type_definition.get_requirement_definition("container")
+        tplReqDef = node_template.requirements[0]['container']
+        reqDef = NodeType.merge_requirement_definition(typeReqDef, tplReqDef)
+        assert reqDef == {
+            "node_filter": {
+                "requirements": [
+                    {
+                        "host": {
+                            "node_filter": {
+                                "match": [{"get_nodes_of_type": "tosca.nodes.WebApplication"}],
+                                "requirements": [
+                                    {
+                                        "host": {
+                                            "description": "A compute instance with at least 2000 MB of RAM memory.",
+                                            "node_filter": {
+                                                "properties": [
+                                                    {
+                                                        "mem_size": {
+                                                            "in_range": ["2gb", "20gb"]
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "properties": [{"public_ports": {"q": True}}],
+            },
+            "relationship": {"type": "tosca.relationships.Root"},
+        }, reqDef
+
     def test_attributes_inheritance(self):
         tosca_tpl = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
