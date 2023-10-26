@@ -57,4 +57,4 @@ class Capability(object):
             return False
         elif self.type == type_str:
             return True
-        return self.type_definition.inherits_from([type_str])
+        return self.type_definition.is_derived_from(type_str)

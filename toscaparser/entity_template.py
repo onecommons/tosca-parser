@@ -186,11 +186,9 @@ class EntityTemplate(object):
                                     self.type_definition.custom_def)
         properties = {}
         # first use the definition default value
-        if c.properties:
-            for property_name in c.properties.keys():
-                prop_def = c.properties[property_name]
-                if 'default' in prop_def:
-                    properties[property_name] = prop_def['default']
+        for prop_def in c.get_properties_def_objects():
+            if 'default' in prop_def.schema:
+                properties[prop_def.name] = prop_def.schema['default']
         # then update (if available) with the node properties
         if props:
             properties.update(props)
