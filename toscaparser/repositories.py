@@ -17,8 +17,7 @@ from toscaparser.common.exception import TypeMismatchError
 from toscaparser.common.exception import URLException
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
-import six
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from toscaparser.dataentity import DataEntity
 
 SECTIONS = (DESCRIPTION, URL, CREDENTIAL, REVISION, METADATA) = \
@@ -30,7 +29,7 @@ class Repository(object):
         self.name = name
         self.tpl = values
         # TOSCA 1.0 backwards compatibility:
-        if isinstance(self.tpl, six.string_types):
+        if isinstance(self.tpl, str):
             tpl = dict(url=self.tpl)
         else:
             tpl = self.tpl

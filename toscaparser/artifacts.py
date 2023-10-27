@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
 import logging
 
 from toscaparser.common.exception import ExceptionCollector
@@ -53,7 +52,7 @@ class Artifact(EntityTemplate):
     SECTIONS = SECTIONS
 
     def __init__(self, name, artifact, custom_def=None, base=None):
-        if isinstance(artifact, six.string_types):
+        if isinstance(artifact, str):
             artifact = dict(file=artifact, type="tosca.artifacts.Root")
         elif "type" not in artifact:
             artifact = dict(artifact, type="tosca.artifacts.Root")

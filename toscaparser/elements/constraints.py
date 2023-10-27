@@ -14,7 +14,6 @@ import collections.abc
 import datetime
 import re
 import json
-import six
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import InvalidSchemaError
@@ -488,7 +487,7 @@ class InRange(Constraint):
 
     constraint_key = Constraint.IN_RANGE
 
-    valid_types = (int, float, datetime.date, datetime.time, datetime.datetime,) + six.string_types
+    valid_types = (int, float, datetime.date, datetime.time, datetime.datetime, str)
 
     valid_prop_types = (
         Schema.INTEGER,
@@ -519,7 +518,7 @@ class InRange(Constraint):
                 ExceptionCollector.appendException(InvalidSchemaError(message=msg + f", not {type(value)}"))
 
             # The only string we allow for range are scalars and the special value 'UNBOUNDED'
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 if value != self.UNBOUNDED:
                     ExceptionCollector.appendException(InvalidSchemaError(message=msg + f', not "{value}"'))
 
@@ -533,10 +532,10 @@ class InRange(Constraint):
             max = value[1]
         else:
             min = max = value
-        if not isinstance(self.min, six.string_types):
+        if not isinstance(self.min, str):
             if min < self.min:
                 return False
-        if not isinstance(self.max, six.string_types):
+        if not isinstance(self.max, str):
             if max > self.max:
                 return False
         return True
@@ -609,7 +608,7 @@ class Length(Constraint):
             )
 
     def _is_valid(self, value):
-        if isinstance(value, six.string_types) and len(value) == self.constraint_value:
+        if isinstance(value, str) and len(value) == self.constraint_value:
             return True
 
         return False
@@ -700,7 +699,7 @@ class Pattern(Constraint):
 
     constraint_key = Constraint.PATTERN
 
-    valid_types = six.string_types
+    valid_types = str
 
     valid_prop_types = (Schema.STRING,)
 
@@ -736,7 +735,7 @@ class SchemaConstraint(Constraint):
 
     constraint_key = Constraint.SCHEMA
 
-    valid_types = six.string_types
+    valid_types = str
 
     valid_prop_types = (Schema.STRING, Schema.ANY)
 

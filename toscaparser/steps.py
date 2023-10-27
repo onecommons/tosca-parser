@@ -12,7 +12,6 @@
 
 
 import logging
-import six
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.entity_template import EntityTemplate
@@ -39,7 +38,7 @@ class Step(EntityTemplate):
             setattr(self, key, self.step_tpl.get(key))
         for key in ('on_success', 'on_failure'):
             v = self.step_tpl.get(key) or []
-            if isinstance(v, six.string_types):
+            if isinstance(v, str):
               v = [v]
             setattr(self, key, v)
         self.activities
