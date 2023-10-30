@@ -30,6 +30,8 @@ SECTIONS = (
     CHECKSUM_ALGORITHM,
     PERMISSIONS,
     INTENT,
+    TARGET,
+    CONTENTS,
     TYPE,
     PROPERTIES,  # TYPE and PROPERTIES should be last
 ) = (
@@ -43,6 +45,8 @@ SECTIONS = (
     "checksum_algorithm",
     "permissions",
     "intent",
+    "target",
+    "contents",
     "type",
     "properties",
 )
