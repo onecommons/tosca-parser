@@ -153,27 +153,6 @@ class NodeType(StatefulEntityType):
                             'type' in value and value['type'] == cap:
                         return node_type
 
-    def _get_relation(self, key, ndtype):
-        relation = None
-        ntype = NodeType(ndtype, self.custom_def)
-        caps = ntype.get_capabilities_def()
-        if caps and key in caps.keys():
-            c = caps[key]
-            for r in self.RELATIONSHIP_TYPE:
-                rtypedef = ntype.TOSCA_DEF[r]
-                for properties in rtypedef.values():
-                    if c.type in properties:
-                        relation = r
-                        break
-                if relation:
-                    break
-                else:
-                    for properties in rtypedef.values():
-                        if c.parent_type in properties:
-                            relation = r
-                            break
-        return relation
-
     def get_capability_typedefs(self):
         '''Return a list of capability type objects.'''
         typecapabilities = []

@@ -21,6 +21,7 @@ from toscaparser.common.exception import TypeMismatchError
 from toscaparser.common.exception import ValidationError
 from toscaparser.common.exception import InvalidOccurrences
 from toscaparser.dataentity import DataEntity
+from .elements.statefulentitytype import StatefulEntityType
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.utils.gettextutils import _
@@ -135,7 +136,7 @@ class NodeTemplate(EntityTemplate):
                             self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
                     elif resolver:
                         # if we are able to create a RelationshipTemplate, see if the resolver can find a match
-                        relationship, relTpl, type = self._get_rel_type(req_on_type['relationship'])
+                        relationship, relTpl, type = self._get_rel_type(req_on_type['relationship'], name)
                         if relationship and not relTpl:
                             try:
                                 ExceptionCollector.pause()
@@ -206,7 +207,7 @@ class NodeTemplate(EntityTemplate):
             node = value
         return reqDef, self._relationship_from_req(name, reqDef, node)
 
-    def _get_rel_type(self, relationship):
+    def _get_rel_type(self, relationship, name):
         relTpl = None
         if isinstance(relationship, dict):
             type = relationship.get('type')
@@ -218,9 +219,10 @@ class NodeTemplate(EntityTemplate):
                         required=self.TYPE))
                 return None, None, None
         elif (relationship in self.custom_def
-                or relationship in self.type_definition.RELATIONSHIP_TYPE):
+                or relationship in StatefulEntityType.TOSCA_DEF):
+            # it's the name of a type
             type = relationship
-            relationship = dict(type = relationship) # it's the name of a type
+            relationship = dict(type = relationship)
         else:
             # it's the name of a relationship template
             for tpl in self.available_rel_tpls:
@@ -230,7 +232,7 @@ class NodeTemplate(EntityTemplate):
                   break
             else:
                 ExceptionCollector.appendException(
-                  ValidationError(message = _('Relationship template "%(relationship)s" was not found'
+                  ValidationError(message = _('Relationship template or type "%(relationship)s" was not found'
                         ' for requirement "%(rname)s" of node "%(nname)s".')
                       % {'relationship': relationship, 'rname': name, 'nname': self.name}))
                 return None, None, None
@@ -294,7 +296,7 @@ class NodeTemplate(EntityTemplate):
         related_node.relationship_tpl.append(relTpl)
 
     def _relationship_from_req(self, name, reqDef, node_on_template):
-        relationship, relTpl, type = self._get_rel_type(reqDef['relationship'])
+        relationship, relTpl, type = self._get_rel_type(reqDef['relationship'], name)
         if relationship is None:
             return None
 
