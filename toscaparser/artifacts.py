@@ -31,6 +31,7 @@ SECTIONS = (
     PERMISSIONS,
     INTENT,
     TARGET,
+    ORDER,
     CONTENTS,
     TYPE,
     PROPERTIES,  # TYPE and PROPERTIES should be last
@@ -46,6 +47,7 @@ SECTIONS = (
     "permissions",
     "intent",
     "target",
+    "order",
     "contents",
     "type",
     "properties",
