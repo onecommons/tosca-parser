@@ -181,7 +181,7 @@ class StatefulEntityType(EntityType):
         return self._interfaces
 
     def get_interface_requirements(self, entity_tpl=None):
-        tpl_interfaces = self.get_value(self.INTERFACES, entity_tpl, True)
+        tpl_interfaces = self.get_value(self.INTERFACES, entity_tpl, True, True)
         relationships = []
         if tpl_interfaces:
             for i in tpl_interfaces.values():
