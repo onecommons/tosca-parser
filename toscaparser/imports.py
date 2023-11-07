@@ -58,7 +58,11 @@ def get_base(path):
         return path
 
 
-class ImportResolver(object):
+class ImportResolver:
+    """
+    Callback interface for integration with an TOSCA orchestrator.
+    """
+
     def get_repository(self, name, tpl):
         return Repository(name, tpl)
 
@@ -93,6 +97,9 @@ class ImportResolver(object):
 
     def find_repository_path(self, name, tpl=None, base_path=None):
         return None
+
+    def register_import(self, name, import_path):
+        pass
 
 
 class ImportsLoader(object):
