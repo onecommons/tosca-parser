@@ -194,7 +194,7 @@ class OperationDef:
                 elif key == DEPENDENCIES:
                     if not isinstance(value, list):
                         ExceptionCollector.appendException(
-                            ValidationError(message=self._msg)
+                            ValidationError(message=self._msg + ": 'dependencies' must be a list")
                         )
                     else:
                         for artifact in value:
