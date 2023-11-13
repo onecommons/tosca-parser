@@ -98,8 +98,8 @@ class ImportResolver:
     def find_repository_path(self, name, tpl=None, base_path=None):
         return None
 
-    def register_import(self, name, import_path):
-        pass
+    def get_safe_mode(self):
+        return False
 
 
 class ImportsLoader(object):
