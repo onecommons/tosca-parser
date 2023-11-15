@@ -24,46 +24,54 @@ class TOSCAVersionPropertyTest(TestCase):
         expected_output = '18.0.3.beta-1'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
         version = 18
-        expected_output = '18.0'
+        expected_output = '18'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
         version = 18.0
         expected_output = '18.0'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
         version = '18.0.3'
         expected_output = '18.0.3'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
         version = 0
-        expected_output = None
+        expected_output = '0'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
 
         version = 00
-        expected_output = None
+        expected_output = '0'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
         version = 0.0
-        expected_output = None
+        expected_output = '0.0'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
         version = 00.00
-        expected_output = None
+        expected_output = '0.0'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
         version = '0.0.0'
-        expected_output = None
+        expected_output = '0.0.0'
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
 
     def test_tosca_version_property_invalid_major_version(self):
 
@@ -106,11 +114,18 @@ class TOSCAVersionPropertyTest(TestCase):
         version = '18.0.1-xyz'
         expected_output = '18.0.1-xyz'
         output = TOSCAVersionProperty(version).get_version()
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
         self.assertEqual(output, expected_output)
         # exp_msg = _('Value of TOSCA version property "18.0.1-xyz" is invalid.')
         # err = self.assertRaises(InvalidTOSCAVersionPropertyException,
         #                         TOSCAVersionProperty, version)
         # self.assertEqual(exp_msg, err.__str__())
+
+        version = 'v2'
+        expected_output = 'v2'
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        output = TOSCAVersionProperty(version).get_version()
+        self.assertEqual(output, expected_output)
 
         version = '0.0.0.abc'
         exp_msg = _('Value of TOSCA version property "0.0.0.abc" is invalid.')

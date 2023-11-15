@@ -198,11 +198,8 @@ class TOSCAVersionProperty(object):
                 InvalidTOSCAVersionPropertyException(what=(self.version)))
             return
         ver = match.groupdict()
-        if self.version in ['0', '0.0', '0.0.0']:
-            log.warning('Version assumed as not provided')
-            self.version = None
         self.minor_version = ver['minor_version']
-        self.major_version = ver['major_version']
+        self.major_version = str(int(ver['major_version']))
         self.fix_version = ver['fix_version']
         self.qualifier = self._validate_qualifier(ver['qualifier'])
         self.pre_release = self._validate_qualifier(ver['pre_release'])
@@ -213,21 +210,6 @@ class TOSCAVersionProperty(object):
         self.build_version = self._validate_build(ver['build_version'])
         # build_metadata comes after fix (aka patch) or pre_release
         self.build_metadata = self._validate_qualifier(ver['build_metadata'])
-        self._validate_major_version(self.major_version)
-
-    def _validate_major_version(self, value):
-        """Validate major version
-
-        Checks if only major version is provided and assumes
-        minor version as 0.
-        Eg: If version = 18, then it returns version = '18.0'
-        """
-
-        if self.minor_version is None and self.build_version is None and \
-                value != '0':
-            log.warning('Minor version assumed "0".')
-            self.version = '.'.join([value, '0'])
-        return value
 
     def _validate_qualifier(self, value):
         """Validate qualifier
@@ -262,5 +244,5 @@ class TOSCAVersionProperty(object):
         return self.version
 
     def is_semver_compatible_with(self, version):
-        """Return true if major verision is equal and minor version is less than or equal to the given version."""
-        return self.major_version == version.major_version and int(self.minor_version) <= int(version.minor_version)
+        """Return true if major version is equal and minor version is less than or equal to the given version."""
+        return int(self.major_version) == int(version.major_version) and int(self.minor_version or 0) <= int(version.minor_version or 0)
