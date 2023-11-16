@@ -11,6 +11,7 @@
 #    under the License.
 
 
+from toscaparser.common.exception import ExceptionCollector, ValidationError
 from toscaparser.elements.statefulentitytype import StatefulEntityType
 
 
@@ -22,6 +23,10 @@ class DataType(StatefulEntityType):
                                        self.DATATYPE_NETWORK_PREFIX,
                                        custom_def)
         self.custom_def = custom_def
+        if self.value_type and self.entity_value(self.defs, 'properties'):
+            ExceptionCollector.appendException(
+                ValidationError(message=f'Invalid datatype "{datatypename}": can not define both "type" and "properties" fields.')
+            )
 
     @property
     def parent_type(self):
