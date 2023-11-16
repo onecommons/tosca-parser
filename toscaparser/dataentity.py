@@ -31,6 +31,8 @@ class ValueDataType(object):
         self.value_type = type
         self.defs = dict(type=type)
 
+    def get_value(self, key, parent=False):
+        return self.defs.get(key)
 
 class DataEntity(object):
     """A complex data value entity."""
@@ -98,7 +100,8 @@ class DataEntity(object):
                         required_props.append(name)
 
             # check allowed field
-            if not self.datatype.defs.get("metadata", {}).get('additionalProperties'):
+            metadata = self.datatype.get_value('metadata', parent=True)
+            if not metadata or not metadata.get('additionalProperties'):
                 for value_key in list(self.value.keys()):
                     if value_key not in allowed_props:
                         ExceptionCollector.appendException(
