@@ -64,7 +64,7 @@ class Artifact(EntityTemplate):
     def __init__(self, name, artifact, custom_def=None, base=None):
         if isinstance(artifact, str):
             artifact = dict(file=artifact, type="tosca.artifacts.Root")
-        elif "type" not in artifact:
+        elif isinstance(artifact, dict) and "type" not in artifact:
             artifact = dict(artifact, type="tosca.artifacts.Root")
         super(Artifact, self).__init__(name, artifact, "artifact_type", custom_def)
         for key in SECTIONS[:-2]:  # skip "type" and "properties"

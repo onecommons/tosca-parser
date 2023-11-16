@@ -387,9 +387,16 @@ class NodeTemplate(EntityTemplate):
                     continue
                 for name, value in parent_type.defs[self.ARTIFACTS].items():
                     if isinstance(value, dict) and "file" not in value:
-                        # this is not a full artifact definition so treat this as
-                        # specifying that an artifact of a certain type is required
-                        required_artifacts[name] = value
+                        if "type" not in value:
+                            ExceptionCollector.appendException(
+                                MissingRequiredFieldError(
+                                    what=f'Artifact "{name}" declared on node type "{parent_type.type}"', required="file"
+                                )
+                            )
+                        else:
+                            # this is not a full artifact definition so treat this as
+                            # specifying that an artifact of a certain type is required
+                            required_artifacts[name] = value
                     else:
                         artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
 
@@ -403,9 +410,9 @@ class NodeTemplate(EntityTemplate):
                 typename = value.get("type")
                 artifact = artifacts.get(name)
                 if not artifact:
-                  if value.get("required"):
-                    ExceptionCollector.appendException(
-                      ValidationError(message='required artifact "%s" of type "%s" not defined on node "%s"' %
+                    if value.get("required"):
+                        ExceptionCollector.appendException(
+                          ValidationError(message='required artifact "%s" of type "%s" not defined on node "%s"' %
                               (name, typename, self.name)))
                 elif typename and not artifact.is_derived_from(typename):
                     ExceptionCollector.appendException(
