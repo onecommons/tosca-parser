@@ -12,7 +12,7 @@
 
 import logging
 
-from toscaparser.common.exception import ExceptionCollector
+from toscaparser.common.exception import ExceptionCollector, TypeMismatchError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.entity_template import EntityTemplate
@@ -89,5 +89,11 @@ class Artifact(EntityTemplate):
             ExceptionCollector.appendException(
                 MissingRequiredFieldError(
                     what='Artifact "%s"' % self.name, required="file"
+                )
+            )
+        if "permissions" in template and not isinstance(template["permissions"], str):
+            ExceptionCollector.appendException(
+                TypeMismatchError(
+                    what='Permission field on artifact "%s"' % self.name, type="string"
                 )
             )
