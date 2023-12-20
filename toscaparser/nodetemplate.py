@@ -383,22 +383,9 @@ class NodeTemplate(EntityTemplate):
             required_artifacts = {}
 
             for parent_type in reversed(self.types):
-                if not parent_type.defs or not parent_type.defs.get(self.ARTIFACTS):
+                if not parent_type.defs or not parent_type.defs.get(EntityTemplate.ARTIFACTS):
                     continue
-                for name, value in parent_type.defs[self.ARTIFACTS].items():
-                    if isinstance(value, dict) and "file" not in value:
-                        if "type" not in value:
-                            ExceptionCollector.appendException(
-                                MissingRequiredFieldError(
-                                    what=f'Artifact "{name}" declared on node type "{parent_type.type}"', required="file"
-                                )
-                            )
-                        else:
-                            # this is not a full artifact definition so treat this as
-                            # specifying that an artifact of a certain type is required
-                            required_artifacts[name] = value
-                    else:
-                        artifacts[name] = Artifact(name, value, self.custom_def, parent_type._source)
+                self.find_artifacts_on_type(parent_type, artifacts, required_artifacts)
 
             # node templates can't be imported so we don't need to track their source
             artifacts_tpl = self.entity_tpl.get(self.ARTIFACTS)
@@ -421,6 +408,26 @@ class NodeTemplate(EntityTemplate):
 
             self._artifacts = artifacts
         return self._artifacts
+
+    @staticmethod
+    def find_artifacts_on_type(parent_type: StatefulEntityType, artifacts: dict, required_artifacts: dict):
+        artifact_tpls = parent_type.get_value(EntityTemplate.ARTIFACTS, parent=True)
+        if not artifact_tpls:
+            return
+        for name, value in artifact_tpls.items():
+            if isinstance(value, dict) and "file" not in value:
+                if "type" not in value:
+                    ExceptionCollector.appendException(
+                            MissingRequiredFieldError(
+                                what=f'Artifact "{name}" declared on node type "{parent_type.type}"', required="file"
+                            )
+                        )
+                else:
+                        # this is not a full artifact definition so treat this as
+                        # specifying that an artifact of a certain type is required
+                    required_artifacts[name] = value
+            else:
+                artifacts[name] = Artifact(name, value, parent_type.custom_def, parent_type._source)
 
     @property
     def instance_keys(self):
