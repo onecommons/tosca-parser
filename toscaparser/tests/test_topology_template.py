@@ -190,7 +190,7 @@ class TopologyTemplateTest(TestCase):
         sub_mappings = (toscaparser.utils.yamlparser.
                         simple_parse(tpl_snippet))['substitution_mappings']
         expected_message = _(
-            'SubstitutionMappings contains unknown field '
+            'substitution_mappings contains unknown field '
             '"invalid_key". Refer to the definition '
             'to verify valid values.')
         err = self.assertRaises(
@@ -208,7 +208,7 @@ class TopologyTemplateTest(TestCase):
         '''
         sub_mappings = (toscaparser.utils.yamlparser.
                         simple_parse(tpl_snippet))['substitution_mappings']
-        expected_message = _('SubstitutionMappings used in topology_template '
+        expected_message = _('substitution_mappings used in topology_template '
                              'is missing required field "node_type".')
         err = self.assertRaises(
             exception.MissingRequiredFieldError,
@@ -242,7 +242,7 @@ class TopologyTemplateTest(TestCase):
             "data/topology_template/validate/"
             "queuingsubsystem_invalid_input.yaml")
 
-        errormsg = _('SubstitutionMappings with node_type '
+        errormsg = _('substitution_mappings with node_type '
                      'example.QueuingSubsystem is missing '
                      'required input definition of input "server_port".')
 

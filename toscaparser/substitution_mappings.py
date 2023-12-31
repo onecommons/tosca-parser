@@ -221,7 +221,7 @@ class SubstitutionMappings(object):
             if isinstance(value, dict):
                 if "mapping" not in value:
                     ExceptionCollector.appendException(
-                        UnknownFieldError(what="SubstitutionMappings", field=value)
+                        UnknownFieldError(what="substitution_mappings", field=value)
                     )
                     continue
                 value = value["mapping"]
@@ -236,7 +236,7 @@ class SubstitutionMappings(object):
             else:
                 ExceptionCollector.appendException(
                     MissingRequiredInputError(
-                        what=_("SubstitutionMappings with node_type ")
+                        what=_("substitution_mappings with node_type ")
                         + self.node_type.type,
                         input_name=input,
                     )
@@ -269,7 +269,7 @@ class SubstitutionMappings(object):
         for key in self.sub_mapping_def.keys():
             if key not in self.SECTIONS:
                 ExceptionCollector.appendException(
-                    UnknownFieldError(what=_("SubstitutionMappings"), field=key)
+                    UnknownFieldError(what=_("substitution_mappings"), field=key)
                 )
 
     def _validate_type(self):
@@ -291,7 +291,7 @@ class SubstitutionMappings(object):
             if not node_type:
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(
-                        what=_("SubstitutionMappings used in topology_template"),
+                        what=_("substitution_mappings used in topology_template"),
                         required=self.NODE_TYPE,
                     )
                 )
@@ -321,7 +321,7 @@ class SubstitutionMappings(object):
             if output.name not in self.node_type.get_attributes_def():
                 ExceptionCollector.appendException(
                     UnknownOutputError(
-                        where=_("SubstitutionMappings with node_type ")
+                        where=_("substitution_mappings with node_type ")
                         + self.node_type.type,
                         output_name=output.name,
                     )
