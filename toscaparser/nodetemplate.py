@@ -127,12 +127,13 @@ class NodeTemplate(EntityTemplate):
             resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
             for name, req_on_type in type_requirements.items():
                 if name not in names and name not in substituted:
-                    relTpl = None
+                    match = False
                     node = req_on_type.get('node')
                     is_template = node and self.find_node_related_template(node)
                     if is_template:
                         relTpl = self._relationship_from_req(name, req_on_type, None)
                         if relTpl:
+                            match = True
                             self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
                     elif resolver:
                         # if we are able to create a RelationshipTemplate, see if the resolver can find a match
@@ -150,9 +151,10 @@ class NodeTemplate(EntityTemplate):
                             relTpl.source = self
                             related_node, related_capability = resolver.find_matching_node(relTpl, name, req_on_type)
                             if related_node:
+                                match = True
                                 self._set_relationship(related_node, related_capability, relTpl)
                                 self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
-                    if not relTpl and ("occurrences" not in req_on_type or req_on_type["occurrences"][0]):
+                    if not match and ("occurrences" not in req_on_type or req_on_type["occurrences"][0]):
                         # minimum occurrences is not 0
                         self._missing_requirements[name] = req_on_type
         return self._relationships
