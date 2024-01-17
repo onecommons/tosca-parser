@@ -181,10 +181,8 @@ class GetAttribute(Function):
                     else:  # It is a complex type
                         data_type = DataType(value_type,
                                              self.tosca_tpl.custom_defs)
-                        props = data_type.get_all_properties()
-                        found = [props[elem]] if elem in props else []
-                        if found:
-                            prop = found[0]
+                        prop = data_type.get_properties_def().get(elem)
+                        if prop:
                             value_type = prop.schema['type']
                             value_schema = prop.schema
                         else:
@@ -310,6 +308,8 @@ class GetAttribute(Function):
 
     def _find_req_or_cap_attribute(self, req_or_cap, attr_name):
         node_tpl = self._find_node_template(self.args[0])
+        if not node_tpl:
+            return None
         # Find attribute in node template's requirements
         for r in node_tpl.requirements:
             for req, node_name in r.items():
