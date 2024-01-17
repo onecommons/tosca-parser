@@ -351,7 +351,7 @@ class ImportsLoader(object):
                 if repository not in repos:
                     ExceptionCollector.appendException(
                         ValidationError(
-                            message=_('Repository not found: "%s"') % repository
+                            message=_('Unknown repository in import "%s"') % import_uri_def
                         )
                     )
                     return None, None

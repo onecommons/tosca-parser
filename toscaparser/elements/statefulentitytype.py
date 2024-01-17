@@ -115,7 +115,6 @@ class StatefulEntityType(EntityType):
 
     @property
     def parent_type(self):
-        """Return a relationship this reletionship is derived from."""
         prel = self.derived_from(self.defs)
         if prel:
             # prefix is only used to expand "tosca:Type"
