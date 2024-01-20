@@ -187,6 +187,8 @@ class ImportsLoader(object):
             else:
                 file_name = import_def
 
+            if not is_url(full_file_name):
+                full_file_name = os.path.normpath(full_file_name)
             if imported_tpl:
                 TypeValidation(imported_tpl, import_tpl)
                 self._update_custom_def(imported_tpl, namespace_prefix, full_file_name,
@@ -255,6 +257,7 @@ class ImportsLoader(object):
     def load_yaml(self, import_uri_def, import_name=None):
         url_info = self.resolve_import(import_uri_def, import_name)
         if url_info is not None:
+            path = url_info
             try:
                 base, path, fragment, ctx = url_info
                 doc, ctx = self.resolver.load_yaml(path, fragment, ctx)
