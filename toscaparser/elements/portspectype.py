@@ -46,7 +46,7 @@ class PortSpec(dict):
         else:
             spec = args[0]
             if isinstance(spec, int):
-                p = PortSpec(source=spec, target=spec)
+                p = PortSpec(source=spec, target=spec, protocol='tcp')
             elif not spec:  # e.g. None or ""
                 return None
             elif isinstance(spec, str):
