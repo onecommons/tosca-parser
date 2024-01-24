@@ -27,6 +27,11 @@ from toscaparser.substitution_mappings import SubstitutionMappings
 from toscaparser.utils.gettextutils import _
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import ValidationError
+from toscaparser.elements.statefulentitytype import StatefulEntityType
+from toscaparser.elements.artifacttype import ArtifactTypeDef
+from toscaparser.elements.relationshiptype import RelationshipType
+from toscaparser.elements.nodetype import NodeType
+from toscaparser.elements.entity_type import EntityType
 
 
 # Topology template key names
@@ -457,3 +462,40 @@ class TopologyTemplate(object):
                     msg = f'Required requirement "{name}" not defined'
                     ExceptionCollector.appendException(
                         ValidationError(message = msg))
+
+    def find_type(self, name: str):
+        return find_type(name, self.custom_defs)
+
+def find_type(typename: str, custom_defs):
+    typedef = EntityType.find_type(typename, custom_defs)
+    if typedef:
+        return typedef
+
+    # prefix is only used to expand "tosca:Type"
+    test_typedef = StatefulEntityType(
+        typename, StatefulEntityType.NODE_PREFIX, custom_defs
+    )
+    if not test_typedef.defs:
+        return None
+    elif "derived_from" not in test_typedef.defs:
+        _source = test_typedef.defs.get("_source")
+        section = isinstance(_source, dict) and _source.get("section")
+        if _source and not section:
+            logging.warning(
+                'Unable to determine type of %s: missing "derived_from" key',
+                typename,
+            )
+        elif section == "node_types":
+            custom_defs[typename]["derived_from"] = "tosca.nodes.Root"
+        elif section == "relationship_types":
+            custom_defs[typename]["derived_from"] = "tosca.relationships.Root"
+    if test_typedef.is_derived_from("tosca.nodes.Root"):
+        typedef = NodeType(typename, custom_defs)
+    elif test_typedef.is_derived_from("tosca.relationships.Root"):
+        typedef = RelationshipType(typename, custom_defs)
+    elif test_typedef.is_derived_from("tosca.artifacts.Root"):
+        typedef = ArtifactTypeDef(typename, custom_defs)
+    else:
+        typedef = test_typedef
+    EntityType.add_type(typename, typedef, True)
+    return typedef

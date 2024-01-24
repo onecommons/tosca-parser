@@ -21,7 +21,8 @@ import toscaparser.utils.yamlparser
 
 log = logging.getLogger('tosca')
 globals = threading.local()
-globals._parent_types = None
+globals._types = None          # Dict[str, StatefulEntityType]
+globals._parent_types = None  # Dict[str, List[StatefulEntityType]]
 
 
 class EntityType(object):
@@ -82,7 +83,32 @@ class EntityType(object):
         return globals._parent_types
 
     @staticmethod
+    def find_type(name, custom_defs_guard = None):
+        if globals._types:
+            type_def = globals._types.get(name)
+            if type_def:
+                if (
+                    custom_defs_guard is not None
+                    and custom_defs_guard is not type_def.custom_def
+                ):
+                    return None
+            return type_def
+        else:
+            return None
+
+    @staticmethod
+    def add_type(name, typedef, guard=False):
+        if globals._types is not None:
+            if guard and globals._types:
+                if typedef.custom_def is not next(iter(globals._types.values())).custom_def:
+                    return False
+            globals._types[name] = typedef
+            return True
+        return False
+
+    @staticmethod
     def reset_caches():
+        globals._types = {}
         globals._parent_types = {}
 
     def derived_from(self, defs):
