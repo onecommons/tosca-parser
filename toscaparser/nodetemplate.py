@@ -412,8 +412,8 @@ class NodeTemplate(EntityTemplate):
         return self._artifacts
 
     @staticmethod
-    def find_artifacts_on_type(parent_type: StatefulEntityType, artifacts: dict, required_artifacts: dict):
-        artifact_tpls = parent_type.get_value(EntityTemplate.ARTIFACTS, parent=True)
+    def find_artifacts_on_type(parent_type: StatefulEntityType, artifacts: dict, required_artifacts: dict, parent=True):
+        artifact_tpls = parent_type.get_value(EntityTemplate.ARTIFACTS, parent=parent)
         if not artifact_tpls:
             return
         for name, value in artifact_tpls.items():
