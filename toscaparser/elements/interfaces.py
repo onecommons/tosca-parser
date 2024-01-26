@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import MissingRequiredFieldError
@@ -170,6 +171,12 @@ class OperationDef:
             else:
                 self.implementation = value
             self.validate_implementation()
+        if not self._source and self.ntype:
+            _source = self.ntype.defs.get("_source")
+            if isinstance(_source, dict):
+                self._source = os.path.dirname(_source.get("path", ""))
+            else:
+                self._source = _source
 
     @property
     def _msg(self):
