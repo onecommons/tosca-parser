@@ -8,6 +8,7 @@ imports:
 
 metadata:
   template_name: sample-tosca-vnfd-scaling
+  global_namespace: true
 
 topology_template:
   node_templates:

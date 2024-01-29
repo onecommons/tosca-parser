@@ -14,13 +14,12 @@
 import logging
 import os
 
-from copy import deepcopy
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import InvalidTemplateVersion
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
-from toscaparser.elements.entity_type import update_definitions, EntityType
+from toscaparser.elements.entity_type import update_definitions, EntityType, Namespace
 from toscaparser.extensions.exttools import ExtTools
 import toscaparser.imports
 from toscaparser.prereq.csar import CSAR
@@ -84,7 +83,7 @@ class ToscaTemplate(object):
         self.input_path = None
         self.path = None
         self.fragment = fragment
-        self.tpl = None
+        self.tpl = {}
         self.import_resolver = import_resolver
         self.nested_tosca_tpls = {}
         self.nested_topologies = {}
@@ -113,15 +112,15 @@ class ToscaTemplate(object):
             self.version = self._tpl_version()
             EntityType.reset_caches()
             self.description = self._tpl_description()
-            custom_defs = self._get_all_custom_defs()
-            self.topology_template = self._topology_template(custom_defs)
+            all_custom_defs = self.load_imports()
+            self.topology_template = self._topology_template(all_custom_defs)
             self._repositories = None
             if self.topology_template.tpl:
                 self.inputs = self._inputs()
                 self.relationship_templates = self._relationship_templates()
                 self.outputs = self._outputs()
                 self.policies = self._policies()
-                self._handle_nested_tosca_templates_with_topology(custom_defs)
+                self._handle_nested_tosca_templates_with_topology(all_custom_defs.all_namespaces)
 
         if verify:
             if self.tpl and self.topology_template.tpl:
@@ -171,7 +170,7 @@ class ToscaTemplate(object):
     def repositories(self):
         if self._repositories is None:
             repositories = {}
-            assert self.topology_template # sets self.nested_tosca_tpls
+            assert self.topology_template
             for filename, tosca_tpl in self.nested_tosca_tpls.items():
                 repositories.update(tosca_tpl.get(REPOSITORIES) or {})
             repositories.update(self.tpl.get(REPOSITORIES) or {})
@@ -194,65 +193,43 @@ class ToscaTemplate(object):
     def _policies(self):
         return self.topology_template.policies
 
-    def get_type_sections(self):
-        return [TYPES, NODE_TYPES, CAPABILITY_TYPES, RELATIONSHIP_TYPES,
-                 DATA_TYPES, ARTIFACT_TYPES, INTERFACE_TYPES, POLICY_TYPES, GROUP_TYPES]
-
-    def _get_all_custom_defs(self):
-        custom_defs, nested_tosca_tpls = self._get_custom_defs(self.tpl, self.path, self.base_dir)
-        self.nested_tosca_tpls = nested_tosca_tpls
-        # Handle custom types defined in current template file
-        for type_def in self.get_type_sections():
-            inner_custom_types = self.tpl.get(type_def)
-            if inner_custom_types:
-                custom_defs.update(inner_custom_types)
-        return custom_defs
-
-    def _get_custom_defs(self, tpl, path, root_path):
-        custom_defs_final = {}
-        tosca_tpls = {}
-        custom_defs, nested_imports = self.load_imports(path, tpl, root_path)
-        for filename, (import_tpl, root_path, prefix) in nested_imports.items():
-            tosca_tpls[filename] = import_tpl
-            import_defs, nested_tosca_tpls = self._get_custom_defs(import_tpl, filename, root_path)
-            custom_defs_final.update(import_defs)
-            tosca_tpls.update(nested_tosca_tpls)
-        if custom_defs:
-            custom_defs_final.update(custom_defs)
-        return custom_defs_final, tosca_tpls
-
-    def load_imports(self, path, tpl, root_path):
+    def load_imports(self):
         """Handle custom types defined in imported template files
 
         This method loads the custom type definitions referenced in "imports"
         section of the TOSCA YAML template.
-        """
-        imports = tpl.get("imports")
-        if not imports:
-            return {}, {}
-
-        type_sections = self.get_type_sections()
+        """        
+        imported_types = Namespace({}, None, self.path or "")
+        imported_types.global_namespace = bool(self.tpl.get("metadata", {}).get("global_namespace"))
         imports_loader = toscaparser.imports.ImportsLoader(
-            None, path, type_sections, self.tpl.get("repositories"),
-            self.import_resolver, root_path
+            None, self.path, imported_types, self.tpl.get("repositories"),
+            self.import_resolver, self.base_dir
         )
-        imports_loader.resolver.load_imports(imports_loader, imports)
-        # nested_tosca_tpls is Dict[file_path, (tpl, repository_name, prefix)] of the imported templates
-        nested_tosca_tpls = imports_loader.get_nested_tosca_tpls()
-        # custom defs are merged together (with possibly namespace prefix)
-        custom_defs = imports_loader.get_custom_defs()
-        return custom_defs, nested_tosca_tpls
+        _, _source, namespace_id = imports_loader.get_source(self.base_dir, self.path, None, "")
+        imported_types.namespace_id = namespace_id
+        imports = self.tpl.get("imports") 
+        if imports:
+            imported_types = imports_loader.resolver.load_imports(imports_loader, imports)
+            self.nested_tosca_tpls = imports_loader.nested_tosca_tpls
+        else:
+            self.nested_tosca_tpls = {}
+        # we don't need to set _source on the root template because local names can't be prefixed
+        imports_loader._update_custom_def(self.tpl, imported_types, None, namespace_id)
+        return imported_types
 
-    def _handle_nested_tosca_templates_with_topology(self, custom_types):
+    def _handle_nested_tosca_templates_with_topology(self, namespaces):
         ExceptionCollector.near = ""
         for filename, tosca_tpl in self.nested_tosca_tpls.items():
             topology_tpl = tosca_tpl.get(TOPOLOGY_TEMPLATE)
             if topology_tpl:
-                custom_types = custom_types.copy()
-                custom_types.update(tosca_tpl.get('node_types', {}))  # XXX isn't this redundant?
+                if self.topology_template.custom_defs.global_namespace:
+                    custom_types = self.topology_template.custom_defs
+                else:
+                    custom_types = namespaces[filename]
                 self.nested_topologies[filename] = TopologyTemplate(
                                 topology_tpl, custom_types, None, self)
         substitutable_topologies = [t for t in self.nested_topologies.values() if t.substitution_mappings]
+        assert self.topology_template
         self.topology_template._do_substitutions(substitutable_topologies)
         if self.topology_template.substitution_mappings and not self.topology_template.substitution_mappings.node:
             # create a node template for the root topology's substitution mapping

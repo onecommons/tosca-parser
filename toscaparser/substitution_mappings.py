@@ -76,7 +76,7 @@ class SubstitutionMappings(object):
         self._validate()
 
     def match(self, nodetemplate):
-        if self.node_type and self.node_type.is_derived_from(nodetemplate.type):
+        if self.node_type and nodetemplate.instance_of(self.node_type):
             if self.substitution_filter:
                 return nodetemplate.match_nodefilter(self.substitution_filter)
             return True

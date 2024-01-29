@@ -55,7 +55,6 @@ class NodeType(StatefulEntityType):
     def __init__(self, ntype, custom_def=None):
         super(NodeType, self).__init__(ntype, self.NODE_PREFIX, custom_def)
         self.ntype = ntype
-        self.custom_def = custom_def
         self._requirement_definitions = None
         self._validate_keys()
 

@@ -19,6 +19,7 @@ from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
 from toscaparser.common.exception import URLException
+from toscaparser.elements.entity_type import EntityType, Namespace
 from toscaparser.elements.tosca_type_validation import TypeValidation
 from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
@@ -30,6 +31,7 @@ log = logging.getLogger("tosca")
 
 TREAT_IMPORTS_AS_FATAL = True
 
+
 def is_url(url):
     return toscaparser.utils.urlutils.UrlUtils.validate_url(url)
 
@@ -37,7 +39,7 @@ def is_url(url):
 def normalize_path(path):
     "Convert file URLs to paths and expand user"
     if path.startswith("file:"):
-        path = path[len("file:"):]
+        path = path[len("file:") :]
         if path and path[0] == "/":
             path = "/" + path.lstrip("/")  # make sure there's only one /
     if path.startswith("~"):
@@ -66,7 +68,9 @@ class ImportResolver:
     def get_repository(self, name, tpl):
         return Repository(name, tpl)
 
-    def get_repository_url(self, importsLoader, repository_name):
+    def get_repository_url(self, importsLoader, repository_name, package=None):
+        if not repository_name:
+            return ""
         repo_def = importsLoader.repositories[repository_name]
         url = repo_def["url"].strip()
         path = normalize_path(url)
@@ -86,6 +90,7 @@ class ImportResolver:
     def load_imports(self, importsLoader, importslist):
         importsLoader.importslist = importslist
         importsLoader._validate_and_load_imports()
+        return importsLoader.get_custom_defs()
 
     def find_matching_node(self, relTpl, req_name, req_def):
         if relTpl.target:
@@ -103,7 +108,6 @@ class ImportResolver:
 
 
 class ImportsLoader(object):
-
     IMPORTS_SECTION = (FILE, REPOSITORY, NAMESPACE_URI, NAMESPACE_PREFIX, WHEN) = (
         "file",
         "repository",
@@ -113,10 +117,16 @@ class ImportsLoader(object):
     )
 
     def __init__(
-        self, importslist, path, type_definition_list=None, repositories=None, resolver=None, repository_root=None,
+        self,
+        importslist,
+        path,
+        namespace=None,
+        repositories=None,
+        resolver=None,
+        repository_root=None,
     ):
         self.importslist = importslist
-        self.custom_defs = {}
+        self.custom_defs = Namespace({}, None) if namespace is None else namespace
         self.nested_tosca_tpls = {}
         self.resolver = resolver or ImportResolver()
         self.repository_root = None
@@ -126,8 +136,6 @@ class ImportsLoader(object):
             self.repository_root = repository_root
         self.path = path
         self.repositories = repositories or {}
-        # names of type definition sections
-        self.type_definition_list = type_definition_list or []
         if importslist is not None:
             if not path:
                 msg = _("Input tosca template is not provided.")
@@ -149,7 +157,6 @@ class ImportsLoader(object):
             log.error(msg)
             ExceptionCollector.appendException(ValidationError(message=msg))
             return
-
         for import_tpl in self.importslist:
             if isinstance(import_tpl, dict):
                 if len(import_tpl) == 1 and "file" not in import_tpl:
@@ -163,74 +170,120 @@ class ImportsLoader(object):
                 else:  # new style {"file": uri}
                     import_name = None
                     import_def = import_tpl
-
             else:  # import_def is just the uri string
                 import_name = None
                 import_def = import_tpl
 
-            base, full_file_name, imported_tpl = self.load_yaml(import_def, import_name)
-            if full_file_name is None:
-                if TREAT_IMPORTS_AS_FATAL:
-                    import_repr = import_def if isinstance(import_def, (str, type(None))) or not import_def.get("file") else import_def["file"]
-                    error = FatalToscaImportError(message=f'Aborting parsing of service template: can not import "{import_repr}"')
-                    if ExceptionCollector.exceptions:
-                        error.__cause__ = ExceptionCollector.exceptions[-1]
-                    raise error
-                return
+            # logging.warning("importing %s", import_def)
+            imported_types, prefix = self._load_import(import_def, import_name)
+            if imported_types:
+                # logging.warning("adding with prefix %s", prefix)
+                self.custom_defs.add_with_prefix(imported_types, prefix)
 
-            namespace_prefix = None
-            repository_name = None
-            if isinstance(import_def, dict):
-                namespace_prefix = import_def.get(self.NAMESPACE_PREFIX)
-                repository_name = import_def.get(self.REPOSITORY)
-                file_name = import_def.get(self.FILE)
-            else:
-                file_name = import_def
+    def _load_import(self, import_def, import_name):
+        base, full_file_name, imported_tpl = self.load_yaml(import_def, import_name)
+        if full_file_name is None:
+            if TREAT_IMPORTS_AS_FATAL:
+                self.abort(import_def)
+            return None, None
 
-            if not is_url(full_file_name):
-                full_file_name = os.path.normpath(full_file_name)
-            if imported_tpl:
-                TypeValidation(imported_tpl, import_tpl)
-                self._update_custom_def(imported_tpl, namespace_prefix, full_file_name,
-                                        repository_name, base, file_name)
-            root_path = base if repository_name else self.repository_root
-            self._update_nested_tosca_tpls(full_file_name, root_path, imported_tpl, namespace_prefix)
-
-    def _update_custom_def(self, imported_tpl, namespace_prefix, path, repository_name, base, file_name):
-        path = os.path.normpath(path)
-        if repository_name:
-            root_path = self.resolver.get_repository_url(self, repository_name)
+        namespace_prefix = None
+        repository_name = None
+        if isinstance(import_def, dict):
+            namespace_prefix = import_def.get(self.NAMESPACE_PREFIX)
+            repository_name = import_def.get(self.REPOSITORY)
+            file_name = import_def.get(self.FILE)
         else:
-            root_path = self.repository_root
-        for type_def_section in self.type_definition_list:
+            file_name = import_def
+
+        if not is_url(full_file_name):
+            full_file_name = os.path.normpath(full_file_name)
+
+        if full_file_name and imported_tpl:
+            self.nested_tosca_tpls[
+                full_file_name
+            ] = imported_tpl
+
+        root_path, _source, namespace_id = self.get_source(
+            base, full_file_name, repository_name, file_name)
+        imported_types = Namespace(
+            self.custom_defs.all_namespaces, 
+            full_file_name, namespace_id
+        )
+
+        if imported_tpl:
+            imports = imported_tpl.get("imports")
+            if imports:
+                imports_loader = ImportsLoader(
+                    None,
+                    full_file_name,
+                    imported_types,
+                    self.repositories,
+                    self.resolver,
+                    root_path,
+                )
+                imports_loader.resolver.load_imports(
+                    imports_loader, imports
+                )
+                self.nested_tosca_tpls.update(imports_loader.nested_tosca_tpls)
+
+            TypeValidation(imported_tpl, import_def)
+            local_types = self._update_custom_def(
+                imported_tpl, imported_types, _source, namespace_id
+            )
+            imported_types.update(local_types)
+        return imported_types, namespace_prefix
+
+    def get_source(self, base, path, repository_name, file_name):
+        root_path = base if repository_name else self.repository_root
+        # "@namespace_id#path"
+        _source = dict(
+            path=path,  # path to this imported file
+            root=root_path, # repository or service template url
+            base=base,   # local path to base of repository or service template
+            repository=repository_name,  # repository name if specified in the import
+            file=file_name, # file name as specified in the import
+        )
+        # if not repository_name, return package_id for the root template
+        namespace_id = self.resolver.get_repository_url(self, repository_name, _source)
+        return root_path,_source,namespace_id
+
+    def abort(self, import_def):
+        import_repr = (
+                    import_def
+                    if isinstance(import_def, (str, type(None)))
+                    or not import_def.get("file")
+                    else import_def["file"]
+                )
+        error = FatalToscaImportError(
+                    message=f'Aborting parsing of service template: can not import "{import_repr}"'
+                )
+        if ExceptionCollector.exceptions:
+            error.__cause__ = ExceptionCollector.exceptions[-1]
+        raise error
+
+    def _update_custom_def(
+        self, imported_tpl, custom_defs, _source, namespace_id
+    ):
+        for type_def_section in EntityType.TOSCA_DEF_SECTIONS:
             outer_custom_types = imported_tpl.get(type_def_section)
             if outer_custom_types:
-                if type_def_section in [
+                if _source and type_def_section in [
                     "node_types",
                     "relationship_types",
                     "artifact_types",
                     "data_types",
-                    "capability_types"
+                    "capability_types",
                 ]:
-                    for custom_def in outer_custom_types.values():
-                        custom_def["_source"] = dict(path=path, prefix=namespace_prefix,
-                                                     root=root_path, repository=repository_name,
-                                                     base=base, file=file_name,
-                                                     section=type_def_section)
-                if namespace_prefix:
-                    prefix_custom_types = {}
-                    for type_def_key in outer_custom_types:
-                        namespace_prefix_to_key = namespace_prefix + "." + type_def_key
-                        prefix_custom_types[
-                            namespace_prefix_to_key
-                        ] = outer_custom_types[type_def_key]
-                    self.custom_defs.update(prefix_custom_types)
-                else:
-                    self.custom_defs.update(outer_custom_types)
-
-    def _update_nested_tosca_tpls(self, full_file_name, root_path, custom_tpl, namespace_prefix):
-        if full_file_name and custom_tpl:
-            self.nested_tosca_tpls[full_file_name] = (custom_tpl, root_path, namespace_prefix)
+                    for name, custom_def in outer_custom_types.items():
+                        custom_def["_source"] = dict(
+                            _source, 
+                            section=type_def_section, 
+                            local_name=name,
+                            namespace_id=namespace_id
+                        )
+                custom_defs.update(outer_custom_types)
+        return custom_defs
 
     def _validate_import_keys(self, import_name, import_uri_def):
         if self.FILE not in import_uri_def.keys():
@@ -291,7 +344,9 @@ class ImportsLoader(object):
         | URL      | URL    | OK                           |
         +----------+--------+------------------------------+
         """
-        repository_name, file_name = self._resolve_import_template(import_name, import_uri_def)
+        repository_name, file_name = self._resolve_import_template(
+            import_name, import_uri_def
+        )
         if file_name is None:
             return None
         file_name, sep, fragment = file_name.partition("#")
@@ -312,7 +367,9 @@ class ImportsLoader(object):
             if self.path and not is_url(base) and not os.path.isabs(base):
                 # repository is set to a relative local path
                 base = os.path.normpath(os.path.join(doc_base, base))
-            path, ctx = self.resolver.resolve_url(self, base, os.path.normpath(path), repository_name)
+            path, ctx = self.resolver.resolve_url(
+                self, base, os.path.normpath(path), repository_name
+            )
             if path is None:
                 return None
         else:
@@ -354,7 +411,8 @@ class ImportsLoader(object):
                 if repository not in repos:
                     ExceptionCollector.appendException(
                         ValidationError(
-                            message=_('Unknown repository in import "%s"') % import_uri_def
+                            message=_('Unknown repository in import "%s"')
+                            % import_uri_def
                         )
                     )
                     return None, None

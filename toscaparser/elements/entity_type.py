@@ -24,6 +24,49 @@ globals = threading.local()
 globals._types = None          # Dict[str, StatefulEntityType]
 globals._parent_types = None  # Dict[str, List[StatefulEntityType]]
 
+class Namespace(dict):
+    def __init__(self, nested_custom_types, file_name, namespace_id=""):
+        self.all_namespaces = nested_custom_types
+        self.file_name = file_name
+        self.namespace_id = namespace_id
+        self.imports = {}  # map global specifiers to prefix
+        # register this namespace:
+        self.all_namespaces[file_name] = self
+        self.global_namespace = False
+        # base
+        # root
+        # repository
+        # self.metadata = {}  # local_name => section?
+
+
+    def get_local_name(self, global_name):
+        local, sep, module_name = global_name.partition("@")
+        if module_name == self.namespace_id:
+            return local  # type is defined here
+        prefix = self.imports.get(module_name)
+        if prefix:
+            return prefix + "." + local
+        elif prefix is None:
+            return None  # not imported
+        else:
+            return local # no prefix
+
+    def add_with_prefix(self, local_custom_defs: "Namespace", prefix):
+        self.imports[local_custom_defs.namespace_id] = prefix
+        for k, v in local_custom_defs.items():
+          if prefix:
+              self[f"{prefix}.{k}"] = v
+          else:
+              self[k] = v
+        for imported, iprefix in local_custom_defs.imports.items():
+          if prefix:
+              self.imports[imported] = f"{prefix}.{iprefix}"
+          else:
+              self.imports[imported] = iprefix
+
+    def add_entitytype(self, entitytype):
+        # cache the type object
+        entitytype["_source"]["local_name"]
 
 class EntityType(object):
     '''Base class for TOSCA elements.'''
@@ -36,7 +79,7 @@ class EntityType(object):
     TOSCA_DEF_SECTIONS = ['node_types', 'data_types', 'artifact_types',
                           'group_types', 'relationship_types',
                           'capability_types', 'interface_types',
-                          'policy_types']
+                          'policy_types', 'types']
 
     '''TOSCA definition file.'''
     TOSCA_DEF_FILE = os.path.join(
@@ -80,6 +123,7 @@ class EntityType(object):
 
     @staticmethod
     def _parent_types():
+        return None
         return globals._parent_types
 
     @staticmethod
@@ -125,7 +169,9 @@ class EntityType(object):
         Returns true if this object is derived from 'type_str'.
         False otherwise.
         '''
-        if not self.type:
+        if "@" in type_str:
+            return self.global_name == type_str
+        elif not self.type:
             return False
         elif self.type == type_str:
             return True

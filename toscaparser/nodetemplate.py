@@ -181,7 +181,7 @@ class NodeTemplate(EntityTemplate):
             # outermost templates can reference imported "default" templates
             for nested in self.topology_template.tosca_template.nested_topologies.values():
                 match = nested.node_templates.get(name)
-                if match:# and "default" in match.directives:
+                if match and "default" in match.directives:
                     return match
         return node
 
@@ -241,6 +241,7 @@ class NodeTemplate(EntityTemplate):
         return relationship, relTpl, type
 
     def _find_matching_node(self, relTpl, req_name, nodetype, capability, node_filter):
+        # XXX nodetype should type_definition
         related_node = None
         related_capability = None
         for nodeTemplate in self.topology_template.node_templates.values():
@@ -341,6 +342,8 @@ class NodeTemplate(EntityTemplate):
             return None
 
         if not related_node:
+            # treat node as a type name
+            # XXX if not node_on_template search namespaces for type_definition of nodetype
             related_node, related_capability = self._find_matching_node(relTpl, name, node, capability, node_filter)
         if not related_node:
             resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver

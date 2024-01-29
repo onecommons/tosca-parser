@@ -20,7 +20,7 @@ topology_template:
       type: Test2ndRsyslogType
 
     logstash:
-      type: tosca.nodes.SoftwareComponent.Logstash
+      type: test_2nd_namespace_prefix.tosca.nodes.SoftwareComponent.Logstash
 
     kibana:
       type: tosca.nodes.SoftwareComponent.Kibana

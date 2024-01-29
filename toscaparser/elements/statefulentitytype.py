@@ -10,11 +10,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import logging
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import MissingTypeError
 from toscaparser.common.exception import TypeMismatchError
 from toscaparser.common.exception import UnknownFieldError, ValidationError
-from toscaparser.elements.entity_type import EntityType
+from toscaparser.elements.entity_type import EntityType, Namespace
 from toscaparser.elements.property_definition import PropertyDef
 from toscaparser.unsupportedtype import UnsupportedType
 from toscaparser.elements.interfaces import INTERFACE_DEF_RESERVED_WORDS
@@ -43,6 +44,7 @@ class StatefulEntityType(EntityType):
 
     def __init__(self, entitytype, prefix, custom_def=None):
         entire_entitytype = entitytype
+        custom = False
         if not isinstance(entitytype, str):
             ExceptionCollector.appendException(TypeMismatchError(
                                                what=entitytype,
@@ -59,6 +61,8 @@ class StatefulEntityType(EntityType):
             if not entitytype.startswith(self.TOSCA):
                 entire_entitytype = prefix + entitytype
             if custom_def and entitytype in custom_def:
+                # logging.error(f'creating type from customdef {entitytype} {list(custom_def)}')
+                custom = True
                 self.defs = custom_def[entitytype]
             elif entire_entitytype in self.TOSCA_DEF:
                 self.defs = self.TOSCA_DEF[entire_entitytype]
@@ -67,13 +71,37 @@ class StatefulEntityType(EntityType):
                 self.defs = self.TOSCA_DEF[entitytype]
             else:
                 self.defs = None
+                # logging.error(f'missing type {entitytype} {list(custom_def)}')
                 ExceptionCollector.appendException(
                     MissingTypeError(what=entitytype))
             self.type = entitytype
-        self.custom_def = custom_def
         source = self.defs and self.defs.get("_source") or None
+        local = False
+        self.global_name = self.type
         if isinstance(source, dict):
+            # find the provenance of this type and use to that namespace for resolving local names
+            local_name = source.get("local_name")
+            namespace_id = source.get("namespace_id")
+            if local_name:
+                if namespace_id:
+                    self.global_name = f"{local_name}@{namespace_id}"
+                else:
+                    self.global_name = local_name
             source = source.get("path")
+            if source and isinstance(custom_def, Namespace) and not custom_def.global_namespace:
+                namespace_defs = custom_def.all_namespaces.get(source)
+                if namespace_defs is not None:
+                    custom_def = namespace_defs
+                    
+                    # custom_def.add_entitytype(self) # XXX
+                    # logging.error("using local custom_defs %s %s %s", entitytype, source, list(custom_def))
+                    local = True
+        elif isinstance(custom_def, Namespace):
+            self.global_name = f"{self.type}@{custom_def.namespace_id}"
+            source = custom_def.file_name            
+        # if custom and not local:
+        #      logging.error("no local custom_defs! %s %s %s", entitytype, source, list(custom_def))
+        self.custom_def = custom_def
         self._source = source
         self.__ancestors = None
         self._interfaces = None
@@ -92,9 +120,11 @@ class StatefulEntityType(EntityType):
         _parent_types = self._parent_types()
         if _parent_types is None or self.__class__ is StatefulEntityType:
             return list(self._find_parent_types())
-        if self.type not in _parent_types:
+        # self.type is the imported name for the type (varies by prefix)
+        key = (self.type, self.global_name)
+        if key not in _parent_types:
             parents = list(self._find_parent_types())
-            _parent_types[self.type] = parents
+            _parent_types[key] = parents
         return _parent_types[self.type]
 
     def _find_parent_types(self):
@@ -118,6 +148,7 @@ class StatefulEntityType(EntityType):
         prel = self.derived_from(self.defs)
         if prel:
             # prefix is only used to expand "tosca:Type"
+            # logging.error("what@ {prel} {self.type} {list(self.custom_def)}")
             return StatefulEntityType(prel, self.NODE_PREFIX, custom_def=self.custom_def)
 
     def get_properties_def_objects(self):
