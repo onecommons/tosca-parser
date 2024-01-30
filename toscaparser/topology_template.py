@@ -147,11 +147,10 @@ class TopologyTemplate(object):
         return node
 
     def _relationship_templates(self):
-        rel_templates = []
+        rel_templates = {}
         tpls = self._tpl_relationship_templates()
         for name in tpls:
-            tpl = RelationshipTemplate(tpls[name], name, self.custom_defs)
-            rel_templates.append(tpl)
+            rel_templates[name] = RelationshipTemplate(tpls[name], name, self.custom_defs)
         return rel_templates
 
     def _outputs(self):

@@ -32,7 +32,7 @@ from testtools.testcase import skip
 def _get_nodetemplate(tpl_snippet, name, custom_def_snippet=None):
     tpl = toscaparser.utils.yamlparser.simple_parse(tpl_snippet)
     nodetemplates = tpl['node_templates']
-    custom_def = []
+    custom_def = {}
     if custom_def_snippet:
         custom_def = toscaparser.utils.yamlparser.simple_parse(custom_def_snippet)
     topology = TopologyTemplate(tpl, custom_def)
@@ -990,7 +990,7 @@ class ToscaTemplateTest(TestCase):
             os.path.dirname(os.path.abspath(__file__)),
             "data/test_tosca_custom_rel_with_script.yaml")
         tosca = ToscaTemplate(tosca_tpl)
-        rel = tosca.relationship_templates[0]
+        rel = tosca.relationship_templates["my_custom_rel"]
         self.assertEqual(rel.type, "tosca.relationships.HostedOn")
         self.assertTrue(rel.is_derived_from("tosca.relationships.Root"))
         self.assertEqual(len(rel.interfaces), 1)

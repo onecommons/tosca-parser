@@ -154,6 +154,11 @@ class ToscaDefTest(TestCase):
             sorted(compute_type.get_attributes_def().keys()))
 
     def test_requirements(self):
+        # self.assertEqual([n.custom_def for n in component_type.ancestors()], "wierdf")
+        component_type = NodeType('tosca.nodes.SoftwareComponent')
+        self.assertEqual([n.custom_def for n in component_type.ancestors()],  [None, None])
+        component_type.requirements
+        self.assertEqual([n.custom_def for n in component_type.ancestors()],  [None, None])
         self.assertEqual(
             [{'host': {'capability': 'tosca.capabilities.Compute',
                        'node': 'tosca.nodes.Compute',

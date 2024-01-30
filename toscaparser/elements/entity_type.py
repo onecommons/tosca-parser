@@ -205,7 +205,7 @@ class EntityType(object):
                 for p in p._ancestors(seen):
                     yield p
 
-    def get_value(self, ndtype, defs=None, parent=None, merge=False):
+    def get_value(self, ndtype, defs=None, parent=None, merge=False, add_namespace=False):
         '''
         If set, `defs` should be from the template otherwise uses defs from this type
         `parent` merges in defs from this type and ancestors
@@ -232,10 +232,13 @@ class EntityType(object):
                             # add items if key is missing
                             assert isinstance(parent_value, dict), ndtype
                             for k, v in parent_value.items():
+                                if add_namespace and "type" in v and p.custom_def:
+                                    v["!namespace"] = p.custom_def
                                 if k not in value:
                                     value[k] = v
                                 elif merge and isinstance(v, dict) and isinstance(value[k], dict):
                                     # merge value with parent and merge "metadata" keys if present
+
                                     value_value = value[k]
                                     metadata = "metadata" in value_value
                                     cls = getattr(value_value, "mapCtor", value_value.__class__)
@@ -248,6 +251,8 @@ class EntityType(object):
                             assert isinstance(parent_value, list), ndtype
                             for p_value in parent_value:
                                 if p_value not in value:
+                                    if add_namespace and p.custom_def and isinstance(p_value, dict):
+                                         _set_req_namespaces(p_value, p.custom_def)
                                     value.append(p_value)
                     else:
                         value = copy.copy(parent_value)
@@ -257,6 +262,15 @@ class EntityType(object):
         # retrieves property and attribute definitions
         # XXX validate that the derived type is compatible with the base type
         return self.get_value(ndtype, None, True, True)
+
+def _set_req_namespaces(req, namespace):
+    name, value = list(req.items())[0]
+    if isinstance(value, dict):
+        for key in ["node", "capability", "relationship"]:
+            if key in value:
+                # relationship might be a dict
+                if not isinstance(value[key], dict) or "type" in value[key]:
+                    value[f"!namespace-{key}"] = namespace
 
 
 _last_version = None

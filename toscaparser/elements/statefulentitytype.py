@@ -92,7 +92,6 @@ class StatefulEntityType(EntityType):
                 namespace_defs = custom_def.all_namespaces.get(source)
                 if namespace_defs is not None:
                     custom_def = namespace_defs
-                    
                     # custom_def.add_entitytype(self) # XXX
                     # logging.error("using local custom_defs %s %s %s", entitytype, source, list(custom_def))
                     local = True

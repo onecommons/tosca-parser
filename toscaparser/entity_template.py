@@ -180,9 +180,7 @@ class EntityTemplate(object):
         return self.type_definition.is_derived_from(type_str)
 
     def instance_of(self, type_definition):
-        # XXX compare absolute names as namespaces may differ
-        # custom_def = self.type_definition.custom_def
-        return self.is_derived_from(type_definition.type)
+        return self.is_derived_from(type_definition.global_name)
   
     def _create_capability(self, capabilitydefs, name, ctype, props):
         c = capabilitydefs.get(name)

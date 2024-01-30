@@ -46,7 +46,7 @@ class NodeTemplate(EntityTemplate):
         self.custom_def = custom_def
         self.related = {}
         self.relationship_tpl = []
-        self.available_rel_tpls = available_rel_tpls or []
+        self.available_rel_tpls = available_rel_tpls or {}
         self._relationships = None
         self.substitution = None
         self._artifacts = None
@@ -137,11 +137,12 @@ class NodeTemplate(EntityTemplate):
                             self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
                     elif resolver:
                         # if we are able to create a RelationshipTemplate, see if the resolver can find a match
-                        relationship, relTpl, type = self._get_rel_type(req_on_type['relationship'], name)
+                        namespace = req_on_type.get("!namespace-relationship", self.custom_def)
+                        relationship, relTpl, type = self._get_rel_type(req_on_type['relationship'], name, namespace)
                         if relationship and not relTpl:
                             try:
                                 ExceptionCollector.pause()
-                                relTpl = RelationshipTemplate(relationship, name, self.custom_def)
+                                relTpl = RelationshipTemplate(relationship, name, namespace)
                             except TOSCAException as e:
                                 log.debug("relationship %s isn't valid: %s", relationship, str(e))
                                 relTpl = None
@@ -186,7 +187,7 @@ class NodeTemplate(EntityTemplate):
         return node
 
     def _get_explicit_relationship(self, name, value):
-        """Handle explicit relationship
+        """Handle the value of a requirement declared on a node template
 
         For example,
         - req:
@@ -203,13 +204,17 @@ class NodeTemplate(EntityTemplate):
             # see 3.8.2 Requirement assignment p. 140 for value
             node = value.get("node")
             reqDef = NodeType.merge_requirement_definition(typeReqDef, value)
+            for key in ["node", "capability", "relationship"]:
+                if key in value:  # don't use type's namespace
+                    reqDef.pop(f"!namespace-{key}", None)
         else:
             reqDef = typeReqDef.copy()
             reqDef['node'] = value
+            reqDef.pop("!namespace-node", None)
             node = value
         return reqDef, self._relationship_from_req(name, reqDef, node)
 
-    def _get_rel_type(self, relationship, name):
+    def _get_rel_type(self, relationship, name, namespace):
         relTpl = None
         if isinstance(relationship, dict):
             type = relationship.get('type')
@@ -220,24 +225,21 @@ class NodeTemplate(EntityTemplate):
                               '"%s"') % self.name,
                         required=self.TYPE))
                 return None, None, None
-        elif (relationship in self.custom_def
+        elif relationship in self.available_rel_tpls:
+            tpl = self.available_rel_tpls[relationship]
+            type = tpl.type
+            relTpl = tpl
+        elif (relationship in namespace
                 or relationship in StatefulEntityType.TOSCA_DEF):
             # it's the name of a type
             type = relationship
             relationship = dict(type = relationship)
         else:
-            # it's the name of a relationship template
-            for tpl in self.available_rel_tpls:
-                if tpl.name == relationship:
-                  type = tpl.type
-                  relTpl = tpl
-                  break
-            else:
-                ExceptionCollector.appendException(
-                  ValidationError(message = _('Relationship template or type "%(relationship)s" was not found'
-                        ' for requirement "%(rname)s" of node "%(nname)s".')
-                      % {'relationship': relationship, 'rname': name, 'nname': self.name}))
-                return None, None, None
+            ExceptionCollector.appendException(
+              ValidationError(message = _('Relationship template or type "%(relationship)s" was not found'
+                    ' for requirement "%(rname)s" of node "%(nname)s".')
+                  % {'relationship': relationship, 'rname': name, 'nname': self.name}))
+            return None, None, None
         return relationship, relTpl, type
 
     def _find_matching_node(self, relTpl, req_name, nodetype, capability, node_filter):
@@ -299,17 +301,19 @@ class NodeTemplate(EntityTemplate):
         related_node.relationship_tpl.append(relTpl)
 
     def _relationship_from_req(self, name, reqDef, node_on_template):
-        relationship, relTpl, type = self._get_rel_type(reqDef['relationship'], name)
+        rel_type_namespace = reqDef.get("!namespace-relationship", self.custom_def)
+        relationship, relTpl, type = self._get_rel_type(reqDef['relationship'], name, rel_type_namespace)
         if relationship is None:
             return None
 
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == type, (relationship, type)
-            relTpl = RelationshipTemplate(relationship, name, self.custom_def)
+            relTpl = RelationshipTemplate(relationship, name, rel_type_namespace)
 
         relTpl.source = self
 
         node = reqDef.get('node')
+        node_type_namespace = reqDef.get("!namespace-node", self.custom_def)
         node_filter = reqDef.get('node_filter')
         capability = reqDef.get('capability')
         related_node = None
@@ -343,7 +347,10 @@ class NodeTemplate(EntityTemplate):
 
         if not related_node:
             # treat node as a type name
-            # XXX if not node_on_template search namespaces for type_definition of nodetype
+            if node:
+                nodetype_def = node_type_namespace.get(node)
+                if nodetype_def:
+                    node = NodeType(node, node_type_namespace).global_name
             related_node, related_capability = self._find_matching_node(relTpl, name, node, capability, node_filter)
         if not related_node:
             resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
@@ -357,7 +364,7 @@ class NodeTemplate(EntityTemplate):
             if min_required == 0:
                 return None
             if node:
-                if not node_on_template and (node in self.custom_def or node in NodeType.TOSCA_DEF):
+                if not node_on_template and (node in node_type_namespace or node in NodeType.TOSCA_DEF):
                     # not an error if "node" wasn't explicitly declared on the template and referenced a type name
                     msg = None
                 else:
@@ -416,7 +423,7 @@ class NodeTemplate(EntityTemplate):
 
     @staticmethod
     def find_artifacts_on_type(parent_type: StatefulEntityType, artifacts: dict, required_artifacts: dict, parent=True):
-        artifact_tpls = parent_type.get_value(EntityTemplate.ARTIFACTS, parent=parent)
+        artifact_tpls = parent_type.get_value(EntityTemplate.ARTIFACTS, parent=parent, add_namespace=True)
         if not artifact_tpls:
             return
         for name, value in artifact_tpls.items():
@@ -432,7 +439,8 @@ class NodeTemplate(EntityTemplate):
                         # specifying that an artifact of a certain type is required
                     required_artifacts[name] = value
             else:
-                artifacts[name] = Artifact(name, value, parent_type.custom_def, parent_type._source)
+                namespace = value.pop("!namespace", parent_type.custom_def)
+                artifacts[name] = Artifact(name, value, namespace, parent_type._source)
 
     @property
     def instance_keys(self):

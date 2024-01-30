@@ -87,15 +87,6 @@ class NodeType(StatefulEntityType):
         relationship = {}
         requires = self.get_all_requirements()
         if requires:
-            # NOTE(sdmonov): Check if requires is a dict.
-            # If it is a dict convert it to a list of dicts.
-            # This is needed because currently the code below supports only
-            # lists as requirements definition. The following check will
-            # make sure if a map (dict) was provided it will be converted to
-            # a list before proceeding to the parsing.
-            if isinstance(requires, dict):
-                requires = [{key: value} for key, value in requires.items()]
-
             keyword = None
             node_type = None
             for require in requires:
@@ -173,7 +164,7 @@ class NodeType(StatefulEntityType):
 
     @property
     def requirements(self):
-        return self.get_value(self.REQUIREMENTS, None, True, True)
+        return self.get_value(self.REQUIREMENTS, None, True, True, True)
 
     @staticmethod
     def merge_requirement_definition(base, current):
@@ -194,7 +185,7 @@ class NodeType(StatefulEntityType):
         return tpl
 
     def get_all_requirements(self):
-        # requirements with any shorthand syntax normalized
+        # return list of requirements with any shorthand syntax normalized
         reqs_tpl = self.requirements
         # avoid crashing:
         if reqs_tpl is None or self._requirement_definitions and "__invalid" in self._requirement_definitions:
@@ -274,7 +265,7 @@ class NodeType(StatefulEntityType):
 
     def _validate_requirements_keys(self, requirement, where):
         for key in requirement.keys():
-            if key not in self.REQUIREMENTS_SECTION:
+            if key not in self.REQUIREMENTS_SECTION and not key.startswith("!namespace"):
                 ExceptionCollector.appendException(
                     UnknownFieldError(
                         what='"requirements" of %s' % where,
