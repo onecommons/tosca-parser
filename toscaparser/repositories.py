@@ -20,8 +20,8 @@ import toscaparser.utils.urlutils
 from urllib.parse import urlparse
 from toscaparser.dataentity import DataEntity
 
-SECTIONS = (DESCRIPTION, URL, CREDENTIAL, REVISION, METADATA) = \
-           ('description', 'url', 'credential', 'revision', 'metadata')
+SECTIONS = (DESCRIPTION, URL, CREDENTIAL, REVISION, METADATA, FILE) = \
+           ('description', 'url', 'credential', 'revision', 'metadata', 'file')
 
 
 class Repository(object):
