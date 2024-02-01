@@ -164,7 +164,7 @@ class NodeType(StatefulEntityType):
 
     @property
     def requirements(self):
-        return self.get_value(self.REQUIREMENTS, None, True, True, True)
+        return self.get_value(self.REQUIREMENTS, None, True, True)
 
     @staticmethod
     def merge_requirement_definition(base, current):
@@ -184,9 +184,9 @@ class NodeType(StatefulEntityType):
             tpl['metadata'] = dict(base['metadata'], **current['metadata'])
         return tpl
 
-    def get_all_requirements(self):
+    def get_all_requirements(self, add_namespace=False):
         # return list of requirements with any shorthand syntax normalized
-        reqs_tpl = self.requirements
+        reqs_tpl = self.get_value(self.REQUIREMENTS, None, True, True, add_namespace)  # same as self.requirements
         # avoid crashing:
         if reqs_tpl is None or self._requirement_definitions and "__invalid" in self._requirement_definitions:
             return []
@@ -278,7 +278,7 @@ class NodeType(StatefulEntityType):
         """
         if self._requirement_definitions is None:
             self._requirement_definitions = {}
-            reqs = self.get_all_requirements()
+            reqs = self.get_all_requirements(True)
             if not reqs:
                 return self._requirement_definitions
             for req_dict in reqs:

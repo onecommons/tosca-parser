@@ -598,7 +598,6 @@ class ToscaTemplateTest(TestCase):
                                  'test_namespace_prefix.tosca.nodes.SoftwareComponent.Logstash',
                                  'tosca.nodes.SoftwareComponent.Rsyslog.'
                                  'TestRsyslogType']
-        tosca.topology_template.custom_defs.pop('~nested_custom_types~', None)        
         self.assertCountEqual(tosca.topology_template.custom_defs.keys(),
                               expected_custom_types)
 

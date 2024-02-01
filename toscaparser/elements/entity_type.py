@@ -38,7 +38,6 @@ class Namespace(dict):
         # repository
         # self.metadata = {}  # local_name => section?
 
-
     def get_local_name(self, global_name):
         local, sep, module_name = global_name.partition("@")
         if module_name == self.namespace_id:
@@ -50,6 +49,12 @@ class Namespace(dict):
             return None  # not imported
         else:
             return local # no prefix
+
+    def get_global_name(self, local_name):
+        if self.namespace_id and local_name in self:
+            return f"{local_name}@{self.namespace_id}"
+        else:
+            return local_name
 
     def add_with_prefix(self, local_custom_defs: "Namespace", prefix):
         self.imports[local_custom_defs.namespace_id] = prefix
@@ -123,7 +128,6 @@ class EntityType(object):
 
     @staticmethod
     def _parent_types():
-        return None
         return globals._parent_types
 
     @staticmethod
@@ -232,7 +236,8 @@ class EntityType(object):
                             # add items if key is missing
                             assert isinstance(parent_value, dict), ndtype
                             for k, v in parent_value.items():
-                                if add_namespace and "type" in v and p.custom_def:
+                                if add_namespace and "type" in v and p.custom_def and p._source:
+                                    # print(id(p), p.type, id(p.custom_def))
                                     v["!namespace"] = p.custom_def
                                 if k not in value:
                                     value[k] = v
@@ -251,8 +256,8 @@ class EntityType(object):
                             assert isinstance(parent_value, list), ndtype
                             for p_value in parent_value:
                                 if p_value not in value:
-                                    if add_namespace and p.custom_def and isinstance(p_value, dict):
-                                         _set_req_namespaces(p_value, p.custom_def)
+                                    if add_namespace and p.custom_def and isinstance(p_value, dict) and p._source:
+                                        _set_req_namespaces(p_value, p.custom_def)
                                     value.append(p_value)
                     else:
                         value = copy.copy(parent_value)

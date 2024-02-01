@@ -45,6 +45,7 @@ class StatefulEntityType(EntityType):
     def __init__(self, entitytype, prefix, custom_def=None):
         entire_entitytype = entitytype
         custom = False
+        source = None
         if not isinstance(entitytype, str):
             ExceptionCollector.appendException(TypeMismatchError(
                                                what=entitytype,
@@ -61,9 +62,12 @@ class StatefulEntityType(EntityType):
             if not entitytype.startswith(self.TOSCA):
                 entire_entitytype = prefix + entitytype
             if custom_def and entitytype in custom_def:
-                # logging.error(f'creating type from customdef {entitytype} {list(custom_def)}')
                 custom = True
                 self.defs = custom_def[entitytype]
+                if isinstance(custom_def, Namespace) and custom_def.namespace_id:
+                    # assume custom types are in top-level namespace
+                    self.global_name = f"{entitytype}@{custom_def.namespace_id}"
+                    source = custom_def.file_name
             elif entire_entitytype in self.TOSCA_DEF:
                 self.defs = self.TOSCA_DEF[entire_entitytype]
                 entitytype = entire_entitytype
@@ -75,9 +79,10 @@ class StatefulEntityType(EntityType):
                 ExceptionCollector.appendException(
                     MissingTypeError(what=entitytype))
             self.type = entitytype
-        source = self.defs and self.defs.get("_source") or None
+        if not source:
+            self.global_name = self.type
+            source = self.defs and self.defs.get("_source") or None
         local = False
-        self.global_name = self.type
         if isinstance(source, dict):
             # find the provenance of this type and use to that namespace for resolving local names
             local_name = source.get("local_name")
@@ -95,9 +100,6 @@ class StatefulEntityType(EntityType):
                     # custom_def.add_entitytype(self) # XXX
                     # logging.error("using local custom_defs %s %s %s", entitytype, source, list(custom_def))
                     local = True
-        elif isinstance(custom_def, Namespace):
-            self.global_name = f"{self.type}@{custom_def.namespace_id}"
-            source = custom_def.file_name            
         # if custom and not local:
         #      logging.error("no local custom_defs! %s %s %s", entitytype, source, list(custom_def))
         self.custom_def = custom_def
@@ -124,7 +126,7 @@ class StatefulEntityType(EntityType):
         if key not in _parent_types:
             parents = list(self._find_parent_types())
             _parent_types[key] = parents
-        return _parent_types[self.type]
+        return _parent_types[key]
 
     def _find_parent_types(self):
         if not self.defs:

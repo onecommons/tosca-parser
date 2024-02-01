@@ -407,6 +407,9 @@ class NodeTemplate(EntityTemplate):
 
             for name, value in required_artifacts.items():
                 typename = value.get("type")
+                namespace = value.pop("!namespace", None)
+                if namespace:
+                    typename = namespace.get_global_name(typename)
                 artifact = artifacts.get(name)
                 if not artifact:
                     if value.get("required"):
@@ -439,7 +442,10 @@ class NodeTemplate(EntityTemplate):
                         # specifying that an artifact of a certain type is required
                     required_artifacts[name] = value
             else:
-                namespace = value.pop("!namespace", parent_type.custom_def)
+                if isinstance(value, dict):
+                    namespace = value.pop("!namespace", parent_type.custom_def)
+                else:
+                    namespace = parent_type.custom_def
                 artifacts[name] = Artifact(name, value, namespace, parent_type._source)
 
     @property
