@@ -21,13 +21,14 @@ from toscaparser.common.exception import TypeMismatchError
 from toscaparser.common.exception import ValidationError
 from toscaparser.common.exception import InvalidOccurrences
 from toscaparser.dataentity import DataEntity
-from .elements.statefulentitytype import StatefulEntityType
+from toscaparser.elements.statefulentitytype import StatefulEntityType
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.utils.gettextutils import _
 from toscaparser.artifacts import Artifact
 from toscaparser.activities import ConditionClause
 from toscaparser.elements.nodetype import NodeType
+from toscaparser.elements.entity_type import Namespace
 
 log = logging.getLogger('tosca')
 
@@ -137,7 +138,10 @@ class NodeTemplate(EntityTemplate):
                             self._relationships.append( (relTpl, {name: req_on_type}, req_on_type) )
                     elif resolver:
                         # if we are able to create a RelationshipTemplate, see if the resolver can find a match
-                        namespace = req_on_type.get("!namespace-relationship", self.custom_def)
+                        if isinstance(self.custom_def, Namespace):
+                            namespace = self.custom_def.find_namespace(req_on_type.get("!namespace-relationship"))
+                        else:
+                            namespace = self.custom_def
                         relationship, relTpl, type = self._get_rel_type(req_on_type['relationship'], name, namespace)
                         if relationship and not relTpl:
                             try:
@@ -242,10 +246,11 @@ class NodeTemplate(EntityTemplate):
             return None, None, None
         return relationship, relTpl, type
 
-    def _find_matching_node(self, relTpl, req_name, nodetype, capability, node_filter):
-        # XXX nodetype should type_definition
+    def _find_matching_node(self, relTpl, req_name, nodetype, req_def, node_filter):
+        # nodetype will be a global names if possible
         related_node = None
         related_capability = None
+        capability = req_def.get('capability')
         for nodeTemplate in self.topology_template.node_templates.values():
             found = None
             found_cap = None
@@ -253,7 +258,7 @@ class NodeTemplate(EntityTemplate):
             if not nodetype or nodeTemplate.is_derived_from(nodetype):
                 # should have already returned an error if this assertion is false
                 if capability or relTpl.type_definition.valid_target_types:
-                    capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
+                    capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability, req_def)
                     if capabilities:
                         found = nodeTemplate
                         found_cap = capabilities[0] # first is best match
@@ -263,7 +268,7 @@ class NodeTemplate(EntityTemplate):
                     if nodeTemplate.match_nodefilter(node_filter):
                         found = nodeTemplate
                         if not found_cap:
-                            capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability)
+                            capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability, req_def)
                             assert capabilities
                             found_cap = capabilities[0]
                     else:
@@ -301,19 +306,21 @@ class NodeTemplate(EntityTemplate):
         related_node.relationship_tpl.append(relTpl)
 
     def _relationship_from_req(self, name, reqDef, node_on_template):
-        rel_type_namespace = reqDef.get("!namespace-relationship", self.custom_def)
-        relationship, relTpl, type = self._get_rel_type(reqDef['relationship'], name, rel_type_namespace)
+        namespace = self.custom_def if isinstance(self.custom_def, Namespace) else None
+        rel_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-relationship")) 
+                              if namespace 
+                              else self.custom_def)
+        relationship, relTpl, rel_type = self._get_rel_type(reqDef['relationship'], name, rel_type_namespace)
         if relationship is None:
             return None
 
         if not relTpl:
-            assert isinstance(relationship, dict) and relationship['type'] == type, (relationship, type)
+            assert isinstance(relationship, dict) and relationship['type'] == rel_type, (relationship, rel_type)
             relTpl = RelationshipTemplate(relationship, name, rel_type_namespace)
 
         relTpl.source = self
 
         node = reqDef.get('node')
-        node_type_namespace = reqDef.get("!namespace-node", self.custom_def)
         node_filter = reqDef.get('node_filter')
         capability = reqDef.get('capability')
         related_node = None
@@ -321,13 +328,13 @@ class NodeTemplate(EntityTemplate):
         if node:
             related_node = self.find_node_related_template(node)
             if related_node:
-                capabilities = relTpl.get_matching_capabilities(related_node, reqDef.get('capability'))
+                capabilities = relTpl.get_matching_capabilities(related_node, capability, reqDef)
                 if not capabilities:
-                    if 'capability' in reqDef:
+                    if capability:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No matching capability "%(cname)s" found'
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
-                            % {'rname': name, 'nname': self.name, 'cname': reqDef['capability'], 'tname': related_node.name}))
+                            % {'rname': name, 'nname': self.name, 'cname': capability, 'tname': related_node.name}))
                         return None
                     else:
                         ExceptionCollector.appendException(
@@ -345,13 +352,16 @@ class NodeTemplate(EntityTemplate):
             # else: not an error if requirement is optional
             return None
 
+        node_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-node"))
+                               if namespace
+                               else self.custom_def)
         if not related_node:
             # treat node as a type name
             if node:
-                nodetype_def = node_type_namespace.get(node)
+                nodetype_def = node_type_namespace and node_type_namespace.get(node)
                 if nodetype_def:
                     node = NodeType(node, node_type_namespace).global_name
-            related_node, related_capability = self._find_matching_node(relTpl, name, node, capability, node_filter)
+            related_node, related_capability = self._find_matching_node(relTpl, name, node, reqDef, node_filter)
         if not related_node:
             resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
             if resolver and resolver.find_matching_node:
@@ -364,7 +374,8 @@ class NodeTemplate(EntityTemplate):
             if min_required == 0:
                 return None
             if node:
-                if not node_on_template and (node in node_type_namespace or node in NodeType.TOSCA_DEF):
+                if not node_on_template and node_type_namespace and (
+                    node in node_type_namespace or node in NodeType.TOSCA_DEF):
                     # not an error if "node" wasn't explicitly declared on the template and referenced a type name
                     msg = None
                 else:
@@ -407,8 +418,8 @@ class NodeTemplate(EntityTemplate):
 
             for name, value in required_artifacts.items():
                 typename = value.get("type")
-                namespace = value.pop("!namespace", None)
-                if namespace:
+                if isinstance(self.custom_def, Namespace):
+                    namespace = self.custom_def.find_namespace(value.pop("!namespace", None))
                     typename = namespace.get_global_name(typename)
                 artifact = artifacts.get(name)
                 if not artifact:
@@ -442,8 +453,8 @@ class NodeTemplate(EntityTemplate):
                         # specifying that an artifact of a certain type is required
                     required_artifacts[name] = value
             else:
-                if isinstance(value, dict):
-                    namespace = value.pop("!namespace", parent_type.custom_def)
+                if isinstance(value, dict) and isinstance(parent_type.custom_def, Namespace):
+                    namespace = parent_type.custom_def.find_namespace(value.pop("!namespace", None))
                 else:
                     namespace = parent_type.custom_def
                 artifacts[name] = Artifact(name, value, namespace, parent_type._source)

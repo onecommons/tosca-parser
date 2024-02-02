@@ -171,7 +171,7 @@ class ToscaTemplate(object):
         if self._repositories is None:
             repositories = {}
             assert self.topology_template
-            for filename, tosca_tpl in self.nested_tosca_tpls.items():
+            for filename, (tosca_tpl, namespace_id) in self.nested_tosca_tpls.items():
                 repositories.update(tosca_tpl.get(REPOSITORIES) or {})
             repositories.update(self.tpl.get(REPOSITORIES) or {})
             # we need to update the template because it is passed directly to the import loader
@@ -198,9 +198,9 @@ class ToscaTemplate(object):
 
         This method loads the custom type definitions referenced in "imports"
         section of the TOSCA YAML template.
-        """        
-        imported_types = Namespace({}, None, self.path or "")
-        imported_types.global_namespace = bool(self.tpl.get("metadata", {}).get("global_namespace"))
+        """
+        global_namespace = bool(self.tpl.get("metadata", {}).get("global_namespace"))
+        imported_types = Namespace({}, None, self.path or "", global_namespace)
         imports_loader = toscaparser.imports.ImportsLoader(
             None, self.path, imported_types, self.tpl.get("repositories"),
             self.import_resolver, self.base_dir
@@ -219,13 +219,15 @@ class ToscaTemplate(object):
 
     def _handle_nested_tosca_templates_with_topology(self, namespaces):
         ExceptionCollector.near = ""
-        for filename, tosca_tpl in self.nested_tosca_tpls.items():
+        for filename, (tosca_tpl, namespace_id) in self.nested_tosca_tpls.items():
             topology_tpl = tosca_tpl.get(TOPOLOGY_TEMPLATE)
             if topology_tpl:
                 if self.topology_template.custom_defs.global_namespace:
                     custom_types = self.topology_template.custom_defs
                 else:
-                    custom_types = namespaces[filename]
+                    custom_types = namespaces[namespace_id]
+                    if custom_types.global_namespace:
+                        custom_types = self.topology_template.custom_defs
                 self.nested_topologies[filename] = TopologyTemplate(
                                 topology_tpl, custom_types, None, self)
         substitutable_topologies = [t for t in self.nested_topologies.values() if t.substitution_mappings]

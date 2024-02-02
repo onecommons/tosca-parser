@@ -64,10 +64,6 @@ class StatefulEntityType(EntityType):
             if custom_def and entitytype in custom_def:
                 custom = True
                 self.defs = custom_def[entitytype]
-                if isinstance(custom_def, Namespace) and custom_def.namespace_id:
-                    # assume custom types are in top-level namespace
-                    self.global_name = f"{entitytype}@{custom_def.namespace_id}"
-                    source = custom_def.file_name
             elif entire_entitytype in self.TOSCA_DEF:
                 self.defs = self.TOSCA_DEF[entire_entitytype]
                 entitytype = entire_entitytype
@@ -82,7 +78,7 @@ class StatefulEntityType(EntityType):
         if not source:
             self.global_name = self.type
             source = self.defs and self.defs.get("_source") or None
-        local = False
+        local_namespace = False
         if isinstance(source, dict):
             # find the provenance of this type and use to that namespace for resolving local names
             local_name = source.get("local_name")
@@ -94,14 +90,17 @@ class StatefulEntityType(EntityType):
                     self.global_name = local_name
             source = source.get("path")
             if source and isinstance(custom_def, Namespace) and not custom_def.global_namespace:
-                namespace_defs = custom_def.all_namespaces.get(source)
-                if namespace_defs is not None:
+                namespace_defs = custom_def.all_namespaces.get(namespace_id)
+                if namespace_defs is not None and not namespace_defs.global_namespace:
                     custom_def = namespace_defs
                     # custom_def.add_entitytype(self) # XXX
                     # logging.error("using local custom_defs %s %s %s", entitytype, source, list(custom_def))
-                    local = True
-        # if custom and not local:
-        #      logging.error("no local custom_defs! %s %s %s", entitytype, source, list(custom_def))
+                    local_namespace = True
+        if custom and not local_namespace:
+            if isinstance(custom_def, Namespace) and custom_def.namespace_id:
+                # assume custom types are in top-level namespace
+                self.global_name = f"{entitytype}@{custom_def.namespace_id}"
+                source = custom_def.file_name
         self.custom_def = custom_def
         self._source = source
         self.__ancestors = None
@@ -149,7 +148,6 @@ class StatefulEntityType(EntityType):
         prel = self.derived_from(self.defs)
         if prel:
             # prefix is only used to expand "tosca:Type"
-            # logging.error("what@ {prel} {self.type} {list(self.custom_def)}")
             return StatefulEntityType(prel, self.NODE_PREFIX, custom_def=self.custom_def)
 
     def get_properties_def_objects(self):

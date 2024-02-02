@@ -69,12 +69,14 @@ class ImportResolver:
         return Repository(name, tpl)
 
     def get_repository_url(self, importsLoader, repository_name, package=None):
-        if not repository_name:
+        if package:
+            return package["path"]
+        if repository_name:
+            repo_def = importsLoader.repositories[repository_name]
+            url = repo_def["url"].strip()
+            return normalize_path(url)
+        else:
             return ""
-        repo_def = importsLoader.repositories[repository_name]
-        url = repo_def["url"].strip()
-        path = normalize_path(url)
-        return path
 
     def resolve_url(self, importsLoader, base, file_name, repository_name):
         if is_url(base) and not repository_name:
@@ -199,16 +201,25 @@ class ImportsLoader(object):
         if not is_url(full_file_name):
             full_file_name = os.path.normpath(full_file_name)
 
-        if full_file_name and imported_tpl:
-            self.nested_tosca_tpls[
-                full_file_name
-            ] = imported_tpl
-
         root_path, _source, namespace_id = self.get_source(
-            base, full_file_name, repository_name, file_name)
+            base, full_file_name, repository_name, file_name
+        )
+
+        if full_file_name and imported_tpl:
+            self.nested_tosca_tpls[full_file_name] = (imported_tpl, namespace_id)
+
+        if imported_tpl and "metadata" in imported_tpl:
+            global_namespace = imported_tpl["metadata"].get(
+                "global_namespace", self.custom_defs.global_namespace
+            )
+        else:
+            global_namespace = self.custom_defs.global_namespace
+
         imported_types = Namespace(
-            self.custom_defs.all_namespaces, 
-            full_file_name, namespace_id
+            self.custom_defs.all_namespaces,
+            full_file_name,
+            namespace_id,
+            global_namespace,
         )
 
         if imported_tpl:
@@ -222,9 +233,7 @@ class ImportsLoader(object):
                     self.resolver,
                     root_path,
                 )
-                imports_loader.resolver.load_imports(
-                    imports_loader, imports
-                )
+                imports_loader.resolver.load_imports(imports_loader, imports)
                 self.nested_tosca_tpls.update(imports_loader.nested_tosca_tpls)
 
             TypeValidation(imported_tpl, import_def)
@@ -239,32 +248,29 @@ class ImportsLoader(object):
         # "@namespace_id#path"
         _source = dict(
             path=path,  # path to this imported file
-            root=root_path, # repository or service template url
-            base=base,   # local path to base of repository or service template
+            root=root_path,  # repository or service template url
+            base=base,  # local path to base of repository or service template
             repository=repository_name,  # repository name if specified in the import
-            file=file_name, # file name as specified in the import
+            file=file_name,  # file name as specified in the import
         )
         # if not repository_name, return package_id for the root template
         namespace_id = self.resolver.get_repository_url(self, repository_name, _source)
-        return root_path,_source,namespace_id
+        return root_path, _source, namespace_id
 
     def abort(self, import_def):
         import_repr = (
-                    import_def
-                    if isinstance(import_def, (str, type(None)))
-                    or not import_def.get("file")
-                    else import_def["file"]
-                )
+            import_def
+            if isinstance(import_def, (str, type(None))) or not import_def.get("file")
+            else import_def["file"]
+        )
         error = FatalToscaImportError(
-                    message=f'Aborting parsing of service template: can not import "{import_repr}"'
-                )
+            message=f'Aborting parsing of service template: can not import "{import_repr}"'
+        )
         if ExceptionCollector.exceptions:
             error.__cause__ = ExceptionCollector.exceptions[-1]
         raise error
 
-    def _update_custom_def(
-        self, imported_tpl, custom_defs, _source, namespace_id
-    ):
+    def _update_custom_def(self, imported_tpl, custom_defs, _source, namespace_id):
         for type_def_section in EntityType.TOSCA_DEF_SECTIONS:
             outer_custom_types = imported_tpl.get(type_def_section)
             if outer_custom_types:
@@ -277,10 +283,10 @@ class ImportsLoader(object):
                 ]:
                     for name, custom_def in outer_custom_types.items():
                         custom_def["_source"] = dict(
-                            _source, 
-                            section=type_def_section, 
+                            _source,
+                            section=type_def_section,
                             local_name=name,
-                            namespace_id=namespace_id
+                            namespace_id=namespace_id,
                         )
                 custom_defs.update(outer_custom_types)
         return custom_defs

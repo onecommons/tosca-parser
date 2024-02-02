@@ -12,9 +12,9 @@
 
 
 import logging
-
+from toscaparser.elements.statefulentitytype import StatefulEntityType
 from toscaparser.entity_template import EntityTemplate
-from toscaparser.properties import Property
+from toscaparser.elements.entity_type import Namespace
 
 log = logging.getLogger('tosca')
 
@@ -40,7 +40,29 @@ class RelationshipTemplate(EntityTemplate):
         self.capability = None
         self.default_for = self.entity_tpl.get(self.DEFAULT_FOR)
 
-    def get_matching_capabilities(self, targetNodeTemplate, capability_name=None):
+    def get_matching_capabilities(
+        self, targetNodeTemplate, capability_name, cap_type_def=None
+    ):
+        # match on symbolic name or type name
+        capability_type_name = capability_name
+        if cap_type_def:
+            namespace = (
+                targetNodeTemplate.custom_def
+                if isinstance(targetNodeTemplate.custom_def, Namespace)
+                else None
+            )
+            capability_namespace = (
+                namespace.find_namespace(cap_type_def.get("!namespace-capability"))
+                if namespace
+                else self.custom_def
+            )
+            capability_def = capability_namespace.get(capability_name)
+            if capability_def:
+                capability_type_name = StatefulEntityType(
+                    capability_name,
+                    StatefulEntityType.CAPABILITY_PREFIX,
+                    capability_namespace,
+                ).global_name
         # return the capabilities on the given targetNodeTemplate that matches this relationship
         capabilitiesDict = targetNodeTemplate.get_capabilities()
         # if capability_name is set, make sure the target node has a capability
@@ -52,19 +74,26 @@ class RelationshipTemplate(EntityTemplate):
                 capabilities = [capability]
             else:
                 # name doesn't match a symbolic name, see if its a valid type name
-                capabilities = [cap for cap in capabilitiesDict.values() if cap.is_derived_from(capability_name)]
+                capabilities = [
+                    cap
+                    for cap in capabilitiesDict.values()
+                    if cap.is_derived_from(capability_type_name)
+                ]
         else:
             capabilities = list(capabilitiesDict.values())
 
         # if valid_target_types is set, make sure the matching capabilities are compatible
         capabilityTypes = self.type_definition.valid_target_types
         if capabilityTypes:
-            capabilities = [cap for cap in capabilities
-                              if any(cap.is_derived_from(capType) for capType in capabilityTypes)]
+            capabilities = [
+                cap
+                for cap in capabilities
+                if any(cap.is_derived_from(capType) for capType in capabilityTypes)
+            ]
         elif not capability_name and len(capabilities) > 1:
-                # find the best match for the targetNodeTemplate
-                # if no capability was specified and there are more than one to choose from, choose the most generic
-                featureCap = capabilitiesDict.get("feature")
-                if featureCap:
-                    return [featureCap]
+            # find the best match for the targetNodeTemplate
+            # if no capability was specified and there are more than one to choose from, choose the most generic
+            featureCap = capabilitiesDict.get("feature")
+            if featureCap:
+                return [featureCap]
         return capabilities

@@ -18,21 +18,22 @@ from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import ValidationError
 from toscaparser.extensions.exttools import ExtTools
 import toscaparser.utils.yamlparser
-
-log = logging.getLogger('tosca')
+logger = logging.getLogger('tosca')
 globals = threading.local()
 globals._types = None          # Dict[str, StatefulEntityType]
 globals._parent_types = None  # Dict[str, List[StatefulEntityType]]
 
 class Namespace(dict):
-    def __init__(self, nested_custom_types, file_name, namespace_id=""):
+    def __init__(
+        self, nested_custom_types, file_name, namespace_id="", global_namespace=False
+    ):
         self.all_namespaces = nested_custom_types
         self.file_name = file_name
         self.namespace_id = namespace_id
         self.imports = {}  # map global specifiers to prefix
         # register this namespace:
-        self.all_namespaces[file_name] = self
-        self.global_namespace = False
+        self.all_namespaces[namespace_id] = self
+        self.global_namespace = global_namespace
         # base
         # root
         # repository
@@ -48,7 +49,7 @@ class Namespace(dict):
         elif prefix is None:
             return None  # not imported
         else:
-            return local # no prefix
+            return local  # no prefix
 
     def get_global_name(self, local_name):
         if self.namespace_id and local_name in self:
@@ -59,15 +60,20 @@ class Namespace(dict):
     def add_with_prefix(self, local_custom_defs: "Namespace", prefix):
         self.imports[local_custom_defs.namespace_id] = prefix
         for k, v in local_custom_defs.items():
-          if prefix:
-              self[f"{prefix}.{k}"] = v
-          else:
-              self[k] = v
+            if prefix:
+                self[f"{prefix}.{k}"] = v
+            else:
+                self[k] = v
         for imported, iprefix in local_custom_defs.imports.items():
-          if prefix:
-              self.imports[imported] = f"{prefix}.{iprefix}"
-          else:
-              self.imports[imported] = iprefix
+            if prefix:
+                self.imports[imported] = f"{prefix}.{iprefix}"
+            else:
+                self.imports[imported] = iprefix
+
+    def find_namespace(self, namespace_id):
+        if not namespace_id:
+            return self
+        return self.all_namespaces[namespace_id]
 
     def add_entitytype(self, entitytype):
         # cache the type object
@@ -238,7 +244,7 @@ class EntityType(object):
                             for k, v in parent_value.items():
                                 if add_namespace and "type" in v and p.custom_def and p._source:
                                     # print(id(p), p.type, id(p.custom_def))
-                                    v["!namespace"] = p.custom_def
+                                    v["!namespace"] = p.custom_def.namespace_id
                                 if k not in value:
                                     value[k] = v
                                 elif merge and isinstance(v, dict) and isinstance(value[k], dict):
@@ -257,7 +263,7 @@ class EntityType(object):
                             for p_value in parent_value:
                                 if p_value not in value:
                                     if add_namespace and p.custom_def and isinstance(p_value, dict) and p._source:
-                                        _set_req_namespaces(p_value, p.custom_def)
+                                        _set_req_namespaces(p_value, p.custom_def.namespace_id)
                                     value.append(p_value)
                     else:
                         value = copy.copy(parent_value)

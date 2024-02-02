@@ -326,7 +326,7 @@ class PropertyTest(TestCase):
                           custom_def_snippet=None, name=None):
         tpl = yamlparser.simple_parse(tpl_snippet)
         nodetemplates =  tpl['node_templates']
-        custom_def = []
+        custom_def = {}
         if custom_def_snippet:
             custom_def = yamlparser.simple_parse(custom_def_snippet)
         if not name:
