@@ -466,9 +466,10 @@ class TopologyTemplate(object):
         return find_type(name, self.custom_defs)
 
 def find_type(typename: str, custom_defs):
-    typedef = EntityType.find_type(typename, custom_defs)
-    if typedef:
-        return typedef
+    # XXX
+    # typedef = EntityType.find_type(typename, custom_defs)
+    # if typedef:
+    #     return typedef
 
     # prefix is only used to expand "tosca:Type"
     test_typedef = StatefulEntityType(

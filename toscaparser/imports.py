@@ -12,6 +12,7 @@
 
 import logging
 import os
+from typing import Optional
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import FatalToscaImportError
@@ -25,6 +26,20 @@ from toscaparser.utils.gettextutils import _
 import toscaparser.utils.urlutils
 import toscaparser.utils.yamlparser
 from toscaparser.repositories import Repository
+
+try:
+    from typing import TypedDict
+
+    class SourceInfo(TypedDict):
+        path: str  # path to this imported file
+        root: Optional[str]  # repository or service template url
+        base: str  # local path to base of repository or service template
+        repository: Optional[str]  # repository name if specified in the import
+        file: str  # file name as specified in the import
+
+except ImportError:
+    SourceInfo = dict
+
 
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 log = logging.getLogger("tosca")
@@ -245,8 +260,7 @@ class ImportsLoader(object):
 
     def get_source(self, base, path, repository_name, file_name):
         root_path = base if repository_name else self.repository_root
-        # "@namespace_id#path"
-        _source = dict(
+        _source = SourceInfo(
             path=path,  # path to this imported file
             root=root_path,  # repository or service template url
             base=base,  # local path to base of repository or service template

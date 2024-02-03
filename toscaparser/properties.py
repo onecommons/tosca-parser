@@ -13,8 +13,9 @@
 from toscaparser.dataentity import DataEntity
 from toscaparser.elements.constraints import Schema
 from toscaparser import functions
+from toscaparser.elements.entity_type import Namespace
 from toscaparser.elements.scalarunit import get_scalarunit_class
-
+import logging
 
 class Property(object):
     '''TOSCA built-in Property type.'''
@@ -31,6 +32,9 @@ class Property(object):
         self.name = property_name
         self.value = value
         self.custom_def = custom_def
+        namespace_id = schema_dict.get("!namespace", None)
+        if namespace_id and isinstance(custom_def, Namespace):
+            self.custom_def = custom_def.find_namespace(namespace_id)
         self.entity = DataEntity(schema_dict['type'], self.value, self.custom_def, self.name)
         # the value_type will be the simple if the datatype was derived from one
         self.schema = Schema(property_name, schema_dict, self.entity.datatype.value_type)

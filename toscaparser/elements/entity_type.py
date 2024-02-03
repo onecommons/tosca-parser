@@ -73,7 +73,7 @@ class Namespace(dict):
     def find_namespace(self, namespace_id):
         if not namespace_id:
             return self
-        return self.all_namespaces[namespace_id]
+        return self.all_namespaces.get(namespace_id, self)
 
     def add_entitytype(self, entitytype):
         # cache the type object
@@ -234,6 +234,7 @@ class EntityType(object):
             if not self:
                 return value
             for p in self.ancestors():
+                check_namespace = add_namespace and p._source and isinstance(p.custom_def, Namespace)
                 if p.defs and ndtype in p.defs:
                     # get the parent value
                     parent_value = p.defs[ndtype]
@@ -242,14 +243,13 @@ class EntityType(object):
                             # add items if key is missing
                             assert isinstance(parent_value, dict), ndtype
                             for k, v in parent_value.items():
-                                if add_namespace and "type" in v and p.custom_def and p._source:
-                                    # print(id(p), p.type, id(p.custom_def))
+                                # if "type" in v:
+                                if check_namespace and "type" in v:
                                     v["!namespace"] = p.custom_def.namespace_id
                                 if k not in value:
                                     value[k] = v
                                 elif merge and isinstance(v, dict) and isinstance(value[k], dict):
                                     # merge value with parent and merge "metadata" keys if present
-
                                     value_value = value[k]
                                     metadata = "metadata" in value_value
                                     cls = getattr(value_value, "mapCtor", value_value.__class__)
@@ -262,17 +262,26 @@ class EntityType(object):
                             assert isinstance(parent_value, list), ndtype
                             for p_value in parent_value:
                                 if p_value not in value:
-                                    if add_namespace and p.custom_def and isinstance(p_value, dict) and p._source:
+                                    if check_namespace and isinstance(p_value, dict):
                                         _set_req_namespaces(p_value, p.custom_def.namespace_id)
                                     value.append(p_value)
                     else:
                         value = copy.copy(parent_value)
+                        if check_namespace:
+                            if isinstance(value, dict):
+                                for k, v in parent_value.items():
+                                    if "type" in v:
+                                        v["!namespace"] = p.custom_def.namespace_id
+                            elif isinstance(value, list):
+                                for p_value in value:
+                                    if isinstance(p_value, dict):
+                                        _set_req_namespaces(p_value, p.custom_def.namespace_id)
         return value
 
     def get_definition(self, ndtype):
         # retrieves property and attribute definitions
         # XXX validate that the derived type is compatible with the base type
-        return self.get_value(ndtype, None, True, True)
+        return self.get_value(ndtype, None, True, True, True)
 
 def _set_req_namespaces(req, namespace):
     name, value = list(req.items())[0]

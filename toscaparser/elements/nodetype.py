@@ -10,9 +10,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import logging
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.elements.capabilitytype import CapabilityType
+from toscaparser.elements.entity_type import Namespace
 import toscaparser.elements.interfaces as ifaces
 from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.elements.statefulentitytype import StatefulEntityType
@@ -146,14 +148,17 @@ class NodeType(StatefulEntityType):
     def get_capability_typedefs(self):
         '''Return a list of capability type objects.'''
         typecapabilities = []
-        caps = self.get_value(self.CAPABILITIES, None, True)
+        caps = self.get_definition(self.CAPABILITIES)
         if caps:
             # 'name' is symbolic name of the capability
             # 'value' is a dict { 'type': <capability type name> }
             for name, value in caps.items():
                 ctype = value.get('type')
-                cap = CapabilityType(name, ctype, self.type,
-                                        self.custom_def)
+                namespace_id = value.get("!namespace", None)
+                custom_def = self.custom_def
+                if namespace_id and isinstance(self.custom_def, Namespace):
+                    custom_def = self.custom_def.find_namespace(namespace_id)
+                cap = CapabilityType(name, ctype, self.type, custom_def)
                 typecapabilities.append(cap)
         return typecapabilities
 
@@ -164,7 +169,7 @@ class NodeType(StatefulEntityType):
 
     @property
     def requirements(self):
-        return self.get_value(self.REQUIREMENTS, None, True, True)
+        return self.get_definition(self.REQUIREMENTS)
 
     @staticmethod
     def merge_requirement_definition(base, current):
@@ -184,9 +189,9 @@ class NodeType(StatefulEntityType):
             tpl['metadata'] = dict(base['metadata'], **current['metadata'])
         return tpl
 
-    def get_all_requirements(self, add_namespace=False):
+    def get_all_requirements(self):
         # return list of requirements with any shorthand syntax normalized
-        reqs_tpl = self.get_value(self.REQUIREMENTS, None, True, True, add_namespace)  # same as self.requirements
+        reqs_tpl = self.requirements
         # avoid crashing:
         if reqs_tpl is None or self._requirement_definitions and "__invalid" in self._requirement_definitions:
             return []
@@ -278,7 +283,7 @@ class NodeType(StatefulEntityType):
         """
         if self._requirement_definitions is None:
             self._requirement_definitions = {}
-            reqs = self.get_all_requirements(True)
+            reqs = self.get_all_requirements()
             if not reqs:
                 return self._requirement_definitions
             for req_dict in reqs:

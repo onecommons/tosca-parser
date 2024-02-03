@@ -71,7 +71,7 @@ class StatefulEntityType(EntityType):
                 self.defs = self.TOSCA_DEF[entitytype]
             else:
                 self.defs = None
-                # logging.error(f'missing type {entitytype} {list(custom_def)}')
+                # logging.error(f'missing type {entitytype} {custom_def and list(custom_def)}', stack_info=True)
                 ExceptionCollector.appendException(
                     MissingTypeError(what=entitytype))
             self.type = entitytype
