@@ -71,7 +71,6 @@ class StatefulEntityType(EntityType):
                 self.defs = self.TOSCA_DEF[entitytype]
             else:
                 self.defs = None
-                # logging.error(f'missing type {entitytype} {custom_def and list(custom_def)}', stack_info=True)
                 ExceptionCollector.appendException(
                     MissingTypeError(what=entitytype))
             self.type = entitytype
@@ -94,7 +93,6 @@ class StatefulEntityType(EntityType):
                 if namespace_defs is not None and not namespace_defs.global_namespace:
                     custom_def = namespace_defs
                     # custom_def.add_entitytype(self) # XXX
-                    # logging.error("using local custom_defs %s %s %s", entitytype, source, list(custom_def))
                     local_namespace = True
         if custom and not local_namespace:
             if isinstance(custom_def, Namespace) and custom_def.namespace_id:

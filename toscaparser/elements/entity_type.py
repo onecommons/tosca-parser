@@ -215,7 +215,7 @@ class EntityType(object):
                 for p in p._ancestors(seen):
                     yield p
 
-    def get_value(self, ndtype, defs=None, parent=None, merge=False, add_namespace=False):
+    def get_value(self, ndtype, defs=None, parent=False, merge=False, add_namespace=False):
         '''
         If set, `defs` should be from the template otherwise uses defs from this type
         `parent` merges in defs from this type and ancestors
@@ -231,10 +231,8 @@ class EntityType(object):
             value = defs[ndtype]
         if parent:
             value = copy.copy(value)
-            if not self:
-                return value
-            for p in self.ancestors():
-                check_namespace = add_namespace and p._source and isinstance(p.custom_def, Namespace)
+            for p in self.ancestors():  # [self, parent, grandparent]
+                check_namespace = add_namespace and isinstance(p.custom_def, Namespace) and p.custom_def.namespace_id and p._source
                 if p.defs and ndtype in p.defs:
                     # get the parent value
                     parent_value = p.defs[ndtype]
@@ -243,17 +241,18 @@ class EntityType(object):
                             # add items if key is missing
                             assert isinstance(parent_value, dict), ndtype
                             for k, v in parent_value.items():
-                                # if "type" in v:
-                                if check_namespace and "type" in v:
-                                    v["!namespace"] = p.custom_def.namespace_id
                                 if k not in value:
                                     value[k] = v
+                                    if check_namespace and "type" in v:
+                                        v["!namespace"] = p.custom_def.namespace_id
                                 elif merge and isinstance(v, dict) and isinstance(value[k], dict):
                                     # merge value with parent and merge "metadata" keys if present
                                     value_value = value[k]
                                     metadata = "metadata" in value_value
                                     cls = getattr(value_value, "mapCtor", value_value.__class__)
                                     value[k] = cls(v, **value_value)
+                                    if check_namespace and "type" in v and "type" not in value_value:
+                                        value[k]["!namespace"] = p.custom_def.namespace_id
                                     if metadata and "metadata" in v:
                                         value[k]["metadata"] = cls(v["metadata"], **value_value["metadata"])
 
@@ -262,17 +261,18 @@ class EntityType(object):
                             assert isinstance(parent_value, list), ndtype
                             for p_value in parent_value:
                                 if p_value not in value:
-                                    if check_namespace and isinstance(p_value, dict):
+                                    if check_namespace and isinstance(p_value, dict) and ndtype == "requirements":
                                         _set_req_namespaces(p_value, p.custom_def.namespace_id)
                                     value.append(p_value)
                     else:
+                        # if missing so far then copy the parent
                         value = copy.copy(parent_value)
                         if check_namespace:
-                            if isinstance(value, dict):
+                            if isinstance(parent_value, dict):
                                 for k, v in parent_value.items():
-                                    if "type" in v:
+                                    if isinstance(v, dict) and "type" in v:
                                         v["!namespace"] = p.custom_def.namespace_id
-                            elif isinstance(value, list):
+                            elif isinstance(value, list) and ndtype == "requirements":
                                 for p_value in value:
                                     if isinstance(p_value, dict):
                                         _set_req_namespaces(p_value, p.custom_def.namespace_id)
@@ -291,7 +291,6 @@ def _set_req_namespaces(req, namespace):
                 # relationship might be a dict
                 if not isinstance(value[key], dict) or "type" in value[key]:
                     value[f"!namespace-{key}"] = namespace
-
 
 _last_version = None
 def update_definitions(exttools, version, loader=toscaparser.utils.yamlparser.load_yaml):

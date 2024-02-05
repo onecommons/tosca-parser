@@ -14,7 +14,7 @@ import logging
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.elements.capabilitytype import CapabilityType
-from toscaparser.elements.entity_type import Namespace
+from toscaparser.elements.entity_type import Namespace, _set_req_namespaces
 import toscaparser.elements.interfaces as ifaces
 from toscaparser.elements.relationshiptype import RelationshipType
 from toscaparser.elements.statefulentitytype import StatefulEntityType
@@ -191,6 +191,13 @@ class NodeType(StatefulEntityType):
 
     def get_all_requirements(self):
         # return list of requirements with any shorthand syntax normalized
+        if isinstance(self.custom_def, Namespace) and self.custom_def.namespace_id:
+            local_reqs = self.get_value(self.REQUIREMENTS)
+            if isinstance(local_reqs, list):
+                for req in local_reqs:
+                    if req and isinstance(req, dict):
+                        # add so these now so we don't merge in a parent type's namespace_id below
+                        _set_req_namespaces(req, self.custom_def.namespace_id)
         reqs_tpl = self.requirements
         # avoid crashing:
         if reqs_tpl is None or self._requirement_definitions and "__invalid" in self._requirement_definitions:

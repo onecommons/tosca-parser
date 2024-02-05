@@ -154,7 +154,6 @@ class ToscaDefTest(TestCase):
             sorted(compute_type.get_attributes_def().keys()))
 
     def test_requirements(self):
-        component_type = NodeType('tosca.nodes.SoftwareComponent')
         self.assertEqual(
             [{'host': {'capability': 'tosca.capabilities.Compute',
                        'node': 'tosca.nodes.Compute',
