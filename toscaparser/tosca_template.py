@@ -205,11 +205,13 @@ class ToscaTemplate(object):
             None, self.path, imported_types, self.tpl.get("repositories"),
             self.import_resolver, self.base_dir
         )
-        _, _source, namespace_id = imports_loader.get_source(self.base_dir, self.path, None, "")
+        _source, namespace_id = imports_loader.get_source(self.base_dir, self.path, None, "")
         imported_types.namespace_id = namespace_id
         imports = self.tpl.get("imports") 
         if imports:
+            log.debug("loading imports")
             imported_types = imports_loader.resolver.load_imports(imports_loader, imports)
+            log.debug("finished loading imports")
             self.nested_tosca_tpls = imports_loader.nested_tosca_tpls
         else:
             self.nested_tosca_tpls = {}

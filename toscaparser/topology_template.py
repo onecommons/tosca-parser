@@ -54,7 +54,7 @@ class TopologyTemplate(object):
                  tosca_template=None):
         self.tpl = template or {}
         self.tosca_template = tosca_template
-        self.custom_defs = custom_defs or {}
+        self.custom_defs = custom_defs
         self.parsed_params = parsed_params
         self._validate_field()
         self.description = self._tpl_description()

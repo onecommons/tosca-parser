@@ -31,14 +31,13 @@ try:
     from typing import TypedDict
 
     class SourceInfo(TypedDict):
-        path: str  # path to this imported file
+        path: str  # local path to this imported file
         root: Optional[str]  # repository or service template url
-        base: str  # local path to base of repository or service template
         repository: Optional[str]  # repository name if specified in the import
-        file: str  # file name as specified in the import
+        file: str  # file path relative to root (with fragment if present)
 
 except ImportError:
-    SourceInfo = dict
+    SourceInfo = dict  # Python 3.7
 
 
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
@@ -216,8 +215,9 @@ class ImportsLoader(object):
         if not is_url(full_file_name):
             full_file_name = os.path.normpath(full_file_name)
 
-        root_path, _source, namespace_id = self.get_source(
-            base, full_file_name, repository_name, file_name
+        root_path = base if repository_name else self.repository_root
+        _source, namespace_id = self.get_source(
+            root_path, full_file_name, repository_name, file_name
         )
 
         if full_file_name and imported_tpl:
@@ -229,6 +229,15 @@ class ImportsLoader(object):
             )
         else:
             global_namespace = self.custom_defs.global_namespace
+
+        if namespace_id in self.custom_defs.all_namespaces:
+            # already imported
+            imported_types = self.custom_defs.all_namespaces[namespace_id]
+            if global_namespace:
+                # if global_namespace was set by an outer template but the inner template was imported separately first
+                # set global_namespace now
+                imported_types.global_namespace = global_namespace
+            return imported_types, namespace_prefix
 
         imported_types = Namespace(
             self.custom_defs.all_namespaces,
@@ -258,18 +267,21 @@ class ImportsLoader(object):
             imported_types.update(local_types)
         return imported_types, namespace_prefix
 
-    def get_source(self, base, path, repository_name, file_name):
-        root_path = base if repository_name else self.repository_root
+    def get_source(self, root_path, path, repository_name, file_name):
+        package_id, sep, pkg_file = self.custom_defs.namespace_id.partition(":")
+        if pkg_file:
+            file_name = os.path.normpath(
+                os.path.join(os.path.dirname(pkg_file), file_name)
+            )
         _source = SourceInfo(
             path=path,  # path to this imported file
             root=root_path,  # repository or service template url
-            base=base,  # local path to base of repository or service template
             repository=repository_name,  # repository name if specified in the import
-            file=file_name,  # file name as specified in the import
+            file=file_name,  # file path relative to root (with fragment if present)
         )
         # if not repository_name, return package_id for the root template
         namespace_id = self.resolver.get_repository_url(self, repository_name, _source)
-        return root_path, _source, namespace_id
+        return _source, namespace_id
 
     def abort(self, import_def):
         import_repr = (
