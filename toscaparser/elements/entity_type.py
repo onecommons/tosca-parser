@@ -34,13 +34,12 @@ class Namespace(dict):
         # register this namespace:
         self.all_namespaces[namespace_id] = self
         self.global_namespace = global_namespace
-        # base
-        # root
-        # repository
         # self.metadata = {}  # local_name => section?
 
     def get_local_name(self, global_name):
         local, sep, module_name = global_name.partition("@")
+        if not module_name:
+            return local # built-in type
         if module_name == self.namespace_id:
             return local  # type is defined here
         prefix = self.imports.get(module_name)
@@ -74,10 +73,6 @@ class Namespace(dict):
         if not namespace_id:
             return self
         return self.all_namespaces.get(namespace_id, self)
-
-    def add_entitytype(self, entitytype):
-        # cache the type object
-        entitytype["_source"]["local_name"]
 
 class EntityType(object):
     '''Base class for TOSCA elements.'''
