@@ -225,7 +225,10 @@ class EntityType(object):
             # item definitions
             value = defs[ndtype]
         if parent:
-            value = copy.copy(value)
+            if hasattr(value, "mapCtor"):
+                value = value.mapCtor(value)
+            else:
+                value = copy.copy(value)
             for p in self.ancestors():  # [self, parent, grandparent]
                 check_namespace = add_namespace and isinstance(p.custom_def, Namespace) and p.custom_def.namespace_id and p._source
                 if p.defs and ndtype in p.defs:
@@ -261,7 +264,11 @@ class EntityType(object):
                                     value.append(p_value)
                     else:
                         # if missing so far then copy the parent
-                        value = copy.copy(parent_value)
+                        if hasattr(parent_value, "mapCtor"):
+                            value = parent_value.mapCtor(parent_value)
+                        else:
+                            value = copy.copy(parent_value)
+
                         if check_namespace:
                             if isinstance(parent_value, dict):
                                 for k, v in parent_value.items():
