@@ -77,7 +77,7 @@ class StatefulEntityType(EntityType):
         if not source:
             self.global_name = self.type
             source = self.defs and self.defs.get("_source") or None
-        local_namespace = False
+        local_namespace_id = False
         if isinstance(source, dict):
             # find the provenance of this type and use to that namespace for resolving local names
             local_name = source.get("local_name")
@@ -90,11 +90,12 @@ class StatefulEntityType(EntityType):
             source = source.get("path")
             if source and isinstance(custom_def, Namespace) and not custom_def.global_namespace:
                 namespace_defs = custom_def.all_namespaces.get(namespace_id)
-                if namespace_defs is not None and not namespace_defs.global_namespace:
-                    custom_def = namespace_defs
+                if namespace_defs is not None:
+                    local_namespace_id = True
+                    if not namespace_defs.global_namespace:
+                        custom_def = namespace_defs
                     # custom_def.add_entitytype(self) # XXX
-                    local_namespace = True
-        if custom and not local_namespace:
+        if custom and not local_namespace_id:
             if isinstance(custom_def, Namespace) and custom_def.namespace_id:
                 # assume custom types are in top-level namespace
                 self.global_name = f"{entitytype}@{custom_def.namespace_id}"

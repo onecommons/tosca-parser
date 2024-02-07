@@ -270,6 +270,7 @@ class ImportsLoader(object):
     def get_source(self, root_path, path, repository_name, file_name):
         package_id, sep, pkg_file = self.custom_defs.namespace_id.partition(":")
         if pkg_file:
+            # make file_name relative to the file part of the namespace_id
             file_name = os.path.normpath(
                 os.path.join(os.path.dirname(pkg_file), file_name)
             )
