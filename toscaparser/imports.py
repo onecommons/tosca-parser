@@ -174,7 +174,7 @@ class ImportsLoader(object):
             ExceptionCollector.appendException(ValidationError(message=msg))
             return
 
-        peer_global_namespace = None  # an imported global_namespace
+        global_namespace = self.custom_defs.global_namespace
         for import_tpl in self.importslist:
             if isinstance(import_tpl, dict):
                 if len(import_tpl) == 1 and "file" not in import_tpl:
@@ -195,15 +195,12 @@ class ImportsLoader(object):
             # imported templates with the global_namespace flag share will share the same namespace
             # (to support parallel imports)
             imported_types, prefix = self._load_import(
-                import_def, import_name, peer_global_namespace
+                import_def, import_name, global_namespace
             )
             if imported_types:
                 if imported_types.global_namespace is not None:
-                    if (
-                        imported_types.global_namespace
-                        is not self.custom_defs.global_namespace
-                    ):
-                        peer_global_namespace = imported_types.global_namespace
+                    # if self.custom_defs.global_namespace was None this might be a new peer global_namespace
+                    global_namespace = imported_types.global_namespace
 
                 # add the imported types to the current namespace
                 self.custom_defs.add_with_prefix(imported_types, prefix)
@@ -235,16 +232,19 @@ class ImportsLoader(object):
         if full_file_name and imported_tpl:
             self.nested_tosca_tpls[full_file_name] = (imported_tpl, namespace_id)
 
-        use_global_namespace = False
+        use_global_namespace = _source.pop("global_namespace", False)
         if imported_tpl and "metadata" in imported_tpl:
             # if not present, use global_namespace if currently used
+            # and the import_resolver might set this too
             use_global_namespace = imported_tpl["metadata"].get("global_namespace")
 
         if use_global_namespace:
             # use the current peer global_namespace if set
             if global_namespace is None:
                 global_namespace = True  # if not, create a new global_namespace
-        else:  # inherit the importing template's global_namespace if it's set
+        else:
+            # inherit the importing template's global_namespace if it's set
+            # (but not the peer one)
             global_namespace = self.custom_defs.global_namespace
 
         if namespace_id in self.custom_defs.all_namespaces:
