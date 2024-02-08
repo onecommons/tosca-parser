@@ -223,19 +223,23 @@ class ImportsLoader(object):
         if full_file_name and imported_tpl:
             self.nested_tosca_tpls[full_file_name] = (imported_tpl, namespace_id)
 
+        use_global_namespace = False
         if imported_tpl and "metadata" in imported_tpl:
-            global_namespace = imported_tpl["metadata"].get(
-                "global_namespace", self.custom_defs.global_namespace
-            )
-        else:
+            # if not present, use global_namespace if currently used
+            use_global_namespace = imported_tpl["metadata"].get("global_namespace")
+
+        if use_global_namespace:
+            global_namespace = True
+        else:  # inherit global_namespace if set
             global_namespace = self.custom_defs.global_namespace
 
         if namespace_id in self.custom_defs.all_namespaces:
             # already imported
             imported_types = self.custom_defs.all_namespaces[namespace_id]
-            if global_namespace:
-                # if global_namespace was set by an outer template but the inner template was imported separately first
+            if imported_types.global_namespace is None and not use_global_namespace:
+                # if a global_namespace is set in the outer template but the inner template was imported separately first
                 # set global_namespace now
+                # note importing the same file into two different global namespaces is unsupported
                 imported_types.global_namespace = global_namespace
             return imported_types, namespace_prefix
 

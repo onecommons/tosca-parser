@@ -199,7 +199,7 @@ class ToscaTemplate(object):
         This method loads the custom type definitions referenced in "imports"
         section of the TOSCA YAML template.
         """
-        global_namespace = bool(self.tpl.get("metadata", {}).get("global_namespace"))
+        global_namespace = self.tpl.get("metadata", {}).get("global_namespace")
         imported_types = Namespace({}, None, self.path or "", global_namespace)
         imports_loader = toscaparser.imports.ImportsLoader(
             None, self.path, imported_types, self.tpl.get("repositories"),
@@ -221,15 +221,13 @@ class ToscaTemplate(object):
 
     def _handle_nested_tosca_templates_with_topology(self, namespaces):
         ExceptionCollector.near = ""
+        assert self.topology_template
         for filename, (tosca_tpl, namespace_id) in self.nested_tosca_tpls.items():
             topology_tpl = tosca_tpl.get(TOPOLOGY_TEMPLATE)
             if topology_tpl:
-                if self.topology_template.custom_defs.global_namespace:
-                    custom_types = self.topology_template.custom_defs
-                else:
-                    custom_types = namespaces[namespace_id]
-                    if custom_types.global_namespace:
-                        custom_types = self.topology_template.custom_defs
+                custom_types = namespaces[namespace_id]
+                if custom_types.global_namespace is not None:
+                    custom_types = custom_types.global_namespace
                 self.nested_topologies[filename] = TopologyTemplate(
                                 topology_tpl, custom_types, None, self)
         substitutable_topologies = [t for t in self.nested_topologies.values() if t.substitution_mappings]

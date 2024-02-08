@@ -25,7 +25,7 @@ globals._parent_types = None  # Dict[str, List[StatefulEntityType]]
 
 class Namespace(dict):
     def __init__(
-        self, nested_custom_types, file_name, namespace_id="", global_namespace=False
+        self, nested_custom_types, file_name, namespace_id="", global_namespace=None
     ):
         self.all_namespaces = nested_custom_types
         self.file_name = file_name
@@ -33,7 +33,10 @@ class Namespace(dict):
         self.imports = {}  # map global specifiers to prefix
         # register this namespace:
         self.all_namespaces[namespace_id] = self
-        self.global_namespace = global_namespace
+        if global_namespace:  # bool, None, or Namespace
+            self.global_namespace = self if global_namespace is True else global_namespace
+        else:
+            self.global_namespace = None
         # self.metadata = {}  # local_name => section?
 
     def get_local_name(self, global_name):
