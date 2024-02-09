@@ -105,6 +105,14 @@ class StatefulEntityType(EntityType):
         self._interfaces = None
         self._property_defs = None
         self._attribute_defs = None
+        self.aliases = []
+        if self.defs and self.defs.get("metadata"):
+            aliases = self.defs["metadata"].get("deprecates")
+            if aliases:
+                if isinstance(aliases, str):
+                    self.aliases = [aliases]
+                elif isinstance(aliases, list):
+                    self.aliases = aliases
         if not self.defs:
             return
         self._validate_interfaces()
@@ -147,6 +155,9 @@ class StatefulEntityType(EntityType):
         if prel:
             # prefix is only used to expand "tosca:Type"
             return StatefulEntityType(prel, self.NODE_PREFIX, custom_def=self.custom_def)
+
+    def _implements(self, type_str):
+        return type_str in self.aliases
 
     def get_properties_def_objects(self):
         '''Return a list of property definition objects.'''

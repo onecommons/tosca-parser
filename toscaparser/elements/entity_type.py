@@ -195,6 +195,8 @@ class EntityType(object):
             return False
         elif self.type == type_str:
             return True
+        elif self._implements(type_str):
+            return True
         else:
             for p in self.parent_types():
                 if p.is_derived_from(type_str):
@@ -204,6 +206,9 @@ class EntityType(object):
     def entity_value(self, defs, key):
         if defs and key in defs:
             return defs[key]
+
+    def _implements(self, type_str):
+        return False
 
     @property
     def parent_type(self):
