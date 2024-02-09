@@ -55,6 +55,18 @@ class Namespace(dict):
 
     def get_global_name(self, local_name):
         if self.namespace_id and local_name in self:
+            # this type could have been imported, try to get the original name
+            _source = self[local_name].get("_source")
+            if isinstance(_source, dict):
+                name = _source.get("local_name")
+                namespace_id = _source.get("namespace_id")
+                if name and namespace_id:
+                    return f"{name}@{namespace_id}"
+            if "." in local_name:  # might be prefixed
+                for imported_id, prefix in self.imports.items():
+                    if prefix:
+                        if local_name.startswith(prefix+"."):
+                            return f"{local_name}@{imported_id}"
             return f"{local_name}@{self.namespace_id}"
         else:
             return local_name
