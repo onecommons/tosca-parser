@@ -208,14 +208,20 @@ class StatefulEntityType(EntityType):
         return self._interfaces
 
     def get_interface_requirements(self, entity_tpl=None):
+        # XXX add and use !namespace
         tpl_interfaces = self.get_value(self.INTERFACES, entity_tpl, True, True)
         relationships = []
         if tpl_interfaces:
             for i in tpl_interfaces.values():
                 req = i.get('requirements')
                 if req:
+                    namespace = None
+                    if isinstance(self.custom_def, Namespace):
+                        namespace = self.custom_def
                     assert isinstance(req, list)
                     for rel in req:
+                        if namespace and rel not in self.TOSCA_DEF:
+                            rel = namespace.get_global_name(rel)
                         if rel not in relationships:
                             relationships.append(rel)
         return relationships
