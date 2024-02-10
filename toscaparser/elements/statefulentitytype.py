@@ -187,6 +187,7 @@ class StatefulEntityType(EntityType):
             _attribute_defs = []
             attrs = self.get_definition(self.ATTRIBUTES)
             if attrs:
+                self._merge_attributes(attrs)
                 _attribute_defs = [PropertyDef(attr, None, schema)
                                    for attr, schema in attrs.items()]
             self._attribute_defs = _attribute_defs
@@ -202,6 +203,30 @@ class StatefulEntityType(EntityType):
         attrs_def = self.get_attributes_def()
         if attrs_def and name in attrs_def.keys():
             return attrs_def[name].value
+
+    def _merge_attributes(self, attr_tpl):
+        # if a derived type declares a property with the same name as a base class' attribute
+        # then it is converted into a plain property (unless it is also declared as attribute in the same type definition)
+        attrs = set(attr_tpl)
+        shared = list(attrs.intersection(self.get_properties_def()))
+        if not shared:
+            return
+        # look for the first occurrence of the property or attribute
+        # and if its only an property, remove it from attribute list
+        for parent in self.ancestors(): # [self, parent, grandparent]
+            pprops = (parent.defs and parent.defs.get("properties")) or {}
+            pattrs = (parent.defs and parent.defs.get("attributes")) or {}
+            if not pprops and not pattrs:
+                continue
+            for prop in shared:
+                if prop in pprops:
+                    shared.remove(prop)
+                    if prop not in pattrs:
+                        del attr_tpl[prop]
+                elif prop in pattrs:
+                    shared.remove(prop)
+            if not shared:
+                break
 
     @property
     def interfaces(self):
