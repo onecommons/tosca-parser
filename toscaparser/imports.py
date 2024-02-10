@@ -35,6 +35,7 @@ try:
         root: Optional[str]  # repository or service template url
         repository: Optional[str]  # repository name if specified in the import
         file: str  # file path relative to root (with fragment if present)
+        namespace_uri: Optional[str]  # "namespace" field in source file
 
 except ImportError:
     SourceInfo = dict  # Python 3.7
@@ -225,8 +226,9 @@ class ImportsLoader(object):
             full_file_name = os.path.normpath(full_file_name)
 
         root_path = base if repository_name else self.repository_root
+        source_namespace_id = imported_tpl and imported_tpl.get("namespace") or None
         _source, namespace_id = self.get_source(
-            root_path, full_file_name, repository_name, file_name
+            root_path, full_file_name, repository_name, file_name, source_namespace_id
         )
 
         if full_file_name and imported_tpl:
@@ -285,7 +287,7 @@ class ImportsLoader(object):
             imported_types.update(local_types)
         return imported_types, namespace_prefix
 
-    def get_source(self, root_path, path, repository_name, file_name):
+    def get_source(self, root_path, path, repository_name, file_name, namespace_uri):
         package_id, sep, pkg_file = self.custom_defs.namespace_id.partition(":")
         if pkg_file:
             # make file_name relative to the file part of the namespace_id
@@ -297,6 +299,7 @@ class ImportsLoader(object):
             root=root_path,  # repository or service template url
             repository=repository_name,  # repository name if specified in the import
             file=file_name,  # file path relative to root (with fragment if present)
+            namespace_uri=namespace_uri, # namespace field in source file
         )
         # if not repository_name, return package_id for the root template
         namespace_id = self.resolver.get_repository_url(self, repository_name, _source)

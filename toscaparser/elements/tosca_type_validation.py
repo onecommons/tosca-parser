@@ -18,14 +18,14 @@ from toscaparser.extensions.exttools import ExtTools
 
 class TypeValidation(object):
 
-    ALLOWED_TYPE_SECTIONS = (DEFINITION_VERSION, DESCRIPTION, IMPORTS,
-                             DSL_DEFINITIONS, NODE_TYPES, REPOSITORIES,
+    ALLOWED_TYPE_SECTIONS = (DEFINITION_VERSION, DESCRIPTION, NAMESPACE, IMPORTS,
+                             DSL_DEFINITIONS, NODE_TYPES, REPOSITORIES, TYPES,
                              DATA_TYPES, ARTIFACT_TYPES, GROUP_TYPES,
                              RELATIONSHIP_TYPES, CAPABILITY_TYPES,
                              INTERFACE_TYPES, POLICY_TYPES,
                              TOPOLOGY_TEMPLATE, METADATA) = \
-        ('tosca_definitions_version', 'description', 'imports',
-         'dsl_definitions', 'node_types', 'repositories',
+        ('tosca_definitions_version', 'description', 'namespace', 'imports',
+         'dsl_definitions', 'node_types', 'repositories', 'types',
          'data_types', 'artifact_types', 'group_types',
          'relationship_types', 'capability_types',
          'interface_types', 'policy_types', 'topology_template',

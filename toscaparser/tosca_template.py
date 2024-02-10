@@ -30,13 +30,13 @@ from toscaparser.utils.gettextutils import _
 import toscaparser.utils.yamlparser
 
 # TOSCA template key names
-SECTIONS = (DEFINITION_VERSION, DEFAULT_NAMESPACE, TEMPLATE_NAME,
+SECTIONS = (DEFINITION_VERSION, NAMESPACE, TEMPLATE_NAME,
             TOPOLOGY_TEMPLATE, TEMPLATE_AUTHOR, TEMPLATE_VERSION,
             DESCRIPTION, IMPORTS, DSL_DEFINITIONS, TYPES, NODE_TYPES,
             RELATIONSHIP_TYPES, RELATIONSHIP_TEMPLATES,
             CAPABILITY_TYPES, ARTIFACT_TYPES, DATA_TYPES, INTERFACE_TYPES,
             POLICY_TYPES, GROUP_TYPES, REPOSITORIES) = \
-           ('tosca_definitions_version', 'tosca_default_namespace',
+           ('tosca_definitions_version', 'namespace',
             'template_name', 'topology_template', 'template_author',
             'template_version', 'description', 'imports', 'dsl_definitions',
             'types', 'node_types', 'relationship_types', 'relationship_templates',
@@ -205,7 +205,7 @@ class ToscaTemplate(object):
             None, self.path, imported_types, self.tpl.get("repositories"),
             self.import_resolver, self.base_dir
         )
-        _source, namespace_id = imports_loader.get_source(self.base_dir, self.path, None, "")
+        _source, namespace_id = imports_loader.get_source(self.base_dir, self.path, None, "", self.tpl.get(NAMESPACE))
         imported_types.namespace_id = namespace_id
         imports = self.tpl.get("imports") 
         if imports:
