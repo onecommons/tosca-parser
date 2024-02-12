@@ -166,7 +166,9 @@ class StatefulEntityType(EntityType):
             props = self.get_definition(self.PROPERTIES)
             if props:
                 for prop, schema in props.items():
-                    properties.append(PropertyDef(prop, None, schema))
+                    prop_def = PropertyDef(prop, None, schema)
+                    if not prop_def._parse_error:
+                        properties.append(prop_def)
             self._property_defs = properties
         return self._property_defs
 

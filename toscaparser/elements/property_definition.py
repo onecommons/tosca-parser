@@ -40,21 +40,23 @@ class PropertyDef(object):
         self._status = self.PROPERTY_STATUS_DEFAULT
         self._required = self.PROPERTY_REQUIRED_DEFAULT
 
+        self._parse_error = False
         if not isinstance(schema, dict):
             msg = (_('Schema definition of "%(pname)s" must be a mapping, not: %(schema)s') % dict(pname=self.name, schema=schema))
             ExceptionCollector.appendException(
                 InvalidSchemaError(message=msg))
+            self._parse_error = True
             return
 
         try:
             # Validate required 'type' property exists
             self.schema['type']
         except KeyError:
+            self._parse_error = True
             msg = (_('Schema definition of "%(pname)s" must have a "type" '
                      'attribute.') % dict(pname=self.name))
             ExceptionCollector.appendException(
                 InvalidSchemaError(message=msg))
-
         self._load_required_attr_from_schema()
         self._load_status_attr_from_schema()
 
