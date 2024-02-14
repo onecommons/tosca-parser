@@ -53,6 +53,14 @@ class Namespace(dict):
         else:
             return local  # no prefix
 
+    def find_prefix(self, local_name):
+        if "." in local_name:
+            for imported_id, prefix in self.imports.items():
+                if prefix:
+                    if local_name.startswith(prefix+"."):
+                        return prefix
+        return ""
+
     def get_global_name(self, local_name):
         if self.namespace_id and local_name in self:
             # this type could have been imported, try to get the original name
