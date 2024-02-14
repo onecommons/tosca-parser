@@ -10,6 +10,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from types import SimpleNamespace
+
+import pytest
 from toscaparser.common import exception
 from toscaparser.elements.scalarunit import ScalarUnit_Frequency
 from toscaparser.elements.scalarunit import ScalarUnit_Size
@@ -21,13 +24,13 @@ from toscaparser.utils.gettextutils import _
 from toscaparser.utils import yamlparser
 
 
-class ScalarUnitPositiveTest(TestCase):
-
-    scenarios = [
+@pytest.mark.parametrize(
+    ["title", "self"],
+ [
         (
             # tpl_snippet with mem_size given as number+space+MB
             'mem_size_is_number_Space_MB',
-            dict(tpl_snippet='''
+            SimpleNamespace(tpl_snippet='''
                  server:
                    type: tosca.nodes.Compute
                    capabilities:
@@ -41,7 +44,7 @@ class ScalarUnitPositiveTest(TestCase):
         (
             # tpl_snippet with mem_size given as number+spaces+GB
             'mem_size_is_number_Space_GB',
-            dict(tpl_snippet='''
+            SimpleNamespace(tpl_snippet='''
                  server:
                    type: tosca.nodes.Compute
                    capabilities:
@@ -55,7 +58,7 @@ class ScalarUnitPositiveTest(TestCase):
         (
             # tpl_snippet with mem_size given as number+tiB
             'mem_size_is_number_NoSpace_GB',
-            dict(tpl_snippet='''
+            SimpleNamespace(tpl_snippet='''
                  server:
                    type: tosca.nodes.Compute
                    capabilities:
@@ -69,7 +72,7 @@ class ScalarUnitPositiveTest(TestCase):
         (
             # tpl_snippet with mem_size given as number+Spaces+GIB
             'mem_size_is_number_Spaces_GB',
-            dict(tpl_snippet='''
+            SimpleNamespace(tpl_snippet='''
                  server:
                    type: tosca.nodes.Compute
                    capabilities:
@@ -83,7 +86,7 @@ class ScalarUnitPositiveTest(TestCase):
         (
             # tpl_snippet with mem_size given as number+Space+tib
             'mem_size_is_number_Spaces_GB',
-            dict(tpl_snippet='''
+            SimpleNamespace(tpl_snippet='''
                  server:
                    type: tosca.nodes.Compute
                    capabilities:
@@ -96,7 +99,7 @@ class ScalarUnitPositiveTest(TestCase):
         ),
         (
             'cpu_frequency_is_float_Space_GHz',
-            dict(tpl_snippet='''
+            SimpleNamespace(tpl_snippet='''
                  server:
                    type: tosca.nodes.Compute
                    capabilities:
@@ -109,7 +112,7 @@ class ScalarUnitPositiveTest(TestCase):
         ),
         (
             'cpu_frequency_is_float_Space_MHz',
-            dict(tpl_snippet='''
+            SimpleNamespace(tpl_snippet='''
                  server:
                    type: tosca.nodes.Compute
                    capabilities:
@@ -120,119 +123,117 @@ class ScalarUnitPositiveTest(TestCase):
                  property='cpu_frequency',
                  expected='800 MHz')
         ),
-    ]
+    ])
+def test_scenario_scalar_unit_positive(title, self):
+    tpl = self.tpl_snippet
+    nodetemplates = yamlparser.simple_parse(tpl)
+    topology = TopologyTemplate({'node_templates':nodetemplates}, [])
+    nodetemplate = NodeTemplate('server', topology)
+    props = nodetemplate.get_capability('host').get_properties()
+    prop_name = self.property
+    if props and prop_name in props.keys():
+        prop = props[prop_name]
+        assert prop.validate() is None
+        resolved = prop.value
+    assert resolved == self.expected
 
-    def test_scenario_scalar_unit_positive(self):
-        tpl = self.tpl_snippet
-        nodetemplates = yamlparser.simple_parse(tpl)
-        topology = TopologyTemplate({'node_templates':nodetemplates}, [])
-        nodetemplate = NodeTemplate('server', topology)
-        props = nodetemplate.get_capability('host').get_properties()
-        prop_name = self.property
-        if props and prop_name in props.keys():
-            prop = props[prop_name]
-            self.assertIsNone(prop.validate())
-            resolved = prop.value
-        self.assertEqual(resolved, self.expected)
 
-
-class GetNumFromScalarUnitSizePositive(TestCase):
-
-    scenarios = [
+@pytest.mark.parametrize(
+    ["title", "self"],
+ [
         (   # Note that (1 TB) / (1 GB) = 1000
             'Input is TB, user input is GB',
-            dict(InputMemSize='1   TB',
+            SimpleNamespace(InputMemSize='1   TB',
                  UserInputUnit='gB',
                  expected=1000)
         ),
         (   # Note that (1 Tib)/ (1 GB) = 1099
             'Input is TiB, user input is GB',
-            dict(InputMemSize='1   TiB',
+            SimpleNamespace(InputMemSize='1   TiB',
                  UserInputUnit='gB',
                  expected=1099.511627776)
         ),
-    ]
+    ]   
+)
+def test_scenario_get_num_from_scalar_unit_size(title, self):
+    resolved = (ScalarUnit_Size(self.InputMemSize).
+                get_num_from_scalar_unit(self.UserInputUnit))
+    assert resolved == self.expected
 
-    def test_scenario_get_num_from_scalar_unit_size(self):
-        resolved = (ScalarUnit_Size(self.InputMemSize).
-                    get_num_from_scalar_unit(self.UserInputUnit))
-        self.assertEqual(resolved, self.expected)
 
-
-class GetNumFromScalarUnitFrequencyPositive(TestCase):
-
-    scenarios = [
+@pytest.mark.parametrize(
+    ["title", "self"],
+ [
         (   # Note that (1 GHz) / (1 Hz) = 1000000000
             'Input is GHz, user input is Hz',
-            dict(InputMemSize='1   GHz',
+            SimpleNamespace(InputMemSize='1   GHz',
                  UserInputUnit='Hz',
                  expected=1000000000)
         ),
         (
             'Input is GHz, user input is Hz',
-            dict(InputMemSize='2.4   GHz',
+            SimpleNamespace(InputMemSize='2.4   GHz',
                  UserInputUnit='Hz',
                  expected=2400000000)
         ),
         (   # Note that (1 GHz)/ (1 MHz) = 1000
             'Input is MHz, user input is GHz',
-            dict(InputMemSize='800   MHz',
+            SimpleNamespace(InputMemSize='800   MHz',
                  UserInputUnit='GHz',
                  expected=0.8)
         ),
         (
             'Input is GHz, user input is Hz',
-            dict(InputMemSize='0.9  GHz',
+            SimpleNamespace(InputMemSize='0.9  GHz',
                  UserInputUnit='MHz',
                  expected=900)
         ),
         (
             'Input is GHz, user input is Hz',
-            dict(InputMemSize='2.7GHz',
+            SimpleNamespace(InputMemSize='2.7GHz',
                  UserInputUnit='MHz',
                  expected=2700)
         ),
     ]
+)
+def test_scenario_get_num_from_scalar_unit_frequency(title, self):
+    resolved = (ScalarUnit_Frequency(self.InputMemSize).
+                get_num_from_scalar_unit(self.UserInputUnit))
+    assert resolved == self.expected
 
-    def test_scenario_get_num_from_scalar_unit_frequency(self):
-        resolved = (ScalarUnit_Frequency(self.InputMemSize).
-                    get_num_from_scalar_unit(self.UserInputUnit))
-        self.assertEqual(resolved, self.expected)
 
-
-class GetNumFromScalarUnitTimePositive(TestCase):
-
-    scenarios = [
+@pytest.mark.parametrize(
+    ["title", "self"],
+ [
         (   # Note that (1 s) / (1 ms) = 1000
             'Input is 500ms, user input is s',
-            dict(InputMemSize='500   ms',
+            SimpleNamespace(InputMemSize='500   ms',
                  UserInputUnit='s',
                  expected=0.5)
         ),
         (   # Note that (1 h)/ (1 s) = 3600
             'Input is h, user input is s',
-            dict(InputMemSize='1   h',
+            SimpleNamespace(InputMemSize='1   h',
                  UserInputUnit='s',
                  expected=3600)
         ),
         (   # Note that (1 m)/ (1 s) = 60
             'Input is m, user input is s',
-            dict(InputMemSize='0.5   m',
+            SimpleNamespace(InputMemSize='0.5   m',
                  UserInputUnit='s',
                  expected=30)
         ),
         (   # Note that (1 d)/ (1 h) = 24
             'Input is d, user input is h',
-            dict(InputMemSize='1   d',
+            SimpleNamespace(InputMemSize='1   d',
                  UserInputUnit='h',
                  expected=24)
         ),
-    ]
-
-    def test_scenario_get_num_from_scalar_unit_time(self):
-        resolved = (ScalarUnit_Time(self.InputMemSize).
-                    get_num_from_scalar_unit(self.UserInputUnit))
-        self.assertEqual(resolved, self.expected)
+    ])
+def test_scenario_get_num_from_scalar_unit_time(title, self):
+    resolved = (ScalarUnit_Time(self.InputMemSize).
+                get_num_from_scalar_unit(self.UserInputUnit))
+    assert resolved == self.expected
 
 
 class GetNumFromScalarUnitSizeNegative(TestCase):

@@ -11,7 +11,7 @@
 #    under the License.
 
 import os
-
+import sys
 from toscaparser.tests.base import TestCase
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -19,9 +19,10 @@ from toscaparser.tosca_template import ToscaTemplate
 class ToscaNFVTemplateTest(TestCase):
 
     '''TOSCA NFV template.'''
+    base = os.path.dirname(sys.modules[ToscaTemplate.__module__].__file__)
     tosca_tpl = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "data/tosca_helloworld_nfv.yaml")
+        base,
+        "extensions/nfv/tests/data/tosca_helloworld_nfv.yaml")
     tosca = ToscaTemplate(tosca_tpl)
 
     def test_version(self):
