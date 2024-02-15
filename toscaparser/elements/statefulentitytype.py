@@ -77,12 +77,14 @@ class StatefulEntityType(EntityType):
         if not source:
             self.global_name = self.type
             source = self.defs and self.defs.get("_source") or None
+        self.local_name = self.type
         local_namespace_id = False
         if isinstance(source, dict):
             # find the provenance of this type and use to that namespace for resolving local names
             local_name = source.get("local_name")
             namespace_id = source.get("namespace_id")
             if local_name:
+                self.local_name = local_name
                 if namespace_id:
                     self.global_name = f"{local_name}@{namespace_id}"
                 else:
@@ -157,7 +159,8 @@ class StatefulEntityType(EntityType):
             return StatefulEntityType(prel, self.NODE_PREFIX, custom_def=self.custom_def)
 
     def _implements(self, type_str):
-        return type_str in self.aliases
+        # for backwards compatibility compare the local_name (the unprefixed name)
+        return type_str == self.local_name or type_str in self.aliases
 
     def get_properties_def_objects(self):
         '''Return a list of property definition objects.'''

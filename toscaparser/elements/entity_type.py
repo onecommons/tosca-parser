@@ -197,11 +197,9 @@ class EntityType(object):
         Returns true if this object is derived from 'type_str'.
         False otherwise.
         '''
-        if "@" in type_str:
-            return self.global_name == type_str
-        elif not self.type:
+        if not self.type:
             return False
-        elif self.type == type_str:
+        elif self.type == type_str or self.global_name == type_str:
             return True
         elif self._implements(type_str):
             return True
