@@ -94,7 +94,7 @@ class StatefulEntityType(EntityType):
                 namespace_defs = custom_def.all_namespaces.get(namespace_id)
                 if namespace_defs is not None:
                     local_namespace_id = True
-                    custom_def = namespace_defs.global_namespace or namespace_defs
+                    custom_def = namespace_defs
                     # custom_def.add_entitytype(self) # XXX
         if custom and not local_namespace_id:
             if isinstance(custom_def, Namespace) and custom_def.namespace_id:

@@ -1,6 +1,7 @@
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
 description: sample-tosca-vnfd-scaling
+namespace: sample-tosca-vnfd-scaling
 
 imports:
   - tacker_defs.yaml
@@ -8,7 +9,6 @@ imports:
 
 metadata:
   template_name: sample-tosca-vnfd-scaling
-  global_namespace: true
 
 topology_template:
   node_templates:

@@ -85,7 +85,7 @@ class ImportResolver:
 
     def get_repository_url(self, importsLoader, repository_name, package=None):
         if package:
-            return package["path"]
+            return package.get("namespace_uri") or package["path"]
         if repository_name:
             repo_def = importsLoader.repositories[repository_name]
             url = repo_def["url"].strip()
@@ -175,7 +175,6 @@ class ImportsLoader(object):
             ExceptionCollector.appendException(ValidationError(message=msg))
             return
 
-        global_namespace = self.custom_defs.global_namespace
         for import_tpl in self.importslist:
             if isinstance(import_tpl, dict):
                 if len(import_tpl) == 1 and "file" not in import_tpl:
@@ -193,20 +192,12 @@ class ImportsLoader(object):
                 import_name = None
                 import_def = import_tpl
 
-            # imported templates with the global_namespace flag share will share the same namespace
-            # (to support parallel imports)
-            imported_types, prefix = self._load_import(
-                import_def, import_name, global_namespace
-            )
-            if imported_types:
-                if imported_types.global_namespace is not None:
-                    # if self.custom_defs.global_namespace was None this might be a new peer global_namespace
-                    global_namespace = imported_types.global_namespace
-
-                # add the imported types to the current namespace
+            imported_types, prefix = self._load_import(import_def, import_name)
+            if imported_types and imported_types is not self.custom_defs:
+                # add the imported types that are in a separate namespace
                 self.custom_defs.add_with_prefix(imported_types, prefix)
 
-    def _load_import(self, import_def, import_name, global_namespace=None):
+    def _load_import(self, import_def, import_name):
         base, full_file_name, imported_tpl = self.load_yaml(import_def, import_name)
         if full_file_name is None:
             if TREAT_IMPORTS_AS_FATAL:
@@ -226,45 +217,34 @@ class ImportsLoader(object):
             full_file_name = os.path.normpath(full_file_name)
 
         root_path = base if repository_name else self.repository_root
-        source_namespace_id = imported_tpl and imported_tpl.get("namespace") or None
+        declared_namespace_id = imported_tpl and imported_tpl.get("namespace") or None
+        if not declared_namespace_id and self.custom_defs.shared_namespace:
+            # if current namespace is global use that one unless importing this with a prefix
+            declared_namespace_id = self.custom_defs.namespace_id
         _source, namespace_id = self.get_source(
-            root_path, full_file_name, repository_name, file_name, source_namespace_id
+            root_path, full_file_name, repository_name, file_name, declared_namespace_id
         )
+        # resolver could have changed this
+        declared_namespace_id = _source.get("namespace_uri")
 
         if full_file_name and imported_tpl:
+            if (
+                full_file_name in self.nested_tosca_tpls
+                and namespace_id in self.custom_defs.all_namespaces
+            ):
+                # already imported
+                return self.custom_defs.all_namespaces[namespace_id], namespace_prefix
             self.nested_tosca_tpls[full_file_name] = (imported_tpl, namespace_id)
 
-        use_global_namespace = _source.pop("global_namespace", False)
-        if imported_tpl and "metadata" in imported_tpl:
-            # if not present, use global_namespace if currently used
-            # and the import_resolver might set this too
-            use_global_namespace = imported_tpl["metadata"].get("global_namespace")
-
-        if use_global_namespace:
-            # use the current peer global_namespace if set
-            if global_namespace is None:
-                global_namespace = True  # if not, create a new global_namespace
-        else:
-            # inherit the importing template's global_namespace if it's set
-            # (but not the peer one)
-            global_namespace = self.custom_defs.global_namespace
-
         if namespace_id in self.custom_defs.all_namespaces:
-            # already imported
             imported_types = self.custom_defs.all_namespaces[namespace_id]
-            if imported_types.global_namespace is None:
-                # if a global_namespace is to be used but the inner template was imported separately first
-                # then set the global_namespace now
-                # note importing the same file into two different global namespaces is unsupported
-                imported_types.global_namespace = global_namespace
-            return imported_types, namespace_prefix
-
-        imported_types = Namespace(
-            self.custom_defs.all_namespaces,
-            full_file_name,
-            namespace_id,
-            global_namespace,
-        )
+        else:
+            imported_types = Namespace(
+                self.custom_defs.all_namespaces,
+                "",
+                namespace_id,
+                bool(declared_namespace_id),
+            )
 
         if imported_tpl:
             imports = imported_tpl.get("imports")
@@ -288,20 +268,16 @@ class ImportsLoader(object):
         return imported_types, namespace_prefix
 
     def get_source(self, root_path, path, repository_name, file_name, namespace_uri):
-        package_id, sep, pkg_file = self.custom_defs.namespace_id.partition(":")
-        if pkg_file:
-            # make file_name relative to the file part of the namespace_id
-            file_name = os.path.normpath(
-                os.path.join(os.path.dirname(pkg_file), file_name)
-            )
+        # return enough metadata so we can reconstruct an imports declaration for this namespace
         _source = SourceInfo(
             path=path,  # path to this imported file
             root=root_path,  # repository or service template url
             repository=repository_name,  # repository name if specified in the import
             file=file_name,  # file path relative to root (with fragment if present)
-            namespace_uri=namespace_uri, # namespace field in source file
+            # namespace_uri will be null if namespace is not an explicit namespace
+            namespace_uri=namespace_uri,  # namespace field if declared
         )
-        # if not repository_name, return package_id for the root template
+        # if not repository_name return package_id for the root template
         namespace_id = self.resolver.get_repository_url(self, repository_name, _source)
         return _source, namespace_id
 

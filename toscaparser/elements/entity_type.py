@@ -25,18 +25,15 @@ globals._parent_types = None  # Dict[str, List[StatefulEntityType]]
 
 class Namespace(dict):
     def __init__(
-        self, nested_custom_types, file_name, namespace_id="", global_namespace=None
+        self, nested_custom_types, file_name, namespace_id="", shared_namespace=False
     ):
         self.all_namespaces = nested_custom_types
         self.file_name = file_name
         self.namespace_id = namespace_id
-        self.imports = {}  # map global specifiers to prefix
+        self.imports = {}  # map global specifiers to prefixed local name
         # register this namespace:
         self.all_namespaces[namespace_id] = self
-        if global_namespace:  # bool, None, or Namespace
-            self.global_namespace = self if global_namespace is True else global_namespace
-        else:
-            self.global_namespace = None
+        self.shared_namespace = shared_namespace
         # self.metadata = {}  # local_name => section?
 
     def get_local_name(self, global_name):
@@ -45,21 +42,28 @@ class Namespace(dict):
             return local # built-in type
         if module_name == self.namespace_id:
             return local  # type is defined here
-        prefix = self.imports.get(module_name)
-        if prefix:
-            return prefix + "." + local
-        elif prefix is None:
+        prefixed = self.imports.get(global_name)
+        if prefixed:
+            return prefixed
+        elif prefixed is None:
             return None  # not imported
         else:
             return local  # no prefix
 
     def find_prefix(self, local_name):
         if "." in local_name:
-            for imported_id, prefix in self.imports.items():
-                if prefix:
-                    if local_name.startswith(prefix+"."):
-                        return prefix
+            for global_name, prefixed in self.imports.items():
+                if local_name == prefixed:
+                    local, sep, module_name = global_name.partition("@")
+                    return prefixed[0:-len(local)-1]
         return ""
+
+    def get_global_name_and_prefix(self, local_name):
+        if "." in local_name:  # might be prefixed
+            for global_name, prefix in self.imports.items():
+                if local_name == prefix:
+                    return global_name, prefix
+        return self.get_global_name(local_name), ""
 
     def get_global_name(self, local_name):
         if self.namespace_id and local_name in self:
@@ -71,26 +75,23 @@ class Namespace(dict):
                 if name and namespace_id:
                     return f"{name}@{namespace_id}"
             if "." in local_name:  # might be prefixed
-                for imported_id, prefix in self.imports.items():
-                    if prefix:
-                        if local_name.startswith(prefix+"."):
-                            return f"{local_name}@{imported_id}"
+                for global_name, prefix in self.imports.items():
+                    if local_name == prefix:
+                        return global_name
             return f"{local_name}@{self.namespace_id}"
         else:
             return local_name
 
     def add_with_prefix(self, local_custom_defs: "Namespace", prefix):
-        self.imports[local_custom_defs.namespace_id] = prefix
+        if not prefix:
+            self.imports.update(local_custom_defs.imports)
         for k, v in local_custom_defs.items():
             if prefix:
-                self[f"{prefix}.{k}"] = v
+                prefixed = f"{prefix}.{k}"
+                self[prefixed] = v
+                self.imports[local_custom_defs.get_global_name(k)] = prefixed
             else:
                 self[k] = v
-        for imported, iprefix in local_custom_defs.imports.items():
-            if prefix:
-                self.imports[imported] = f"{prefix}.{iprefix}"
-            else:
-                self.imports[imported] = iprefix
 
     def find_namespace(self, namespace_id):
         if not namespace_id:
