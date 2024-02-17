@@ -18,10 +18,14 @@ from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import ValidationError
 from toscaparser.extensions.exttools import ExtTools
 import toscaparser.utils.yamlparser
+
 logger = logging.getLogger('tosca')
-globals = threading.local()
-globals._types = None          # Dict[str, StatefulEntityType]
-globals._parent_types = None  # Dict[str, List[StatefulEntityType]]
+class _LocalState(threading.local):
+    def __init__(self, **kw):
+        self._types = None          # Dict[str, StatefulEntityType]
+        self._parent_types = None  # Dict[str, List[StatefulEntityType]]
+        self._annotate_namespaces = True  # disable for testing
+globals = _LocalState()
 
 class Namespace(dict):
     def __init__(
@@ -242,6 +246,7 @@ class EntityType(object):
         If set, `defs` should be from the template otherwise uses defs from this type
         `parent` merges in defs from this type and ancestors
         '''
+        add_namespace = add_namespace and globals._annotate_namespaces
         value = None
         if defs is None:
             if not hasattr(self, 'defs'):
@@ -313,6 +318,8 @@ class EntityType(object):
         return self.get_value(ndtype, None, True, True, True)
 
 def _set_req_namespaces(req, namespace):
+    if not globals._annotate_namespaces:
+        return
     name, value = list(req.items())[0]
     if isinstance(value, dict):
         for key in ["node", "capability", "relationship"]:
