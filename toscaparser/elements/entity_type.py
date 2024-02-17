@@ -45,10 +45,10 @@ class Namespace(dict):
         prefixed = self.imports.get(global_name)
         if prefixed:
             return prefixed
-        elif prefixed is None:
-            return None  # not imported
-        else:
+        elif local in self:
             return local  # no prefix
+        else:
+            return None
 
     def find_prefix(self, local_name):
         if "." in local_name:
