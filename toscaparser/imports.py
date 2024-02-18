@@ -32,8 +32,8 @@ try:
 
     class SourceInfo(TypedDict):
         path: str  # local path to this imported file
-        root: Optional[str]  # repository or service template url
         repository: Optional[str]  # repository name if specified in the import
+        root: Optional[str]  # URL of repository or path to root service template
         file: str  # file path relative to root (with fragment if present)
         namespace_uri: Optional[str]  # "namespace" field in source file
 
@@ -219,7 +219,7 @@ class ImportsLoader(object):
         root_path = base if repository_name else self.repository_root
         declared_namespace_id = imported_tpl and imported_tpl.get("namespace") or None
         if not declared_namespace_id and self.custom_defs.shared_namespace:
-            # if current namespace is global use that one unless importing this with a prefix
+            # if current namespace is global use that one
             declared_namespace_id = self.custom_defs.namespace_id
         _source, namespace_id = self.get_source(
             root_path, full_file_name, repository_name, file_name, declared_namespace_id
@@ -241,7 +241,7 @@ class ImportsLoader(object):
         else:
             imported_types = Namespace(
                 self.custom_defs.all_namespaces,
-                "",
+                _source,
                 namespace_id,
                 bool(declared_namespace_id),
             )
@@ -261,9 +261,7 @@ class ImportsLoader(object):
                 self.nested_tosca_tpls.update(imports_loader.nested_tosca_tpls)
 
             TypeValidation(imported_tpl, import_def)
-            local_types = self._update_custom_def(
-                imported_tpl, imported_types, _source, namespace_id
-            )
+            local_types = self._update_custom_def(imported_tpl, imported_types, True)
             imported_types.update(local_types)
         return imported_types, namespace_prefix
 
@@ -294,11 +292,11 @@ class ImportsLoader(object):
             error.__cause__ = ExceptionCollector.exceptions[-1]
         raise error
 
-    def _update_custom_def(self, imported_tpl, custom_defs, _source, namespace_id):
+    def _update_custom_def(self, imported_tpl, namespace, add_source_info):
         for type_def_section in EntityType.TOSCA_DEF_SECTIONS:
             outer_custom_types = imported_tpl.get(type_def_section)
             if outer_custom_types:
-                if _source and type_def_section in [
+                if add_source_info and type_def_section in [
                     "node_types",
                     "relationship_types",
                     "artifact_types",
@@ -307,13 +305,13 @@ class ImportsLoader(object):
                 ]:
                     for name, custom_def in outer_custom_types.items():
                         custom_def["_source"] = dict(
-                            _source,
+                            namespace.source_info,
                             section=type_def_section,
                             local_name=name,
-                            namespace_id=namespace_id,
+                            namespace_id=namespace.namespace_id,
                         )
-                custom_defs.update(outer_custom_types)
-        return custom_defs
+                namespace.update(outer_custom_types)
+        return namespace
 
     def _validate_import_keys(self, import_name, import_uri_def):
         if self.FILE not in import_uri_def.keys():

@@ -206,6 +206,7 @@ class ToscaTemplate(object):
         )
         _source, namespace_id = imports_loader.get_source(self.base_dir,
                                 self.path, None, "", self.tpl.get(NAMESPACE))
+        imported_types.source_info = _source
         imported_types.namespace_id = namespace_id
         # resolver could have changed this
         imported_types.shared_namespace = bool(_source.get("namespace_uri"))
@@ -219,7 +220,7 @@ class ToscaTemplate(object):
         else:
             self.nested_tosca_tpls = {}
         # we don't need to set _source on the root template because local names can't be prefixed
-        imports_loader._update_custom_def(self.tpl, imported_types, None, namespace_id)
+        imports_loader._update_custom_def(self.tpl, imported_types, False)
         return imported_types
 
     def _handle_nested_tosca_templates_with_topology(self, namespaces):

@@ -191,7 +191,7 @@ class NodeType(StatefulEntityType):
 
     def get_all_requirements(self):
         # return list of requirements with any shorthand syntax normalized
-        if isinstance(self.custom_def, Namespace) and self.custom_def.namespace_id:
+        if self._source and isinstance(self.custom_def, Namespace) and self.custom_def.namespace_id:
             local_reqs = self.get_value(self.REQUIREMENTS)
             if isinstance(local_reqs, list):
                 for req in local_reqs:

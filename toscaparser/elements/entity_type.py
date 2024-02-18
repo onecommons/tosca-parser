@@ -27,12 +27,13 @@ class _LocalState(threading.local):
         self._annotate_namespaces = True  # disable for testing
 globals = _LocalState()
 
+
 class Namespace(dict):
     def __init__(
-        self, nested_custom_types, file_name, namespace_id="", shared_namespace=False
+        self, nested_custom_types, source_info, namespace_id="", shared_namespace=False
     ):
         self.all_namespaces = nested_custom_types
-        self.file_name = file_name
+        self.source_info = source_info
         self.namespace_id = namespace_id
         self.imports = {}  # map global specifiers to prefixed local name
         # register this namespace:

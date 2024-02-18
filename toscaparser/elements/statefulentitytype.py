@@ -90,7 +90,7 @@ class StatefulEntityType(EntityType):
                 else:
                     self.global_name = local_name
             source = source.get("path")
-            if source and isinstance(custom_def, Namespace):
+            if namespace_id and isinstance(custom_def, Namespace):
                 namespace_defs = custom_def.all_namespaces.get(namespace_id)
                 if namespace_defs is not None:
                     local_namespace_id = True
@@ -100,7 +100,7 @@ class StatefulEntityType(EntityType):
             if isinstance(custom_def, Namespace) and custom_def.namespace_id:
                 # assume custom types are in top-level namespace
                 self.global_name = f"{entitytype}@{custom_def.namespace_id}"
-                source = custom_def.file_name
+                source = custom_def.source_info["file"]
         self.custom_def = custom_def
         self._source = source
         self.__ancestors = None
