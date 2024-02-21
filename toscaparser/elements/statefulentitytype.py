@@ -109,12 +109,13 @@ class StatefulEntityType(EntityType):
         self._attribute_defs = None
         self.aliases = []
         if self.defs and self.defs.get("metadata"):
-            aliases = self.defs["metadata"].get("deprecates")
-            if aliases:
-                if isinstance(aliases, str):
-                    self.aliases = [aliases]
-                elif isinstance(aliases, list):
-                    self.aliases = aliases
+            for alias_key in ("deprecates", "aliases"):
+                aliases = self.defs["metadata"].get(alias_key)
+                if aliases:
+                    if isinstance(aliases, str):
+                        self.aliases.append(aliases)
+                    elif isinstance(aliases, list):
+                        self.aliases.extend(aliases)
         if not self.defs:
             return
         self._validate_interfaces()
