@@ -130,7 +130,7 @@ class NodeTemplate(EntityTemplate):
                 if name not in names and name not in substituted:
                     match = False
                     node = req_on_type.get('node')
-                    is_template = node and self.find_node_related_template(node)
+                    is_template = node and self.find_node_related_template(node, req_on_type.get("!namespace-node"))
                     if is_template:
                         relTpl = self._relationship_from_req(name, req_on_type, None)
                         if relTpl:
@@ -170,25 +170,8 @@ class NodeTemplate(EntityTemplate):
             self.relationships # creates self._missing_requirements
         return self._missing_requirements
 
-    def find_node_related_template(self, name):
-        node = self.topology_template.node_templates.get(name)
-        if not self.topology_template.tosca_template:
-            return node
-        is_imported = self.topology_template is not self.topology_template.tosca_template.topology_template
-        # if we check an imported topology and the node is marked as default or wasn't found
-        if is_imported:
-            if not node or (node and "default" in node.directives):
-                # check the outermost topology
-                match = self.topology_template.tosca_template.topology_template.node_templates.get(name)
-                if match:
-                    return match
-        if not node:
-            # outermost templates can reference imported "default" templates
-            for nested in self.topology_template.tosca_template.nested_topologies.values():
-                match = nested.node_templates.get(name)
-                if match and "default" in match.directives:
-                    return match
-        return node
+    def find_node_related_template(self, name, namespace_id=None):
+        return self.topology_template.find_node_related_template(name, namespace_id)
 
     def _get_explicit_relationship(self, name, value):
         """Handle the value of a requirement declared on a node template
@@ -326,7 +309,7 @@ class NodeTemplate(EntityTemplate):
         related_node = None
         related_capability = None
         if node:
-            related_node = self.find_node_related_template(node)
+            related_node = self.find_node_related_template(node, reqDef.get("!namespace-node"))
             if related_node:
                 capabilities = relTpl.get_matching_capabilities(related_node, capability, reqDef)
                 if not capabilities:

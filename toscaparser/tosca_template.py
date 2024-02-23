@@ -239,6 +239,12 @@ class ToscaTemplate(object):
             # create a node template for the root topology's substitution mapping
             self.topology_template.substitution_mappings.substitute(None, None)
 
+    def find_topology_by_namespace_id(self, namespace_id):
+        for filename, (tosca_tpl, namespace) in self.nested_tosca_tpls.items():
+            if namespace_id == namespace and filename in self.nested_topologies:
+                return self.nested_topologies[filename]
+        return None
+
     def _validate_field(self):
         version = self._tpl_version()
         if not version:

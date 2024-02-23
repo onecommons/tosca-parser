@@ -462,6 +462,33 @@ class TopologyTemplate(object):
                     ExceptionCollector.appendException(
                         ValidationError(message = msg))
 
+    def find_node_related_template(self, name, namespace_id=None):
+        node = self.node_templates.get(name)
+        if not self.tosca_template:
+            return node
+        is_imported = self is not self.tosca_template.topology_template
+        # if we check an imported topology and the node is marked as default or wasn't found
+        if is_imported:
+            if not node or (node and "default" in node.directives):
+                # check the outermost topology
+                match = self.tosca_template.topology_template.node_templates.get(name)
+                if match:
+                    return match
+        if not node:
+            if namespace_id:
+                nested = self.tosca_template.find_topology_by_namespace_id(namespace_id)
+                if nested:
+                    # the type's namespace also has might have templates that it references
+                    node = nested.node_templates.get(name)
+                    if node:
+                        return node
+            # outermost templates can reference imported "default" templates
+            for nested in self.tosca_template.nested_topologies.values():
+                match = nested.node_templates.get(name)
+                if match and "default" in match.directives:
+                    return match
+        return node
+
     def find_type(self, name: str):
         return find_type(name, self.custom_defs)
 
