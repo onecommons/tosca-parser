@@ -19,7 +19,7 @@ from toscaparser.utils import validateutils
 
 log = logging.getLogger('tosca')
 
-scalar_pattern = re.compile(r'([0-9.]+)\s*(\w+)')
+scalar_pattern = re.compile(r'([0-9.]+)\s*(\w+)?')
 
 class ScalarUnit(object):
     '''Parent class for scalar-unit type.'''
@@ -77,14 +77,19 @@ class ScalarUnit(object):
             unit = self.SCALAR_UNIT_DEFAULT
         self.validate_scalar_unit()
 
-        regex = re.compile(r'([0-9.]+)\s*(\w+)')
-        if regex.match(str(self.value)):
-            result = regex.match(str(self.value)).groups()
+        match = scalar_pattern.match(str(self.value))
+        if match:
+            result = match.groups()
         else:
             return None
 
+        if not result[1]:
+            multiplier = self.SCALAR_UNIT_DICT[unit]
+        else:
+            multiplier = self.SCALAR_UNIT_DICT[result[1]]
+
         converted = (float(validateutils.str_to_num(result[0]))
-                     * self.SCALAR_UNIT_DICT[result[1]]
+                     * multiplier
                      / self.SCALAR_UNIT_DICT[unit])
         if converted - int(converted) < 0.0000000000001:
             converted = int(converted)
