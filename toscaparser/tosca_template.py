@@ -87,6 +87,7 @@ class ToscaTemplate(object):
         self.import_resolver = import_resolver
         self.nested_tosca_tpls = {}
         self.nested_topologies = {}
+        self.verify = verify
         if path:
             self.input_path = path
             # don't validate or load if yaml_dict_tpl was set

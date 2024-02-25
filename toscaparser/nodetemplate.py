@@ -56,11 +56,14 @@ class NodeTemplate(EntityTemplate):
         self._missing_requirements = None
 
     def _should_validate_properties(self):
+        tosca_template = self.topology_template.tosca_template
+        if tosca_template and not tosca_template.verify:
+            return False
         for name in ("select", "substitute"):
             if name in self.directives:
                 return False
         # if we're in a nested topology and we're the root node, defer validation till substitution
-        root_topology = self.topology_template.tosca_template and self.topology_template.tosca_template.topology_template
+        root_topology = tosca_template and tosca_template.topology_template
         if root_topology and root_topology is not self.topology_template:
             if self.name in ("_substitution_mapping", self.topology_template._tpl_substitution_mappings().get("node")):
                 return False
