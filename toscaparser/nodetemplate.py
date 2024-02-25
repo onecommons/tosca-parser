@@ -67,9 +67,9 @@ class NodeTemplate(EntityTemplate):
         return super()._should_validate_properties()
 
     @property
-    def all_requirements(self):
+    def all_requirements(self):   # external api, unused
         """
-        returns [{name: requires_tpl_dict}]
+        returns [(name, requires_tpl_dict)]
         """
         if self._all_requirements is None:
             self._all_requirements = []
@@ -81,12 +81,14 @@ class NodeTemplate(EntityTemplate):
                 for r in requires:
                     name, value = next(iter(r.items())) # list only has one item
                     names.append(name)
-                    self._all_requirements.append(r)
+                    if isinstance(value, str):
+                        value = dict(node=value)
+                    self._all_requirements.append((name, value))
 
             # add requirements on the type definition that were not defined by the template
             for name, req_on_type in type_requirements.items():
                 if name not in names:
-                    self._all_requirements.append({name: {}})
+                    self._all_requirements.append((name, {}))
         return self._all_requirements
 
     @property
@@ -345,14 +347,15 @@ class NodeTemplate(EntityTemplate):
                 if nodetype_def:
                     node = NodeType(node, node_type_namespace).global_name
             related_node, related_capability = self._find_matching_node(relTpl, name, node, reqDef, node_filter)
-        if not related_node:
-            resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
-            if resolver and resolver.find_matching_node:
-                related_node, related_capability = resolver.find_matching_node(relTpl, name, reqDef)
-
         if related_node:
             self._set_relationship(related_node, related_capability, relTpl)
-        else:
+        resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
+        if resolver and resolver.find_matching_node:
+            related_node, related_capability = resolver.find_matching_node(relTpl, name, reqDef)
+            if related_node and related_node is not relTpl.target:  # match changed or wasn't set before
+                self._set_relationship(related_node, related_capability, relTpl)
+
+        if not related_node:
             min_required = reqDef.get("occurrences", [1])[0]
             if min_required == 0:
                 return None
