@@ -377,20 +377,21 @@ class EntityTemplate(object):
             capabilitydefs = self.type_definition.get_capabilities_def()
         else:
             capabilitydefs = {}
+        custom_def = self.type_definition.custom_def if self.type_definition else self.custom_def
         for name, value in properties.items():
             if name in capabilitydefs:
                 continue
             if props_def and name in props_def:
                 prop = Property(name, value,
-                                props_def[name].schema, self.custom_def)
+                                props_def[name].schema, custom_def)
                 props.append(prop)
             elif self.additionalProperties:
                 prop = Property(name, value,
-                                dict(type='any', required=False), self.custom_def)
+                                dict(type='any', required=False), custom_def)
                 props.append(prop)
         for p in props_def.values():
             if "default" in p.schema and p.name not in properties:
-                prop = Property(p.name, p.default, p.schema, self.custom_def)
+                prop = Property(p.name, p.default, p.schema, custom_def)
                 props.append(prop)
         return props
 
