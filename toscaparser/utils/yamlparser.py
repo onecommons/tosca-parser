@@ -12,6 +12,8 @@
 
 import codecs
 import urllib
+import urllib.error
+import urllib.request
 import yaml
 import certifi
 import ssl
