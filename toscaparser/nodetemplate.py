@@ -244,7 +244,6 @@ class NodeTemplate(EntityTemplate):
             found_cap = None
             # check if node name is node type
             if not nodetype or nodeTemplate.is_derived_from(nodetype):
-                # should have already returned an error if this assertion is false
                 if capability or relTpl.type_definition.valid_target_types:
                     capabilities = relTpl.get_matching_capabilities(nodeTemplate, capability, req_def)
                     if capabilities:
@@ -343,13 +342,13 @@ class NodeTemplate(EntityTemplate):
         node_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-node"))
                                if namespace
                                else self.custom_def)
+        node_typename = node # treat node as a type name
         if not related_node:
-            # treat node as a type name
-            if node:
+            if node_typename:
                 nodetype_def = node_type_namespace and node_type_namespace.get(node)
                 if nodetype_def:
-                    node = NodeType(node, node_type_namespace).global_name
-            related_node, related_capability = self._find_matching_node(relTpl, name, node, reqDef, node_filter)
+                    node_typename = NodeType(node, node_type_namespace).global_name
+            related_node, related_capability = self._find_matching_node(relTpl, name, node_typename, reqDef, node_filter)
         if related_node:
             self._set_relationship(related_node, related_capability, relTpl)
         resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
@@ -363,9 +362,8 @@ class NodeTemplate(EntityTemplate):
             if min_required == 0:
                 return None
             if node:
-                if not node_on_template and node_type_namespace and (
-                    node in node_type_namespace or node in NodeType.TOSCA_DEF):
-                    # not an error if "node" wasn't explicitly declared on the template and referenced a type name
+                if not node_on_template and ("@" in node_typename or node_typename in NodeType.TOSCA_DEF):
+                    # not an error if "node" wasn't explicitly declared on the template and "node" referenced a type name
                     msg = None
                 else:
                     msg = _('Could not find target template "%(node)s"'
