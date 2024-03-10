@@ -173,7 +173,10 @@ class NodeType(StatefulEntityType):
 
     @staticmethod
     def merge_requirement_definition(base, current):
-        tpl = dict(base, **current)
+        if isinstance(base, str):
+            return dict(node=base, **current)
+        else:
+            tpl = dict(base, **current)
         if base.get('node_filter') and current.get('node_filter'):
             tpl["node_filter"] = {}
             bfilters = base["node_filter"]
