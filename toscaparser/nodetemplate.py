@@ -292,6 +292,10 @@ class NodeTemplate(EntityTemplate):
         relTpl.capability = related_capability
         related_node.relationship_tpl.append(relTpl)
 
+    def is_replaced_by_outer(self):
+        mappings = self.topology_template.substitution_mappings
+        return mappings and self.name in mappings._outer_relationships
+
     def _relationship_from_req(self, name, reqDef, node_on_template):
         namespace = self.custom_def if isinstance(self.custom_def, Namespace) else None
         rel_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-relationship")) 
@@ -384,7 +388,16 @@ class NodeTemplate(EntityTemplate):
 
     def get_relationship_templates(self):
         """Returns a list of RelationshipTemplates that target this node"""
-        return self.relationship_tpl
+        def include_source(source):
+            if source:
+                source.topology_template.substitution_mappings
+                mappings = source.topology_template.substitution_mappings
+                if mappings:
+                    if mappings.substituted or source.is_replaced_by_outer():
+                        return False
+            return True
+
+        return [relTpl for relTpl in self.relationship_tpl if include_source(relTpl.source)]
 
     @property
     def artifacts(self):

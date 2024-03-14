@@ -73,6 +73,7 @@ class SubstitutionMappings(object):
         self._properties = None
         self._node_template = None
         self._outer_relationships = {}
+        self.substituted = 0
         self._validate()
 
     def match(self, nodetemplate):
@@ -95,6 +96,7 @@ class SubstitutionMappings(object):
             assert not self._outer_relationships
             # each substituted node template should have its own topology
             topology = self.topology.copy()
+            self.substituted += 1
             return topology.substitution_mappings._substitute(
                 nodetemplate, remaining_topologies
             )
@@ -195,13 +197,15 @@ class SubstitutionMappings(object):
 
     def maybe_substitute(self, node, capability):
         if node.name in self._outer_relationships:
-                requirement_name = node.name
-                name, reqDef, rel = self._outer_relationships[requirement_name][0]
-                if rel and rel.target:
-                    if capability:
-                        capability = rel.target.get_capabilities()[capability.name]
-                    log.debug(f"replaced {requirement_name} on {node.name} with {rel.target.name}")
-                    return rel.target, capability            
+            requirement_name = node.name
+            name, reqDef, rel = self._outer_relationships[requirement_name][0]
+            if rel and rel.target:
+                if capability:
+                    capability = rel.target.get_capabilities()[capability.name]
+                log.debug(
+                    f"replaced {requirement_name} on {node.name} with {rel.target.name}"
+                )
+                return rel.target, capability
         return node, capability
 
     def _update_requirements(self, node):
