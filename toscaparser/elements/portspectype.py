@@ -65,7 +65,11 @@ class PortSpec(dict):
                     d["target"] = target
                 p = PortSpec(**d)
             else:
-                p = PortSpec(spec, **kw)
+                try:
+                    p = PortSpec(spec, **kw)
+                except:
+                    ExceptionCollector.appendException(ValidationError(message=f'Invalid PortSpec: "{spec}" {kw or ""}'))
+                    return PortSpec.make(0)
         p.validate()
         return p
 
