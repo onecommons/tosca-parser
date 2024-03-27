@@ -60,14 +60,15 @@ class Namespace(dict):
             for global_name, prefixed in self.imports.items():
                 if local_name == prefixed:
                     local, sep, module_name = global_name.partition("@")
-                    return prefixed[0:-len(local)-1]
+                    return prefixed[:-len(local)-1]
         return ""
 
     def get_global_name_and_prefix(self, local_name):
         if "." in local_name:  # might be prefixed
-            for global_name, prefix in self.imports.items():
-                if local_name == prefix:
-                    return global_name, prefix
+            for global_name, prefixed in self.imports.items():
+                if local_name == prefixed:
+                    local, sep, module_name = global_name.partition("@")
+                    return global_name, prefixed[:-len(local)-1]
         return self.get_global_name(local_name), ""
 
     def get_global_name(self, local_name):
