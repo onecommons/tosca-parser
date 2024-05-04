@@ -15,7 +15,7 @@ import logging
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import UnknownFieldError, ValidationError
-from toscaparser.elements.constraints import Constraint, get_constraint_class
+from toscaparser.elements.constraints import Constraint, Schema
 from toscaparser.elements import scalarunit
 
 SECTIONS = (DELEGATE, SET_STATE, CALL_OPERATION, INLINE) = \
@@ -62,16 +62,24 @@ class ConditionClause(object):
 
   def __init__(self, name, definition, datatype=None):
     self.name = name
-    if name in ['and', 'or', 'not', 'assert']:
+    if name in ["and", "or", "not", "assert"]:
         self.conditions = list(self.getConditions(definition))
-    else: # 3.6.25.3 Direct assertion definition
+    else:  # 3.6.25.3 Direct assertion definition
         if isinstance(definition, dict):
             definition = [definition]
-        # hack: pick a prop_type to avoid validation error
         # XXX need to get the real property_type from the target's attribute definition
-        self.conditions = [Constraint(name,
-              datatype or get_constraint_class(next(iter(constraint))).valid_prop_types[0],
-              constraint) for constraint in definition]
+        self.conditions = [
+            Constraint(name, datatype or self._deduce_type(constraint), constraint)
+            for constraint in definition
+        ]
+
+  @staticmethod
+  def _deduce_type(constraint):
+    value = next(iter(constraint.values()))
+    for py_type, tosca_type in Schema.PYTHON_TO_PROPERTY_TYPES.items():
+        if isinstance(value, py_type):
+            return tosca_type
+    return None
 
   def evaluate(self, attributes):
     if self.name == 'not':

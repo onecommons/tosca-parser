@@ -80,6 +80,15 @@ class Schema(collections.abc.Mapping):
         "any",
     )
 
+    PYTHON_TO_PROPERTY_TYPES = {
+     int: INTEGER,
+     float: FLOAT,
+     str: STRING,
+     bool: BOOLEAN,
+     list: LIST,
+     dict: MAP,
+    }
+
     SCALAR_UNIT_SIZE_DEFAULT = "B"
 
     def __init__(self, name, schema_dict, datatype=None):
