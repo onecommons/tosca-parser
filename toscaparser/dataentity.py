@@ -21,6 +21,7 @@ from toscaparser.elements.portspectype import PortSpec
 from toscaparser.elements.scalarunit import ScalarUnit_Frequency
 from toscaparser.elements.scalarunit import ScalarUnit_Size
 from toscaparser.elements.scalarunit import ScalarUnit_Time
+from toscaparser.elements.scalarunit import ScalarUnit_Bitrate
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils import validateutils
 import collections.abc
@@ -200,6 +201,8 @@ class DataEntity(object):
             return ScalarUnit_Frequency(value).validate_scalar_unit()
         elif type == Schema.SCALAR_UNIT_TIME:
             return ScalarUnit_Time(value).validate_scalar_unit()
+        elif type == Schema.SCALAR_UNIT_BITRATE:
+            return ScalarUnit_Bitrate(value).validate_scalar_unit()
         elif type == Schema.VERSION:
             return validateutils.TOSCAVersionProperty(value).get_version()
         elif type == Schema.MAP:
