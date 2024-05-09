@@ -497,7 +497,6 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         outputs:
           server_address:
             description: IP address of server instance.
-            values: { get_property: [server, private_address] }
         '''
         outputs = (toscaparser.utils.yamlparser.
                    simple_parse(tpl_snippet)['outputs'])
@@ -519,9 +518,8 @@ heat-translator/master/translator/tests/data/custom_types/wordpress.yaml
         outputs = (toscaparser.utils.yamlparser.
                    simple_parse(tpl_snippet)['outputs'])
         name, attrs = list(outputs.items())[0]
-        output = Output(name, attrs)
         try:
-            output.validate()
+            output = Output(name, attrs)
         except Exception as err:
             self.assertIsInstance(err, exception.UnknownFieldError)
             self.assertEqual(_('Output "server_address" contains unknown '

@@ -25,19 +25,21 @@ from toscaparser.utils.gettextutils import _
 log = logging.getLogger('tosca')
 
 
-class Input(object):
+class Parameter:
 
-    INPUTFIELD = (TYPE, DESCRIPTION, DEFAULT, CONSTRAINTS, REQUIRED, STATUS,
-                  ENTRY_SCHEMA, METADATA) = ('type', 'description', 'default',
+    INPUTFIELD = (TYPE, VALUE, DESCRIPTION, DEFAULT, CONSTRAINTS, REQUIRED, STATUS,
+                  ENTRY_SCHEMA, METADATA) = ('type', 'value', 'description', 'default',
                                    'constraints', 'required', 'status',
                                    'entry_schema', 'metadata')
 
     def __init__(self, name, schema_dict):
         self.name = name
-        self.schema = Schema(name, schema_dict)
+        # "type" isn't a required key for parameters
+        self.schema = Schema(name, schema_dict, schema_dict.get("type", "any"))
 
         self._validate_field()
-        self.validate_type(self.type)
+        if self.type:
+            self.validate_type(self.type)
 
     @property
     def type(self):
@@ -71,7 +73,7 @@ class Input(object):
         for name in self.schema.schema:
             if name not in self.INPUTFIELD:
                 ExceptionCollector.appendException(
-                    UnknownFieldError(what='Input "%s"' % self.name,
+                    UnknownFieldError(what='%s "%s"' % (self.__class__.__name__, self.name),
                                       field=name))
 
     def validate_type(self, input_type):
@@ -96,37 +98,19 @@ class Input(object):
                 if constraint:
                     constraint.validate(value)
 
+class Input(Parameter):
+    pass
 
-class Output(object):
-
-    OUTPUTFIELD = (DESCRIPTION, VALUE) = ('description', 'value')
-
-    def __init__(self, name, attrs):
-        self.name = name
-        self.attrs = attrs
-
-    @property
-    def description(self):
-        return self.attrs.get(self.DESCRIPTION)
+class Output(Parameter):
 
     @property
     def value(self):
-        return self.attrs.get(self.VALUE)
+        return self.schema.schema.get(self.VALUE)
 
     def validate(self):
-        self._validate_field()
-
-    def _validate_field(self):
-        if not isinstance(self.attrs, dict):
-            ExceptionCollector.appendException(
-                MissingRequiredFieldError(what='Output "%s"' % self.name,
-                                          required=self.VALUE))
         if self.value is None:
             ExceptionCollector.appendException(
                 MissingRequiredFieldError(what='Output "%s"' % self.name,
                                           required=self.VALUE))
-        for name in self.attrs:
-            if name not in self.OUTPUTFIELD:
-                ExceptionCollector.appendException(
-                    UnknownFieldError(what='Output "%s"' % self.name,
-                                      field=name))
+        else:
+            self._validate_value(self.value)
