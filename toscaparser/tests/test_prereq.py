@@ -23,7 +23,6 @@ import toscaparser.utils
 from toscaparser.utils.gettextutils import _
 from testtools.testcase import skip
 
-@skip("not yet implemented")
 class CSARPrereqTest(TestCase):
 
     base_path = os.path.dirname(os.path.abspath(__file__))
@@ -115,7 +114,7 @@ class CSARPrereqTest(TestCase):
                             "data/CSAR/csar_wordpress_invalid_import_path.zip")
         csar = CSAR(path)
         error = self.assertRaises(URLException, csar.validate)
-        assert str(error).endswith('"Invalid_import_path/wordpress.yaml" is not valid.')
+        assert str(error).endswith('Invalid_import_path/wordpress.yaml" is not valid.')
         self.assertTrue(csar.temp_dir is None or
                         not os.path.exists(csar.temp_dir))
 

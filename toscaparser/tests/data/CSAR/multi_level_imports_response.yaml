@@ -15,7 +15,6 @@ topology_template:
     selected_flavour:
       type: string
       description: VNF deployment flavour selected by the consumer. It is provided in the API
-      default: ""
 
   node_templates:
     VNF:
