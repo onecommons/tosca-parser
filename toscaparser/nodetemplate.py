@@ -94,6 +94,26 @@ class NodeTemplate(EntityTemplate):
                     self._all_requirements.append((name, {}))
         return self._all_requirements
 
+    def find_or_add_requirement(self, req_name, target):
+        candidate = None
+        for r in self.requirements:
+            name, value = next(iter(r.items()))  # list only has one item
+            if name == req_name:
+                if isinstance(value, dict):
+                    node = value.get("node")
+                else:
+                    node = value
+                    value = dict(node = value)
+                if node == target:
+                    return value
+                elif not node or self.topology_template.find_type(node, value.get("!namespace-node")):
+                    candidate = value
+        if candidate is not None:
+            return candidate
+        req_dict = {}
+        self.requirements.append({req_name: req_dict})
+        return req_dict
+
     @property
     def relationships(self):
         """
@@ -295,6 +315,19 @@ class NodeTemplate(EntityTemplate):
     def is_replaced_by_outer(self):
         mappings = self.topology_template.substitution_mappings
         return mappings and self.name in mappings._outer_relationships
+
+    def get_rel_typename(self, name, reqDef):
+        if 'relationship' not in reqDef:
+            return None
+        namespace = self.custom_def if isinstance(self.custom_def, Namespace) else None
+        rel_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-relationship"))
+                              if namespace
+                              else self.custom_def)
+        relationship, relTpl, rel_type = self._get_rel_type(reqDef['relationship'], name, rel_type_namespace)
+        if relationship is None:
+            return None
+        else:
+            return rel_type
 
     def _relationship_from_req(self, name, reqDef, node_on_template):
         namespace = self.custom_def if isinstance(self.custom_def, Namespace) else None
@@ -650,6 +683,20 @@ class NodeTemplate(EntityTemplate):
                     return False
             elif propvalue != value: # simple match
                 return False
+        return True
+
+    @staticmethod
+    def get_filters(node_filter):
+        filters = node_filter.get('properties') or []
+        for condition in filters:
+            assert isinstance(condition, dict)
+            key, value = list(condition.items())[0]
+            if isinstance(value, dict):
+                if 'eval' in value or 'q' in value:
+                    continue
+                yield ConditionClause(key, value)
+            else:
+                yield ConditionClause(key, dict(equal=value)) # simple match
         return True
 
     def match_nodefilter(self, node_filter):
