@@ -441,6 +441,9 @@ class TopologyTemplate(object):
     def validate_relationships(self, strict):
         if not hasattr(self, 'nodetemplates'):
             return
+        solve_topology = self.tosca_template and self.tosca_template.import_resolver and self.tosca_template.import_resolver.solve_topology
+        if solve_topology:
+            solve_topology(self)
         for node_template in self.nodetemplates:
             ExceptionCollector.near = f' in node template "{node_template.name}"'
             for rel_tpl, req, reqDef in node_template.relationships:

@@ -38,7 +38,6 @@ class Property(object):
         self.entity = DataEntity(schema_dict['type'], self.value, self.custom_def, self.name)
         # the value_type will be the simple if the datatype was derived from one
         self.schema = Schema(property_name, schema_dict, self.entity.datatype.value_type)
-        self._entity = None
         self._entry_schema_entity = None
 
     @property

@@ -66,12 +66,12 @@ class SubstitutionMappings(object):
         else:
             self.inputs = {}
             self.outputs = []
-        self.sub_mapped_node_template = None
+        self.sub_mapped_node_template = None  # outer node
         self.node_type = None
         self._capabilities = None
         self._requirements = None
         self._properties = None
-        self._node_template = None
+        self._node_template = None  # inner node
         self._outer_relationships = {}
         self.substituted = 0
         self._validate()

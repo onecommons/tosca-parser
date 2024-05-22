@@ -79,6 +79,7 @@ class ImportResolver:
     """
     Callback interface for integration with an TOSCA orchestrator.
     """
+    solve_topology = None
 
     def get_repository(self, name, tpl):
         return Repository(name, tpl)

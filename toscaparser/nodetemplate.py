@@ -291,6 +291,8 @@ class NodeTemplate(EntityTemplate):
                         related_node = found
                         related_capability = found_cap
                     else:
+                        # type resolution must be unambiguous
+                        # XXX only an error if exceeds max occurrences
                         if node_filter:
                             ExceptionCollector.appendException(
                           ValidationError(message=
@@ -376,20 +378,20 @@ class NodeTemplate(EntityTemplate):
             # else: not an error if requirement is optional
             return None
 
-        node_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-node"))
-                               if namespace
-                               else self.custom_def)
         node_typename = node # treat node as a type name
-        if not related_node:
+        resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
+        if not related_node and (not resolver or not resolver.solve_topology):
             if node_typename:
+                node_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-node"))
+                                       if namespace
+                                      else self.custom_def)
                 nodetype_def = node_type_namespace and node_type_namespace.get(node)
                 if nodetype_def:
                     node_typename = NodeType(node, node_type_namespace).global_name
             related_node, related_capability = self._find_matching_node(relTpl, name, node_typename, reqDef, node_filter)
         if related_node:
             self._set_relationship(related_node, related_capability, relTpl)
-        resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
-        if resolver and resolver.find_matching_node:
+        if resolver:
             related_node, related_capability = resolver.find_matching_node(relTpl, name, reqDef)
             if related_node and related_node is not relTpl.target:  # match changed or wasn't set before
                 self._set_relationship(related_node, related_capability, relTpl)
@@ -710,7 +712,7 @@ class NodeTemplate(EntityTemplate):
             for capfilter in capfilters:
                 assert isinstance(capfilter, dict)
                 name, filter = list(capfilter.items())[0]
-                cap = capabilities.get(name)
+                cap = capabilities.get(name)  # XXX can instead be a type name
                 if not cap:
                     return False
                 if not self._match_filter(cap, filter):
