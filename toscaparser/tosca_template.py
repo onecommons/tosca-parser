@@ -43,7 +43,7 @@ SECTIONS = (DEFINITION_VERSION, NAMESPACE, TEMPLATE_NAME,
             'capability_types', 'artifact_types', 'data_types',
             'interface_types', 'policy_types', 'group_types', 'repositories')
 # Sections that are specific to individual template versions
-SPECIAL_SECTIONS = (METADATA, DECORATORS) = ('metadata', 'decorators')
+SPECIAL_SECTIONS = (METADATA, DECORATORS, DEPLOYMENT_BLUEPRINTS) = ('metadata', 'decorators', 'deployment_blueprints')
 
 log = logging.getLogger("tosca.model")
 
@@ -80,7 +80,6 @@ class ToscaTemplate(object):
     ):
         ExceptionCollector.start()
         self.a_file = a_file
-        self.input_path = None
         self.path = None
         self.fragment = fragment
         self.tpl = {}
@@ -89,7 +88,6 @@ class ToscaTemplate(object):
         self.nested_topologies = {}
         self.verify = verify
         if path:
-            self.input_path = path
             # don't validate or load if yaml_dict_tpl was set
             if yaml_dict_tpl:
                 self.path = path
@@ -289,11 +287,11 @@ class ToscaTemplate(object):
 
     def raise_validation_errors(self):
         if ExceptionCollector.exceptionsCaught():
-            if self.input_path:
+            if self.path:
                 raise ValidationError(
-                    message=(_('\nThe input "%(path)s" failed validation with '
+                    message=(_('\nThe template "%(path)s" failed validation with '
                                'the following error(s): \n\n\t')
-                             % {'path': self.input_path}) +
+                             % {'path': self.path}) +
                     '\n\t'.join(ExceptionCollector.getExceptionsReport()))
             else:
                 raise ValidationError(
@@ -301,10 +299,10 @@ class ToscaTemplate(object):
                               'the following error(s): \n\n\t') +
                     '\n\t'.join(ExceptionCollector.getExceptionsReport()))
         else:
-            if self.input_path:
-                msg = (_('The input "%(path)s" successfully passed '
-                         'validation.') % {'path': self.input_path})
+            if self.path:
+                msg = (_('The template "%(path)s" successfully passed '
+                         'validation.') % {'path': self.path})
             else:
                 msg = _('The pre-parsed input successfully passed validation.')
 
-            log.info(msg)
+            log.debug(msg)
