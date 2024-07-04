@@ -28,7 +28,7 @@ class _LocalState(threading.local):
 globals = _LocalState()
 
 
-class Namespace(dict):
+class _Namespace:
     def __init__(
         self, nested_custom_types, source_info, namespace_id="", shared_namespace=False
     ):
@@ -71,10 +71,13 @@ class Namespace(dict):
                     return global_name, prefixed[:-len(local)-1]
         return self.get_global_name(local_name), ""
 
+    def _get_source(self, local_name):
+        return None
+
     def get_global_name(self, local_name):
         if self.namespace_id and local_name in self:
             # this type could have been imported, try to get the original name
-            _source = self[local_name].get("_source")
+            _source = self._get_source(local_name)
             if isinstance(_source, dict):
                 name = _source.get("local_name")
                 namespace_id = _source.get("namespace_id")
@@ -88,6 +91,15 @@ class Namespace(dict):
         else:
             return local_name
 
+    def find_namespace(self, namespace_id):
+        if not namespace_id:
+            return self
+        return self.all_namespaces.get(namespace_id, self)
+
+class Namespace(_Namespace, dict):
+    def _get_source(self, local_name):
+        return self[local_name].get("_source")
+
     def add_with_prefix(self, local_custom_defs: "Namespace", prefix):
         if not prefix:
             self.imports.update(local_custom_defs.imports)
@@ -98,11 +110,6 @@ class Namespace(dict):
                 self.imports[local_custom_defs.get_global_name(k)] = prefixed
             else:
                 self[k] = v
-
-    def find_namespace(self, namespace_id):
-        if not namespace_id:
-            return self
-        return self.all_namespaces.get(namespace_id, self)
 
 class EntityType(object):
     '''Base class for TOSCA elements.'''
