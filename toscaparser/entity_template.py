@@ -400,6 +400,7 @@ class EntityTemplate(object):
         return create_interfaces(type_definition, template)
 
     def get_interface_requirements(self):
+        assert self.type_definition
         return self.type_definition.get_interface_requirements(self.entity_tpl)
 
     def get_capability(self, name):

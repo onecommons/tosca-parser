@@ -76,7 +76,7 @@ class DataEntity(object):
         # If the datatype has 'type' definition:
         if self.datatype.value_type:
             self.value = DataEntity.validate_datatype(
-                self.datatype.value_type, self.value, None, self.custom_def, None, self
+                self.datatype.value_type, self.value, None, self.custom_def, None, None, self
             )
             schema = Schema(self.property_name, self.datatype.defs)
             for constraint in schema.constraints:
@@ -142,9 +142,10 @@ class DataEntity(object):
                 #     continue
                 prop_schema = Schema(name, schema_name)
                 # check if field value meets type defined
-                DataEntity.validate_datatype(
-                    prop_schema.type, value, prop_schema.entry_schema, self.custom_def
-                )
+                DataEntity.validate_datatype(prop_schema.type, value,
+                                             prop_schema.entry_schema,
+                                             self.custom_def, None,
+                                             prop_schema.key_schema)
                 # check if field value meets constraints defined
                 if prop_schema.constraints:
                     for constraint in prop_schema.constraints:
@@ -162,7 +163,7 @@ class DataEntity(object):
 
     @staticmethod
     def validate_datatype(
-        type, value, entry_schema=None, custom_def=None, prop_name=None, self=None
+        type, value, entry_schema=None, custom_def=None, prop_name=None, key_schema=None, self=None
     ):
         """Validate value with given type.
 
@@ -207,6 +208,8 @@ class DataEntity(object):
             return validateutils.TOSCAVersionProperty(value).get_version()
         elif type == Schema.MAP:
             validateutils.validate_map(value)
+            if key_schema:
+                DataEntity.validate_key(value, key_schema, custom_def)
             if entry_schema:
                 DataEntity.validate_entry(value, entry_schema, custom_def)
             return value
@@ -229,9 +232,27 @@ class DataEntity(object):
         if isinstance(value, collections.abc.Mapping):
             valuelist = list(value.values())
         for v in valuelist:
-            DataEntity.validate_datatype(
-                schema.type, v, schema.entry_schema, custom_def
-            )
+            DataEntity.validate_datatype(schema.type, v,
+                                         schema.entry_schema,
+                                         custom_def, None,
+                                         schema.key_schema)
+            if schema.constraints:
+                for constraint in schema.constraints:
+                    constraint.validate(v)
+        return value
+
+    @staticmethod
+    def validate_key(value, key_schema, custom_def=None):
+        '''Validate keys for map'''
+        schema = Schema(None, key_schema)
+        valuelist = value
+        if isinstance(value, collections.abc.Mapping):
+            valuelist = list(value.keys())
+        for v in valuelist:
+            DataEntity.validate_datatype(schema.type, v,
+                                         schema.entry_schema,
+                                         custom_def, None,
+                                         schema.key_schema)
             if schema.constraints:
                 for constraint in schema.constraints:
                     constraint.validate(v)

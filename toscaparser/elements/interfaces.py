@@ -374,6 +374,16 @@ def _create_operations(interfacesDefs, type_definition, template):
                                  outputs=outputs)
             interfaces.append(iface)
 
+        notifications = value.get("notifications")
+        if notifications:
+            for no, no_def in notifications.items():
+                notification = OperationDef(type_definition,
+                                      interface_name,
+                                      node_template=template,
+                                      name=no,
+                                      value=no_def)
+                interfaces.append(notification)
+
         # add a "default" operation that has the shared inputs and implementation
         if inputs or implementation:
             iface = OperationDef(type_definition,

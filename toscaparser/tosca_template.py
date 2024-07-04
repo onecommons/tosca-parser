@@ -172,6 +172,7 @@ class ToscaTemplate(object):
             assert self.topology_template
             for filename, (tosca_tpl, namespace_id) in self.nested_tosca_tpls.items():
                 repositories.update(tosca_tpl.get(REPOSITORIES) or {})
+            assert self.tpl
             repositories.update(self.tpl.get(REPOSITORIES) or {})
             # we need to update the template because it is passed directly to the import loader
             self.tpl[REPOSITORIES] = repositories
@@ -210,7 +211,7 @@ class ToscaTemplate(object):
         # resolver could have changed this
         imported_types.shared_namespace = bool(_source.get("namespace_uri"))
 
-        imports = self.tpl.get("imports") 
+        imports = self._tpl_imports()
         if imports:
             log.debug("loading imports")
             imported_types = imports_loader.resolver.load_imports(imports_loader, imports)

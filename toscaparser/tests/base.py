@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import codecs
 import os
 
 import fixtures
@@ -60,6 +61,38 @@ class TestCase(testscenarios.TestWithScenarios, testtools.TestCase):
         :return: ToscaTemplate
         """
         return ToscaTemplate(os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            'data',
-            filename))
+            TestCase.test_sample('data'), filename))
+
+    @staticmethod
+    def sample_root():
+        return os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            '../../samples'))
+
+    @staticmethod
+    def test_sample_root():
+        # {tosca-parser}/samples/tests
+        return os.path.join(TestCase.sample_root(), 'tests')
+
+    @staticmethod
+    def test_sample(*p):
+        return os.path.join(TestCase.test_sample_root(), *p)
+
+
+class MockTestClass():
+    comp_urldict = {}
+
+    def mock_urlopen_method(self, path: str, **kw):
+        """Open local file instead of opening file at external URL.
+
+        When using this method, you need to set the URL to be replaced and the
+        file path to open instead in "comp_urldict".
+        This method checks whether the URL passed as an argument exists in the
+        key of "comp_urldict", and if it exists, opens the file with the path
+        set in the value of "comp_urldict".
+        """
+        if self.comp_urldict.get(path):
+            file_path = self.comp_urldict.get(path)
+        else:
+            file_path = path
+
+        return codecs.open(file_path, encoding='utf-8', errors='strict')

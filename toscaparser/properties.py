@@ -67,6 +67,10 @@ class Property(object):
         return self.schema.constraints
 
     @property
+    def key_schema(self):
+        return self.schema.key_schema
+
+    @property
     def entry_schema(self):
         return self.schema.entry_schema
 
@@ -92,7 +96,8 @@ class Property(object):
             value = DataEntity.validate_datatype(self.type, value,
                                                       self.entry_schema,
                                                       self.custom_def,
-                                                      self.name)
+                                                      self.name,
+                                                      self.key_schema)
             self._validate_constraints(value)
         return value
 

@@ -14,19 +14,13 @@ from toscaparser.tests.base import TestCase
 from toscaparser.tosca_template import ToscaTemplate
 
 
-class CustomRelationshipTypesTest(TestCase):
+class ToscaNFVTemplateTest(TestCase):
 
-    '''TOSCA template.'''
+    '''TOSCA NFV template.'''
     tosca_tpl = TestCase.test_sample(
-        "data/relationship/test_custom_relationship.yaml")
+        "data/extensions/tosca_helloworld_nfv.yaml")
     tosca = ToscaTemplate(tosca_tpl)
 
     def test_version(self):
-        self.assertEqual(self.tosca.version, "tosca_simple_yaml_1_0")
-
-    def test_custom_types(self):
-        expected_custom_types = ['tosca.capabilities.HA',
-                                 'tosca.nodes.HACompute',
-                                 'tosca.relationships.HA']
-        self.assertCountEqual(self.tosca.topology_template.custom_defs.keys(),
-                              expected_custom_types)
+        self.assertEqual(self.tosca.version,
+                         "tosca_simple_profile_for_nfv_1_0_0")
