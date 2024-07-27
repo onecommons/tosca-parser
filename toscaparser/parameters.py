@@ -33,10 +33,11 @@ class Parameter:
                                                'required', 'status',
                                                'key_schema', 'entry_schema', 'metadata')
 
-    def __init__(self, name, schema_dict):
+    def __init__(self, name, schema_dict, custom_defs=None):
         self.name = name
         # "type" isn't a required key for parameters
         self.schema = Schema(name, schema_dict, schema_dict.get("type", "any"))
+        self.custom_defs = custom_defs or {}
 
         self._validate_field()
         if self.type:
@@ -66,6 +67,14 @@ class Parameter:
     def status(self):
         return self.schema.status
 
+    @property
+    def key_schema(self):
+        return self.schema.key_schema
+
+    @property
+    def entry_schema(self):
+        return self.schema.entry_schema
+
     def validate(self, value=None):
         if value is not None:
             self._validate_value(value)
@@ -82,22 +91,17 @@ class Parameter:
             ExceptionCollector.appendException(
                 ValueError(_('Invalid type "%s".') % type))
 
-    # TODO(anyone) Need to test for any built-in datatype not just network
-    # that is, tosca.datatypes.* and not assume tosca.datatypes.network.*
-    # TODO(anyone) Add support for tosca.datatypes.Credential
     def _validate_value(self, value):
-        tosca = EntityType.TOSCA_DEF
-        datatype = None
-        if self.type in tosca:
-            datatype = tosca[self.type]
-        elif EntityType.DATATYPE_NETWORK_PREFIX + self.type in tosca:
-            datatype = tosca[EntityType.DATATYPE_NETWORK_PREFIX + self.type]
-
-        DataEntity.validate_datatype(self.type, value, None, datatype)
+        value = DataEntity.validate_datatype(self.type, value,
+                                                  self.entry_schema,
+                                                  self.custom_defs,
+                                                  self.name,
+                                                  self.key_schema)
         if self.constraints:
             for constraint in self.constraints:
                 if constraint:
                     constraint.validate(value)
+        return value
 
 class Input(Parameter):
     pass

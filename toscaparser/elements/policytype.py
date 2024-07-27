@@ -29,7 +29,6 @@ class PolicyType(StatefulEntityType):
         super(PolicyType, self).__init__(ptype, self.POLICY_PREFIX,
                                          custom_def)
         self.type = ptype
-        self.custom_def = custom_def
         self._validate_keys()
 
         self.meta_data = None

@@ -83,7 +83,7 @@ class TopologyTemplate(object):
         inputs = []
         parsed_params = self.parsed_params
         for name, attrs in self._tpl_inputs().items():
-            input = Input(name, attrs)
+            input = Input(name, attrs, self.custom_defs)
             if parsed_params is not None and name in parsed_params:
                 input.validate(parsed_params[name])
             else:
@@ -156,7 +156,7 @@ class TopologyTemplate(object):
     def _outputs(self):
         outputs = []
         for name, attrs in self._tpl_outputs().items():
-            output = Output(name, attrs)
+            output = Output(name, attrs, self.custom_defs)
             output.validate()
             outputs.append(output)
         return outputs

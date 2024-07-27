@@ -47,7 +47,6 @@ class ArtifactTypeDef(StatefulEntityType):
 
     def __init__(self, atype, custom_def=None):
         super(ArtifactTypeDef, self).__init__(atype, self.ARTIFACT_PREFIX, custom_def)
-        self.custom_def = custom_def
         if self.defs is not None:
             self.properties = self.defs.get(self.PROPERTIES)
             self.mime_type = self.defs.get("mime_type")

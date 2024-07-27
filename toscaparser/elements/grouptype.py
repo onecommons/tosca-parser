@@ -30,7 +30,6 @@ class GroupType(StatefulEntityType):
     def __init__(self, grouptype, custom_def=None):
         super(GroupType, self).__init__(grouptype, self.GROUP_PREFIX,
                                         custom_def)
-        self.custom_def = custom_def
         self.grouptype = grouptype
         self._validate_fields()
         self.group_description = None

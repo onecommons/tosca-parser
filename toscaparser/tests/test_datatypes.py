@@ -201,7 +201,7 @@ class DataTypeTest(TestCase):
         self.assertIsNone(input.validate(3360))
         err = self.assertRaises(exception.RangeValueError, input.validate,
                                 336000)
-        self.assertEqual(_('The value "336000" of property "None" is out of '
+        self.assertEqual(_('The value "336000" of property "db_port" is out of '
                            'range "(min:1, max:65535)".'),
                          err.__str__())
 
