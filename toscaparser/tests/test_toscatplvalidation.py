@@ -1560,14 +1560,14 @@ tosca-parser/master/toscaparser/tests/data/custom_types/wordpress.yaml
         p_key_schema_type = tosca.tpl['relationship_types'][
             'tosca.nodes.CustomRelationshipTest']['properties'][
                 'property_test']['key_schema']['type']
-        self.assertEqual('string', p_key_schema_type)
+        self.assertEqual('number', p_key_schema_type)
         p_key_schema_type = tosca.topology_template.relationship_templates["customRelationshipTest"].custom_def[
             'tosca.nodes.CustomRelationshipTest']['properties'][
                 'property_test']['key_schema']['type']
-        self.assertEqual('string', p_key_schema_type)
+        self.assertEqual('number', p_key_schema_type)
         property_value = (
             tosca.topology_template.relationship_templates["customRelationshipTest"].entity_tpl[
-                'properties']['property_test']['test_key'])
+                'properties']['property_test'][1.1])
         self.assertEqual('test_value', property_value)
 
     def test_tosca_version_1_3(self):

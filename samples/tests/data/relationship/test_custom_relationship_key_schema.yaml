@@ -10,7 +10,7 @@ topology_template:
       type: tosca.nodes.CustomRelationshipTest
       properties:
         property_test:
-          'test_key': 'test_value'
+          1.1: 'test_value'
 
 relationship_types:
   tosca.nodes.CustomRelationshipTest:
@@ -18,4 +18,4 @@ relationship_types:
       property_test:
         type: map
         key_schema:
-          type: string
+          type: number
