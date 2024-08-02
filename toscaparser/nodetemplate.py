@@ -702,10 +702,8 @@ class NodeTemplate(EntityTemplate):
         return True
 
     def match_nodefilter(self, node_filter):
-        if 'properties' in node_filter:
-            if not self._match_filter(self, node_filter):
-                return False
         capfilters = node_filter.get('capabilities')
+        cap_matched = False
         if capfilters:
             assert isinstance(capfilters, list)
             capabilities = self.get_capabilities()
@@ -717,5 +715,7 @@ class NodeTemplate(EntityTemplate):
                     return False
                 if not self._match_filter(cap, filter):
                     return False
-            return True
-        return False
+            cap_matched = True
+        if 'properties' in node_filter:
+            return self._match_filter(self, node_filter)
+        return cap_matched  # don't match if node_filter was empty
