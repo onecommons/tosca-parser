@@ -80,15 +80,16 @@ class GetInput(Function):
     """
 
     def validate(self):
-        if len(self.args) != 1:
+        if len(self.args) > 2:
             ExceptionCollector.appendException(
                 ValueError(_(
-                    'Expected one argument for function "get_input" but '
+                    'Expected one or two arguments for function "get_input" but '
                     'received "%s".') % self.args))
-        inputs = [input.name for input in self.tosca_tpl.inputs]
-        if self.args[0] not in inputs:
-            ExceptionCollector.appendException(
-                UnknownInputError(input_name=self.args[0]))
+        if len(self.args) == 1:  # no default arg
+            inputs = [input.name for input in self.tosca_tpl.inputs]
+            if self.args[0] not in inputs:
+                ExceptionCollector.appendException(
+                    UnknownInputError(input_name=self.args[0]))
 
     def result(self):
         if self.tosca_tpl.parsed_params and \
@@ -96,6 +97,12 @@ class GetInput(Function):
             return DataEntity.validate_datatype(
                 self.tosca_tpl.tpl['inputs'][self.input_name]['type'],
                 self.tosca_tpl.parsed_params[self.input_name])
+
+        if self.args > 1:
+            # no input declared, use default arg:
+            return DataEntity.validate_datatype(
+                self.tosca_tpl.tpl['inputs'][self.input_name]['type'],
+                self.args[1])
 
         input = [input_def for input_def in self.tosca_tpl.inputs
                  if self.input_name == input_def.name][0]
