@@ -112,7 +112,7 @@ class NodeTemplate(EntityTemplate):
             return candidate
         req_dict = {}
         self.requirements.append({req_name: req_dict})
-        return req_dict
+        return req_dict # if empty, it was added
 
     @property
     def relationships(self):
@@ -294,6 +294,7 @@ class NodeTemplate(EntityTemplate):
                         # type resolution must be unambiguous
                         # XXX only an error if exceeds max occurrences
                         if node_filter:
+                            # only treat as error if node_filter, otherwise just treat as unmatched
                             ExceptionCollector.appendException(
                           ValidationError(message=
       'requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"' %
@@ -359,8 +360,8 @@ class NodeTemplate(EntityTemplate):
                     if capability:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No matching capability "%(cname)s" found'
-                              ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
-                            % {'rname': name, 'nname': self.name, 'cname': capability, 'tname': related_node.name}))
+                            ' on target node "%(tname)s" with capabilities %(caps)s for requirement "%(rname)s" of node "%(nname)s".')
+                            % {'cname': capability, 'rname': name, 'nname': self.name, 'tname': related_node.name, 'caps': list(related_node.get_capabilities())}))
                         return None
                     else:
                         ExceptionCollector.appendException(

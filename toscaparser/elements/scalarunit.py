@@ -166,8 +166,15 @@ def get_scalarunit_class(type):
 def get_scalarunit_value(type, value, unit=None):
     if type in ScalarUnit.SCALAR_UNIT_TYPES:
         ScalarUnit_Class = get_scalarunit_class(type)
-        return (ScalarUnit_Class(value).
-                get_num_from_scalar_unit(unit))
+        return ScalarUnit_Class(value).get_num_from_scalar_unit(unit)
     else:
         ExceptionCollector.appendException(
             TypeError(_('"%s" is not a valid scalar-unit type.') % type))
+
+
+def scalar_type_from_unit(unit):
+    for scalar_cls in [ScalarUnit_Size, ScalarUnit_Time, ScalarUnit_Frequency, ScalarUnit_Bitrate]:
+        for name in scalar_cls.SCALAR_UNIT_DICT:
+            if name.lower() == unit.lower():
+                return 'scalar-unit.' + scalar_cls.__name__[len("ScalarUnit_"):].lower()
+    return ""

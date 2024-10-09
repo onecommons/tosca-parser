@@ -75,7 +75,13 @@ class ConditionClause(object):
 
   @staticmethod
   def _deduce_type(constraint):
-    value = next(iter(constraint.values()))
+    ctype, value = next(iter(constraint.items()))
+    if isinstance(value, list) and ctype == "in_range":
+        value = value[0]
+    if isinstance(value, str):
+        m = scalarunit.scalar_pattern.match(value)
+        if m and m.groups()[1]:
+            return scalarunit.scalar_type_from_unit(m.groups()[1]) or "number"
     for py_type, tosca_type in Schema.PYTHON_TO_PROPERTY_TYPES.items():
         if isinstance(value, py_type):
             return tosca_type
