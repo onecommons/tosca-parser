@@ -34,7 +34,7 @@ class RelationshipType(StatefulEntityType):
 
     @property
     def parent_type(self):
-        '''Return a relationship this reletionship is derived from.'''
+        '''Return that parent is RelationshipType that this is derived from.'''
         prel = self.derived_from(self.defs)
         if prel:
             return RelationshipType(prel, custom_def=self.custom_def)

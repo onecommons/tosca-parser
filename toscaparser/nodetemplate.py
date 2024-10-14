@@ -42,7 +42,7 @@ class NodeTemplate(EntityTemplate):
         self.topology_template = topology_template
         super(NodeTemplate, self).__init__(name, node_templates[name],
                                            'node_type',
-                                           custom_def)
+                                           custom_def, topology_template.tosca_template)
         self.templates = node_templates
         self.custom_def = custom_def
         self.related = {}
@@ -444,12 +444,12 @@ class NodeTemplate(EntityTemplate):
             for parent_type in reversed(self.types):
                 if not parent_type.defs or not parent_type.defs.get(EntityTemplate.ARTIFACTS):
                     continue
-                self.find_artifacts_on_type(parent_type, artifacts, required_artifacts)
+                self.find_artifacts_on_type(parent_type, artifacts, required_artifacts, True, self.topology_template.tosca_template)
 
             # node templates can't be imported so we don't need to track their source
             artifacts_tpl = self.entity_tpl.get(self.ARTIFACTS)
             if artifacts_tpl:
-                artifacts.update({name: Artifact(name, value, self.custom_def)
+                artifacts.update({name: Artifact(name, value, self.custom_def, None, self.topology_template.tosca_template)
                     for name, value in artifacts_tpl.items()})
 
             for name, value in required_artifacts.items():
@@ -472,7 +472,7 @@ class NodeTemplate(EntityTemplate):
         return self._artifacts
 
     @staticmethod
-    def find_artifacts_on_type(parent_type: StatefulEntityType, artifacts: dict, required_artifacts: dict, parent=True):
+    def find_artifacts_on_type(parent_type: StatefulEntityType, artifacts: dict, required_artifacts: dict, parent=True, tosca_template=None):
         artifact_tpls = parent_type.get_value(EntityTemplate.ARTIFACTS, parent=parent, add_namespace=True)
         if not artifact_tpls:
             return
@@ -493,7 +493,7 @@ class NodeTemplate(EntityTemplate):
                     namespace = parent_type.custom_def.find_namespace(value.pop("!namespace", None))
                 else:
                     namespace = parent_type.custom_def
-                artifacts[name] = Artifact(name, value, namespace, parent_type._source)
+                artifacts[name] = Artifact(name, value, namespace, parent_type._source, tosca_template)
 
     @property
     def instance_keys(self):

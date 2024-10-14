@@ -16,6 +16,7 @@ from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import ValidationError
 from toscaparser.common.exception import TypeMismatchError
+from toscaparser.common.exception import InvalidTypeDefinition
 from toscaparser.elements.grouptype import GroupType
 from toscaparser.elements.interfaces import create_interfaces
 from toscaparser.elements.nodetype import NodeType
@@ -42,10 +43,11 @@ class EntityTemplate(object):
     SPECIAL_SECTIONS = (METADATA, NAME, TITLE, DESCRIPTION) = ('metadata', 'name', 'title', 'description')
 
     additionalProperties = False
+    validate_type_type = True
     _source = None
     _properties_tpl = None
 
-    def __init__(self, name, template, entity_name, custom_def=None):
+    def __init__(self, name, template, entity_name, custom_def=None, tosca_template=None):
         self.name = name
         self.entity_tpl = template
         self.custom_def = custom_def
@@ -73,7 +75,6 @@ class EntityTemplate(object):
         if entity_name == 'artifact_type':
             self.type_definition = ArtifactTypeDef(type, custom_def) \
                 if type is not None else None
-
         self._properties = None
         self._interfaces = None
         self._requirements = None
@@ -82,6 +83,17 @@ class EntityTemplate(object):
             msg = "no type found %s for %s"  % (entity_name, template)
             ExceptionCollector.appendException(ValidationError(message=msg))
             return
+        typename = self.type_definition.type
+        if tosca_template and self.validate_type_type and typename not in self.type_definition.TOSCA_DEF:
+            section = entity_name + "s"
+            if section not in tosca_template.tpl or typename not in tosca_template.tpl[section]:
+                if "types" not in tosca_template.tpl or typename not in tosca_template.tpl["types"]:
+                    _source = self.type_definition.defs and self.type_definition.defs.get("_source")
+                    # _source is added when importing
+                    if not isinstance(_source, dict) or _source.get("section") != section:
+                        ExceptionCollector.appendException(InvalidTypeDefinition(
+                                                          what="it must be a " + entity_name.replace("_", " "),
+                                                          type=typename))
 
         metadata = self.entity_tpl.get('metadata')
         if metadata and 'additionalProperties' in metadata:

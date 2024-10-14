@@ -61,12 +61,12 @@ class Artifact(EntityTemplate):
 
     SECTIONS = SECTIONS
 
-    def __init__(self, name, artifact, custom_def=None, base=None):
+    def __init__(self, name, artifact, custom_def=None, base=None, tosca_template=None):
         if isinstance(artifact, str):
             artifact = dict(file=artifact, type="tosca.artifacts.Root")
         elif isinstance(artifact, dict) and "type" not in artifact:
             artifact = dict(artifact, type="tosca.artifacts.Root")
-        super(Artifact, self).__init__(name, artifact, "artifact_type", custom_def)
+        super(Artifact, self).__init__(name, artifact, "artifact_type", custom_def, tosca_template)
         for key in SECTIONS[:-2]:  # skip "type" and "properties"
             setattr(self, key, artifact.get(key))
         self._source = base
