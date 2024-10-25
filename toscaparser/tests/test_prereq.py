@@ -11,6 +11,7 @@
 #    under the License.
 
 import os
+import tempfile
 import requests
 import shutil
 from unittest import mock
@@ -42,8 +43,8 @@ class CSARPrereqTest(TestCase):
         csar = CSAR(path)
         error = self.assertRaises(ValidationError, csar.validate)
         self.assertEqual(_('"%s" does not exist.') % path, str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_file_is_zip(self):
         path = os.path.join(self.base_path, "data/CSAR/csar_not_zip.zip")
@@ -68,8 +69,8 @@ class CSARPrereqTest(TestCase):
         csar = CSAR(path, False)
         error = self.assertRaises(ValidationError, csar.validate)
         self.assertEqual(_('"%s" is not a valid zip file.') % path, str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_metadata_file_exists(self):
         path = os.path.join(self.base_path,
@@ -79,8 +80,8 @@ class CSARPrereqTest(TestCase):
         self.assertEqual(_('"%s" is not a valid CSAR as it does not contain '
                            'the required file "TOSCA.meta" in the folder '
                            '"TOSCA-Metadata".') % path, str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_valid_metadata_file_exists(self):
         path = os.path.join(self.base_path,
@@ -90,8 +91,8 @@ class CSARPrereqTest(TestCase):
         self.assertEqual(_('"%s" is not a valid CSAR as it does not contain '
                            'the required file "TOSCA.meta" in the folder '
                            '"TOSCA-Metadata".') % path, str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_metadata_is_yaml(self):
         path = os.path.join(self.base_path,
@@ -101,8 +102,8 @@ class CSARPrereqTest(TestCase):
         self.assertEqual(_('The file "TOSCA-Metadata/TOSCA.meta" in the CSAR '
                            '"%s" does not contain valid YAML content.') % path,
                          str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_metadata_exists(self):
         path = os.path.join(self.base_path,
@@ -112,8 +113,8 @@ class CSARPrereqTest(TestCase):
         self.assertEqual(_('The CSAR "%s" is missing the required metadata '
                            '"Entry-Definitions" in '
                            '"TOSCA-Metadata/TOSCA.meta".') % path, str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_entry_def_exists(self):
         path = os.path.join(self.base_path,
@@ -122,8 +123,8 @@ class CSARPrereqTest(TestCase):
         error = self.assertRaises(ValidationError, csar.validate)
         self.assertEqual(_('The "Entry-Definitions" file defined in the CSAR '
                            '"%s" does not exist.') % path, str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_invalid_import_path(self):
         path = os.path.join(self.base_path,
@@ -131,8 +132,8 @@ class CSARPrereqTest(TestCase):
         csar = CSAR(path)
         error = self.assertRaises(URLException, csar.validate)
         assert str(error).endswith('Invalid_import_path/wordpress.yaml" is not valid.')
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_invalid_import_url(self):
         path = os.path.join(self.base_path,
@@ -145,8 +146,8 @@ class CSARPrereqTest(TestCase):
                            'tosca_single_instance_wordpress/Definitions/'
                            'wordpress1.yaml" is not valid.'),
                          str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_invalid_script_path(self):
         path = os.path.join(self.base_path,
@@ -158,8 +159,8 @@ class CSARPrereqTest(TestCase):
                             'not exist.') or
             str(error) == _('The resource "Scripts/WordPress/configure.sh" '
                             'does not exist.'))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_invalid_script_url(self):
         path = os.path.join(self.base_path,
@@ -172,15 +173,15 @@ class CSARPrereqTest(TestCase):
                            'tosca_single_instance_wordpress/Scripts/WordPress/'
                            'install1.sh" cannot be accessed.'),
                          str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_valid_csar(self):
         path = os.path.join(self.base_path, "data/CSAR/csar_hello_world.zip")
         csar = CSAR(path)
         self.assertTrue(csar.validate())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     @mock.patch.object(urllib.request, 'urlopen')
     @mock.patch.object(UrlUtils, 'url_accessible')
@@ -197,8 +198,8 @@ class CSARPrereqTest(TestCase):
         mock_url_accessible.return_value = True
         csar = CSAR(path)
         self.assertTrue(csar.validate())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_metadata_invalid_csar(self):
         path = os.path.join(self.base_path,
@@ -208,8 +209,8 @@ class CSARPrereqTest(TestCase):
         self.assertEqual(_('The file "TOSCA-Metadata/TOSCA.meta" in the CSAR '
                            '"%s" does not contain valid YAML content.') % path,
                          str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_metadata_valid_csar(self):
         path = os.path.join(self.base_path, "data/CSAR/csar_hello_world.zip")
@@ -227,8 +228,8 @@ class CSARPrereqTest(TestCase):
         self.assertEqual('tosca_helloworld.yaml', csar.get_main_template())
         self.assertEqual('Template for deploying a single server with '
                          'predefined properties.', csar.get_description())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_main_template(self):
         path = os.path.join(self.base_path, "data/CSAR/csar_hello_world.zip")
@@ -236,28 +237,28 @@ class CSARPrereqTest(TestCase):
         yaml_file = TestCase.test_sample("data/tosca_helloworld.yaml")
         expected_yaml = toscaparser.utils.yamlparser.load_yaml(yaml_file)
         self.assertEqual(expected_yaml, csar.get_main_template_yaml())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_decompress(self):
         path = os.path.join(self.base_path, "data/CSAR/csar_hello_world.zip")
-        csar = CSAR(path)
+        csar = CSAR(path, True, tempfile.TemporaryDirectory().name)
         csar.decompress()
         zf = zipfile.ZipFile(path)
         for name in zf.namelist():
-            tmp_path = os.path.join(csar.temp_dir, name)
+            tmp_path = os.path.join(csar.unzip_dir, name)
             self.assertTrue(os.path.isdir(tmp_path) or
                             os.path.isfile(tmp_path))
-        shutil.rmtree(csar.temp_dir)
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        shutil.rmtree(csar.unzip_dir)
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_alternate_csar_extension(self):
         path = os.path.join(self.base_path, "data/CSAR/csar_elk.csar")
         csar = CSAR(path)
         self.assertTrue(csar.validate())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_with_root_level_yaml(self):
         path = os.path.join(self.base_path,
@@ -266,8 +267,8 @@ class CSARPrereqTest(TestCase):
         yaml_file = TestCase.test_sample("data/CSAR/root_level_file.yaml")
         expected_yaml = toscaparser.utils.yamlparser.load_yaml(yaml_file)
         self.assertEqual(expected_yaml, csar.get_main_template_yaml())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_with_multiple_root_level_yaml_files_error(self):
         path = os.path.join(self.base_path,
@@ -276,8 +277,8 @@ class CSARPrereqTest(TestCase):
         error = self.assertRaises(ValidationError, csar.validate)
         self.assertEqual(_('CSAR file should contain only one root level'
                            ' yaml file. Found "2" yaml file(s).'), str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_with_root_level_yaml_and_tosca_metadata(self):
         path = os.path.join(self.base_path,
@@ -287,8 +288,8 @@ class CSARPrereqTest(TestCase):
         yaml_file = TestCase.test_sample("data/CSAR/tosca_meta_file.yaml")
         expected_yaml = toscaparser.utils.yamlparser.load_yaml(yaml_file)
         self.assertEqual(expected_yaml, csar.get_main_template_yaml())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_root_yaml_with_tosca_definition_1_0_error(self):
         path = os.path.join(self.base_path, "data/CSAR/csar_root_yaml"
@@ -298,8 +299,8 @@ class CSARPrereqTest(TestCase):
         self.assertEqual(_('"%s" is not a valid CSAR as it does not contain'
                            ' the required file "TOSCA.meta" in the folder '
                            '"TOSCA-Metadata".') % path, str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_with_multilevel_imports_valid(self):
         path = os.path.join(
@@ -310,8 +311,8 @@ class CSARPrereqTest(TestCase):
             "data/CSAR/multi_level_imports_response.yaml")
         expected_yaml = toscaparser.utils.yamlparser.load_yaml(yaml_file)
         self.assertEqual(expected_yaml, csar.get_main_template_yaml())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_with_multilevel_imports_invalid(self):
         path = os.path.join(self.base_path,
@@ -323,16 +324,16 @@ class CSARPrereqTest(TestCase):
             'The resource "%s" does '
             'not exist.') % 'Files/images/'
                             'cirros-0.4.0-x86_64-disk.img', str(error))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_valid_artifact(self):
         path = os.path.join(self.base_path,
                             "data/CSAR/csar_wordpress_valid_artifact.zip")
         csar = CSAR(path)
         self.assertTrue(csar.validate())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_invalid_artifact(self):
         path = os.path.join(self.base_path,
@@ -342,8 +343,8 @@ class CSARPrereqTest(TestCase):
         self.assertTrue(
             str(error) == _('The resource "Scripts/WordPress/configure.sh" '
                             'does not exist.'))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_valid_artifact_multi(self):
         path = os.path.join(
@@ -351,8 +352,8 @@ class CSARPrereqTest(TestCase):
             "data/CSAR/csar_wordpress_valid_artifact_multi.zip")
         csar = CSAR(path)
         self.assertTrue(csar.validate())
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))
 
     def test_csar_invalid_artifact_multi(self):
         path = os.path.join(
@@ -363,5 +364,5 @@ class CSARPrereqTest(TestCase):
         self.assertTrue(
             str(error) == _('The resource "dummy-wordpress" '
                             'does not exist.'))
-        self.assertTrue(csar.temp_dir is None or
-                        not os.path.exists(csar.temp_dir))
+        self.assertTrue(csar.unzip_dir is None or
+                        not os.path.exists(csar.unzip_dir))

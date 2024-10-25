@@ -35,12 +35,12 @@ YAML_LOADER = yamlparser.load_yaml
 
 class CSAR(object):
 
-    def __init__(self, csar_file, a_file=True):
+    def __init__(self, csar_file, a_file=True, unzip_dir=None):
         self.path = csar_file
         self.a_file = a_file
         self.is_validated = False
         self.csar = None
-        self.temp_dir = None
+        self.unzip_dir = unzip_dir
         self.is_tosca_metadata = False
         self.main_template_file_name = None
         self.zfile = None
@@ -159,9 +159,10 @@ class CSAR(object):
     def decompress(self):
         if not self.is_validated:
             self.validate()
-        self.temp_dir = tempfile.NamedTemporaryFile().name
+        assert self.unzip_dir is not None
+        assert self.csar
         with zipfile.ZipFile(self.csar, "r") as zf:
-            zf.extractall(self.temp_dir)
+            zf.extractall(self.unzip_dir)
 
     def _validate_external_artifact_imports(self, main_tpl, tpl_filename):
         """validate the imports and artifacts"""
@@ -169,10 +170,11 @@ class CSAR(object):
         self._validate_template(main_tpl, tpl_filename)
 
         if main_tpl:
+            assert self.unzip_dir is not None
             if 'imports' in main_tpl:
                 custom_service = ImportsLoader(
                     main_tpl['imports'],
-                    os.path.join(self.temp_dir, tpl_filename))
+                    os.path.join(self.unzip_dir, tpl_filename))
 
                 # Get list of nested templates
                 nested_tosca_tpls = custom_service.get_nested_tosca_tpls()
@@ -191,14 +193,19 @@ class CSAR(object):
         * interface implementations
         * artifacts
         """
+        temp_dir = None
+        if self.unzip_dir is None:
+            temp_dir = tempfile.TemporaryDirectory()
+            self.unzip_dir = temp_dir.name
         try:
             self.decompress()
             self._validate_external_artifact_imports(
                 main_tpl,
                 self.main_template_file_name)
         finally:
-            if self.temp_dir:
-                shutil.rmtree(self.temp_dir)
+            if temp_dir:
+                self.unzip_dir = None
+                temp_dir.cleanup()
 
     def _validate_template(self, template_data, template):
         if 'topology_template' in template_data:
@@ -282,7 +289,8 @@ class CSAR(object):
                 ExceptionCollector.appendException(
                     URLException(what=msg))
 
-        if os.path.isfile(os.path.join(self.temp_dir,
+        assert self.unzip_dir is not None
+        if os.path.isfile(os.path.join(self.unzip_dir,
                                        os.path.dirname(tpl_file),
                                        resource_file)):
             return

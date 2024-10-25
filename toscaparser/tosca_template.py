@@ -13,6 +13,7 @@
 
 import logging
 import os
+import tempfile
 
 from toscaparser.common.exception import ExceptionCollector
 from toscaparser.common.exception import InvalidTemplateVersion
@@ -22,7 +23,7 @@ from toscaparser.common.exception import ValidationError
 from toscaparser.elements.entity_type import update_definitions, EntityType, Namespace
 from toscaparser.extensions.exttools import ExtTools
 import toscaparser.imports
-from toscaparser.prereq.csar import CSAR
+from toscaparser.prereq.csar import CSAR, TOSCA_META
 from toscaparser.repositories import Repository
 from toscaparser.topology_template import TopologyTemplate
 from toscaparser.substitution_mappings import SubstitutionMappings
@@ -92,7 +93,7 @@ class ToscaTemplate(object):
             if yaml_dict_tpl:
                 self.path = path
             else:
-                self.path = self._get_path(path)
+                self.path, base_dir = self._get_path(path, base_dir)
                 self.tpl = YAML_LOADER(self.path, self.a_file)
         self.base_dir = base_dir or (self.path and os.path.dirname(self.path)) or "."
 
@@ -271,20 +272,24 @@ class ToscaTemplate(object):
             if version not in self.MAIN_TEMPLATE_VERSIONS:
                 update_definitions(self.exttools, version, YAML_LOADER)
 
-    def _get_path(self, path):
+    def _get_path(self, path, unzip_dir):
         if path.lower().endswith('.yaml') or path.lower().endswith('.yml'):
-            return path
+            return path, unzip_dir
         elif path.lower().endswith(('.zip', '.csar')):
             # a CSAR archive
-            csar = CSAR(path, self.a_file)
+            if unzip_dir is None:
+                # tempdir should last as long as self
+                self._csar_tmp_dir = tempfile.TemporaryDirectory()
+                unzip_dir = self._csar_tmp_dir.name
+            csar = CSAR(path, self.a_file, unzip_dir)
             if csar.validate():
-                csar.decompress()
                 self.a_file = True  # the file has been decompressed locally
-                return os.path.join(csar.temp_dir, csar.get_main_template())
+                return os.path.join(csar.unzip_dir, csar.get_main_template()), csar.unzip_dir
         else:
             ExceptionCollector.appendException(
                 ValueError(_('"%(path)s" is not a valid file.')
                            % {'path': path}))
+        return None, None
 
     def raise_validation_errors(self):
         if ExceptionCollector.exceptionsCaught():
