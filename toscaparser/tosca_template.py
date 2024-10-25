@@ -106,6 +106,7 @@ class ToscaTemplate(object):
                              'There is nothing to parse.')))
 
         self.topology_template = None
+        self._metadata = None
         if self.tpl:
             self.parsed_params = parsed_params
             self._validate_field()
@@ -165,6 +166,26 @@ class ToscaTemplate(object):
 
     def _tpl_imports(self):
         return self.tpl.get(IMPORTS)
+
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            metadata = self.tpl.setdefault(METADATA, {})
+            csar_metadata_file = os.path.join(self.base_dir, TOSCA_META)
+            if os.path.isfile(csar_metadata_file):
+                csar_metadata = YAML_LOADER(csar_metadata_file, True)
+                if csar_metadata:
+                    for key, to in [
+                        ("Created-By", "template_author"),
+                        ("Description", "description"),
+                        ("CSAR-Version", "template_version"),
+                    ]:
+                        val = csar_metadata.pop(key, None)
+                        if val:
+                            metadata[to] = val
+                    metadata.update(csar_metadata)
+            self._metadata = metadata
+        return self._metadata
 
     @property
     def repositories(self):
