@@ -215,23 +215,18 @@ class ToscaTemplateTest(TestCase):
                                  interface.type)
                 self.assertEqual('wordpress/wordpress_install.sh',
                                  interface.implementation)
-                # self.assertIsNone(interface.inputs)
+                self.assertIsNone(interface.inputs)
+                self.assertEqual(3, len(interface.input_defs))  # defined on node type interface
+                self.assertEqual(interface.input_defs["wp_db_name"], dict(type="string"))
             elif interface.name == 'configure':
                 self.assertEqual(ifaces.LIFECYCLE,
                                  interface.type)
                 self.assertEqual('wordpress/wordpress_configure.sh',
                                  interface.implementation)
                 self.assertEqual(3, len(interface.inputs))
-                self.skipTest('bug #1440247')
-                wp_db_port = interface.inputs['wp_db_port']
-                self.assertIsInstance(wp_db_port, GetProperty)
-                self.assertEqual('get_property', wp_db_port.name)
-                self.assertEqual(['SELF',
-                                  'database_endpoint',
-                                  'port'],
-                                 wp_db_port.args)
-                result = wp_db_port.result()
-                self.assertIsInstance(result, GetInput)
+                self.assertEqual(3, len(interface.input_defs))  # defined on node type interface
+                self.assertEqual(interface.input_defs["wp_db_name"], dict(type="string"))
+                self.assertEqual(interface.inputs["wp_db_name"], dict(get_property=["mysql_database", "name"]))
             elif interface.name != 'default':
                 raise AssertionError(
                     'Unexpected interface: {0}'.format(interface.name))

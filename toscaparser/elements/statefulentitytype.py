@@ -245,7 +245,7 @@ class StatefulEntityType(EntityType):
             for p in reversed(list(self.ancestors())):
                 p_interfaces = p.defs and p.defs.get(self.INTERFACES)
                 if p_interfaces:
-                    interfaces = merge_interfacedefs(interfaces, p_interfaces, p._source)
+                    interfaces = merge_interfacedefs(interfaces, p_interfaces, p._source, f" on {self.type}")
             self._interfaces = interfaces
         return self._interfaces
 
