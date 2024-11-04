@@ -116,10 +116,13 @@ class TOSCAVersionPropertyTest(TestCase):
         output = TOSCAVersionProperty(version).get_version()
         assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
         self.assertEqual(output, expected_output)
-        # exp_msg = _('Value of TOSCA version property "18.0.1-xyz" is invalid.')
-        # err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-        #                         TOSCAVersionProperty, version)
-        # self.assertEqual(exp_msg, err.__str__())
+
+        # valid semver 2.0:
+        assert TOSCAVersionProperty("18.0.1-xyz.1").pre_release == "xyz.1"
+        full = TOSCAVersionProperty("18.0.1-xyz.1+7527a406")
+        assert full.pre_release == "xyz.1"
+        assert full.build_metadata == "7527a406"
+        assert TOSCAVersionProperty("18.0.1+7527a406").build_metadata == "7527a406"
 
         version = 'v2'
         expected_output = 'v2'

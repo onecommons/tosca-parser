@@ -17,7 +17,7 @@ from toscaparser import functions
 from toscaparser.tests.base import TestCase
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.utils.gettextutils import _
-from testtools.testcase import skip
+from unittest import skip
 
 @skip("redo tests")
 class IntrinsicFunctionsTest(TestCase):

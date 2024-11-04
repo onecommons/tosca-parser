@@ -12,7 +12,7 @@
 
 import os
 import requests
-from unittest import mock
+from unittest import mock, skip
 import urllib
 
 from toscaparser.common import exception
@@ -33,7 +33,6 @@ from toscaparser import imports
 
 imports.TREAT_IMPORTS_AS_FATAL = False
 
-from testtools.testcase import skip
 
 def _get_nodetemplate(tpl_snippet, name, custom_def_snippet=None):
     tpl = toscaparser.utils.yamlparser.simple_parse(tpl_snippet)

@@ -188,7 +188,7 @@ class TOSCAVersionProperty(object):
                             r'(\.(?P<qualifier>([0-9A-Za-z]+)))?'
                             r'(\-(?P<build_version>([0-9]+)))?'
                             r'(\-(?P<pre_release>([0-9A-Za-z.\-]+)))?'
-                            r'(\+(?P<build_metadata>[0-9A-Za-z.\-])*)?$')
+                            r'(\+(?P<build_metadata>([0-9A-Za-z.\-]+)))?$')
 
     def __init__(self, version):
         self.version = str(version)

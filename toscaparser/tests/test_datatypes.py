@@ -10,7 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from testtools.testcase import skip
+from unittest import skip
 from toscaparser.common import exception
 from toscaparser.dataentity import DataEntity
 from toscaparser.elements.datatype import DataType
