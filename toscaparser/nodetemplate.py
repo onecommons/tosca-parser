@@ -96,14 +96,14 @@ class NodeTemplate(EntityTemplate):
 
     def find_or_add_requirement(self, req_name, target):
         candidate = None
-        for r in self.requirements:
+        for index, r in enumerate(self.requirements):
             name, value = next(iter(r.items()))  # list only has one item
             if name == req_name:
                 if isinstance(value, dict):
                     node = value.get("node")
                 else:
                     node = value
-                    value = dict(node = value)
+                    value = dict(node = value, minimized=index)
                 if node == target:
                     return value
                 elif not node or self.topology_template.find_type(node, value.get("!namespace-node")):
