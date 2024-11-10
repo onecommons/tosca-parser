@@ -381,7 +381,7 @@ class NodeTemplate(EntityTemplate):
 
         node_typename = node # treat node as a type name
         resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
-        if not related_node and (not resolver or not resolver.solve_topology):
+        if not related_node:
             if node_typename:
                 node_type_namespace = (namespace.find_namespace(reqDef.get("!namespace-node"))
                                        if namespace
@@ -389,7 +389,8 @@ class NodeTemplate(EntityTemplate):
                 nodetype_def = node_type_namespace and node_type_namespace.get(node)
                 if nodetype_def:
                     node_typename = NodeType(node, node_type_namespace).global_name
-            related_node, related_capability = self._find_matching_node(relTpl, name, node_typename, reqDef, node_filter)
+            if not resolver or not resolver.solve_topology:
+                related_node, related_capability = self._find_matching_node(relTpl, name, node_typename, reqDef, node_filter)
         if related_node:
             self._set_relationship(related_node, related_capability, relTpl)
         if resolver:
