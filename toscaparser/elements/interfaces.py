@@ -134,6 +134,7 @@ class OperationDef:
         self.implementation = None
         self.invoke = None
         self.input_defs = input_defs
+        self._input_props = None
         if inputs:
             cls = getattr(inputs, "mapCtor", inputs.__class__)
             inputs = cls(inputs)
@@ -208,6 +209,19 @@ class OperationDef:
                 self._source = os.path.dirname(_source.get("path", ""))
             else:
                 self._source = _source
+
+    def get_declared_inputs(self):
+        from toscaparser.properties import Property
+        if self._input_props is None:
+            if not self.input_defs:
+                self._input_props = {}
+            else:
+                inputs = self.inputs or {}
+                self._input_props = {
+                    name: Property(name, inputs.get(name), schema, self.ntype.custom_def)
+                    for name, schema in self.input_defs.items()
+                }
+        return self._input_props
 
     @property
     def _msg(self):

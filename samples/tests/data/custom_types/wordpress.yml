@@ -13,6 +13,7 @@ node_types:
         inputs:
           wp_db_name:
             type: string
+            default: wordpress
           wp_db_user:
             type: string
           wp_db_password:

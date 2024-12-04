@@ -214,9 +214,13 @@ class ToscaTemplateTest(TestCase):
                                  interface.type)
                 self.assertEqual('wordpress/wordpress_install.sh',
                                  interface.implementation)
-                self.assertIsNone(interface.inputs)
+                self.assertEqual(1, len(interface.inputs))
+                self.assertEqual(interface.inputs["wp_db_name"], "wordpress")  # default value
                 self.assertEqual(3, len(interface.input_defs))  # defined on node type interface
-                self.assertEqual(interface.input_defs["wp_db_name"], dict(type="string"))
+                self.assertEqual(interface.input_defs["wp_db_name"], dict(type="string", default="wordpress"))
+                prop = interface.get_declared_inputs().get("wp_db_name")
+                assert prop
+                assert prop.value == "wordpress" # default value
             elif interface.name == 'configure':
                 self.assertEqual(ifaces.LIFECYCLE,
                                  interface.type)
@@ -224,8 +228,14 @@ class ToscaTemplateTest(TestCase):
                                  interface.implementation)
                 self.assertEqual(3, len(interface.inputs))
                 self.assertEqual(3, len(interface.input_defs))  # defined on node type interface
-                self.assertEqual(interface.input_defs["wp_db_name"], dict(type="string"))
-                self.assertEqual(interface.inputs["wp_db_name"], dict(get_property=["mysql_database", "name"]))
+                self.assertEqual(interface.input_defs["wp_db_name"], dict(type="string", default='wordpress'))
+                val = dict(get_property=["mysql_database", "name"])
+                self.assertEqual(interface.inputs["wp_db_name"], val)
+                prop = interface.get_declared_inputs().get("wp_db_name")
+                assert prop
+                assert prop.value == val
+                assert prop.type == "string"
+                prop.validate()
             elif interface.name != 'default':
                 raise AssertionError(
                     'Unexpected interface: {0}'.format(interface.name))
