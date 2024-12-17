@@ -19,7 +19,14 @@ from toscaparser.utils import validateutils
 
 log = logging.getLogger('tosca')
 
-scalar_pattern = re.compile(r'([0-9.]+)\s*(\w+)?')
+scalar_pattern = re.compile(r'([-+]?[0-9.]+)\s*\*?\s*(\w+)?')
+
+def parse_scalar_unit(value):
+  match = scalar_pattern.match(str(value))
+  if match:
+      return validateutils.str_to_num(match.group(1)), match.group(2)
+  else:
+      return None, None
 
 class ScalarUnit(object):
     '''Parent class for scalar-unit type.'''
@@ -178,3 +185,10 @@ def scalar_type_from_unit(unit):
             if name.lower() == unit.lower():
                 return 'scalar-unit.' + scalar_cls.__name__[len("ScalarUnit_"):].lower()
     return ""
+
+def value_for_unit(unit):
+    for scalar_cls in [ScalarUnit_Size, ScalarUnit_Time, ScalarUnit_Frequency, ScalarUnit_Bitrate]:
+        for name, value in scalar_cls.SCALAR_UNIT_DICT.items():
+            if name.lower() == unit.lower():
+                return value
+    return 0
