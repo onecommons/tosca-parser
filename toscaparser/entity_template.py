@@ -95,17 +95,20 @@ class EntityTemplate(object):
                                                           what="it must be a " + entity_name.replace("_", " "),
                                                           type=typename))
 
-        metadata = self.entity_tpl.get('metadata')
-        if metadata and 'additionalProperties' in metadata:
-            self.additionalProperties = metadata['additionalProperties']
-        else:
-            metadata = self.type_definition.get_value('metadata', parent=True)
-            if metadata and 'additionalProperties' in metadata:
+        metadata = self.type_definition.get_value('metadata', self.entity_tpl, parent=True)
+        if metadata and isinstance(metadata, dict):
+            if 'additionalProperties' in metadata:
                 self.additionalProperties = metadata['additionalProperties']
+            expected_type = metadata.get('should_implement')
+            if expected_type and not self.type_definition.is_derived_from(expected_type):
+                entity_type = entity_name.partition('_')[0]
+                ExceptionCollector.appendException(TypeMismatchError(
+                                                  what=f'{entity_type} template "{name}"',
+                                                  type=expected_type))
 
         self._properties_tpl = self._validate_properties()
         for prop in self.get_properties_objects():
-            prop.validate()
+            prop.validate()  # might normalize and modify prop.value
         self.type_definition._validate_interfaces(self)
 
     @property
