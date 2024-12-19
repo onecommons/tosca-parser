@@ -221,6 +221,12 @@ class ToscaTemplateTest(TestCase):
                 prop = interface.get_declared_inputs().get("wp_db_name")
                 assert prop
                 assert prop.value == "wordpress" # default value
+
+                self.assertEqual(1, len(interface.outputs))  # defined on node type interface
+                out_prop = interface.get_declared_outputs().get("wp_db_created")
+                assert out_prop
+                assert out_prop.value is None
+                assert out_prop.type == "integer"
             elif interface.name == 'configure':
                 self.assertEqual(ifaces.LIFECYCLE,
                                  interface.type)
@@ -236,6 +242,14 @@ class ToscaTemplateTest(TestCase):
                 assert prop.value == val
                 assert prop.type == "string"
                 prop.validate()
+
+                self.assertEqual(1, len(interface.outputs))  # defined on node type interface
+                self.assertEqual(interface.outputs["wp_db_created"], {'type': 'integer', 'mapping': 'db_created'})
+                out_prop = interface.get_declared_outputs().get("wp_db_created")
+                assert out_prop
+                assert out_prop.value is None
+                assert out_prop.type == "integer"
+                assert out_prop.schema.schema["mapping"] == "db_created"
             elif interface.name != 'default':
                 raise AssertionError(
                     'Unexpected interface: {0}'.format(interface.name))

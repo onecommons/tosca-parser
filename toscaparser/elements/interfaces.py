@@ -42,6 +42,7 @@ OPERATION_DEF_RESERVED_WORDS = (
     OUTPUTS,
     ENTRY_STATE,
     EXIT_STATE,
+    METADATA,
 ) = (
     "description",
     "implementation",
@@ -49,11 +50,13 @@ OPERATION_DEF_RESERVED_WORDS = (
     "outputs",
     "entry_state",
     "exit_state",
+    "metadata",
 )
 
 INTERFACE_DEF_RESERVED_WORDS = [
     "type",
     "inputs",
+    "outputs",
     "operations",
     "notifications",
     "description",
@@ -98,18 +101,38 @@ def _split_inputs(inputs, msg):
         cls = getattr(inputs, "mapCtor", inputs.__class__)
         vals = cls()
         defs = cls()
-        _get_vals(inputs, vals, defs)
+        _set_vals(inputs, vals, defs)
         return vals, defs
 
 
-def _get_vals(inputs, vals, defs):
+def _set_vals(inputs, vals, defs):
     for name, val in inputs.items():
         if isinstance(val, dict) and "type" in val:
             defs[name] = val
             if "default" in val:
                 vals[name] = val["default"]
+            if "mapping" in val:
+                vals[name] = val["mapping"]
         else:
             vals[name] = val
+
+
+def _merge_outputs(old, new):
+    merged = old.copy()
+    if not new:
+        return merged
+    for key, value in new.items():
+        if key in merged:
+            old_value = merged[key]
+            if isinstance(old_value, dict) and not isinstance(value, dict):
+                merged[key] = dict(old_value, mapping=value)
+            elif not isinstance(old_value, dict) and isinstance(value, dict):
+                merged[key] = dict(value, mapping=old_value)
+            else:
+                merged[key] = value
+        else:
+            merged[key] = value
+    return merged
 
 
 class OperationDef:
@@ -125,16 +148,23 @@ class OperationDef:
         inputs=None,
         outputs=None,
         input_defs=None,
+        metadata=None,
     ):
         self.ntype = type_definition
         self.node_template = node_template
+        if node_template and node_template.custom_def:
+            self.custom_def = node_template.custom_def
+        else:
+            self.custom_def = self.ntype.custom_def
         self.interfacename = interfacename
         self.name = name
         self.value = value
+        self.metadata = metadata
         self.implementation = None
         self.invoke = None
         self.input_defs = input_defs
         self._input_props = None
+        self._output_props = None
         if inputs:
             cls = getattr(inputs, "mapCtor", inputs.__class__)
             inputs = cls(inputs)
@@ -186,7 +216,7 @@ class OperationDef:
                             self.inputs = j
                     elif i == OUTPUTS:
                         if self.outputs:
-                            self.outputs.update(j)
+                            self.outputs = _merge_outputs(self.outputs, j)
                         else:
                             self.outputs = j
                     elif i == INVOKE:
@@ -196,13 +226,20 @@ class OperationDef:
                             self.input_defs.update(j)
                         else:
                             self.input_defs = j
+                    elif i == METADATA:
+                        if self.metadata:
+                            self.metadata.update(j)
+                        else:
+                            self.metadata = j
                     elif i not in OPERATION_DEF_RESERVED_WORDS:
                         ExceptionCollector.appendException(
                             UnknownFieldError(what=self._msg, field=i)
                         )
             else:
                 self.implementation = value
-            self.validate_implementation()
+            self.primary = self.validate_implementation()
+        else:
+            self.primary = None
         if not self._source and self.ntype:
             _source = self.ntype.defs.get("_source")
             if isinstance(_source, dict):
@@ -212,16 +249,32 @@ class OperationDef:
 
     def get_declared_inputs(self):
         from toscaparser.properties import Property
+
         if self._input_props is None:
             if not self.input_defs:
                 self._input_props = {}
             else:
                 inputs = self.inputs or {}
                 self._input_props = {
-                    name: Property(name, inputs.get(name), schema, self.ntype.custom_def)
+                    name: Property(name, inputs.get(name), schema, self.custom_def)
                     for name, schema in self.input_defs.items()
                 }
         return self._input_props
+
+    def get_declared_outputs(self):
+        from toscaparser.properties import Property
+
+        if self._output_props is None:
+            if not self.outputs:
+                self._output_props = {}
+            else:
+                self._output_props = {}
+                for name, schema in self.outputs.items():
+                    if isinstance(schema, dict):  # skip if output is just a mapping
+                        self._output_props[name] = Property(
+                            name, None, schema, self.custom_def
+                        )
+        return self._output_props
 
     @property
     def _msg(self):
@@ -239,10 +292,11 @@ class OperationDef:
             )
 
     def validate_implementation(self):
+        primary = None
         if isinstance(self.implementation, dict):
             for key, value in self.implementation.items():
                 if key == PRIMARY:
-                    self.validate_inline_artifact(value)
+                    primary = self.validate_inline_artifact(value)
                 elif key == DEPENDENCIES:
                     if not isinstance(value, list):
                         ExceptionCollector.appendException(
@@ -259,8 +313,11 @@ class OperationDef:
                             what="implementation in " + self._msg, field=key
                         )
                     )
+        return primary
 
     def validate_inline_artifact(self, inline_artifact):
+        from toscaparser.artifacts import Artifact
+
         if isinstance(inline_artifact, dict):
             if "file" not in inline_artifact:
                 ExceptionCollector.appendException(
@@ -268,6 +325,11 @@ class OperationDef:
                         what="inline artifact in " + self._msg, required="file"
                     )
                 )
+            if "type" in inline_artifact:
+                # only create an artifact object if a type was declared
+                # generate name from operation name
+                name = f"__primary_{self.interfacename}_{self.name}"
+                return Artifact(name, inline_artifact, self.custom_def)
             for key in inline_artifact:
                 if key not in INLINE_ARTIFACT_DEF_RESERVED_WORDS:
                     what = (
@@ -277,6 +339,7 @@ class OperationDef:
                         + key
                     )
                     ExceptionCollector.appendException(ValidationError(message=what))
+        return None
 
 
 def create_interfaces(type_definition, template):
@@ -301,7 +364,7 @@ def _create_interfacedefs(type_definition, entity_tpl, msg):
         interfacesDefs = type_definition.interfaces
         if tpl_interfaces:
             return merge_interfacedefs(
-                interfacesDefs, tpl_interfaces, type_definition._source, msg, False
+                interfacesDefs, tpl_interfaces, type_definition._source, msg
             )
         return interfacesDefs
     else:
@@ -312,16 +375,15 @@ def _merge_operations(baseDefs, operations, _source, cls, msg):
     if "operations" in baseDefs:
         baseOps = baseDefs["operations"] or cls()
     else:
-        baseOps = cls(
-            {k: v for k, v in baseDefs.items() if k not in INTERFACE_DEF_RESERVED_WORDS}
-        )
+        baseOps = cls({
+            k: v for k, v in baseDefs.items() if k not in INTERFACE_DEF_RESERVED_WORDS
+        })
 
     for op, op_def in operations.items():
         if op not in baseOps and isinstance(op_def, dict):
             inputs = op_def.get("inputs")
             if inputs:
-                inputs, i_defs = _split_inputs(op_def["inputs"], msg)
-                op_def["inputs"] = inputs
+                op_def["inputs"], i_defs = _split_inputs(op_def["inputs"], msg)
                 if i_defs:
                     op_def["_input_defs"] = i_defs
 
@@ -335,29 +397,40 @@ def _merge_operations(baseDefs, operations, _source, cls, msg):
                 if isinstance(baseDef.get("implementation"), dict) and _source:
                     # if implementation might be an inline artifact, save the baseDir of the source
                     baseDef["implementation"]["_source"] = _source
-                cls2 = getattr(currentiDef, "mapCtor", currentiDef.__class__)
+
                 if "inputs" in currentiDef:
-                    inputs, i_defs = _split_inputs(currentiDef["inputs"], msg)
-                    currentiDef["inputs"] = inputs
+                    currentiDef["inputs"], i_defs = _split_inputs(
+                        currentiDef["inputs"], msg
+                    )
                     if i_defs:
                         currentiDef["_input_defs"] = i_defs
 
-                operations[op] = cls2(baseDef, **currentiDef)
-                if "inputs" in baseDef and "inputs" in currentiDef:
-                    # merge inputs
-                    operations[op]["inputs"] = cls2(
-                        baseDef["inputs"], **currentiDef["inputs"]
+                c_cls = getattr(currentiDef, "mapCtor", currentiDef.__class__)
+                operations[op] = c_cls(baseDef, **currentiDef)
+
+                _merge_input_defs(operations, op, baseDef, currentiDef, c_cls)
+                if "outputs" in baseDef and "outputs" in currentiDef:
+                    operations[op]["outputs"] = _merge_outputs(
+                        baseDef["outputs"], currentiDef["outputs"]
                     )
-                if "_input_defs" in baseDef and "_input_defs" in currentiDef:
-                    # merge input defs
-                    operations[op]["_input_defs"] = cls2(
-                        baseDef["_input_defs"], **currentiDef["_input_defs"]
-                    )
+                elif "outputs" in baseDef:
+                    operations[op]["outputs"] = baseDef["outputs"]
         else:
             operations[op] = baseDef
 
 
-def merge_interfacedefs(base, derived, _source, msg, has_input_defs=True):
+def _merge_input_defs(operations, op, baseDef, currentiDef, cls2):
+    key = "inputs"
+    if key in baseDef and key in currentiDef:
+        # merge inputs
+        operations[op][key] = cls2(baseDef[key], **currentiDef[key])
+    key_defs = "_input_defs"
+    if key_defs in baseDef and key_defs in currentiDef:
+        # merge input defs
+        operations[op][key_defs] = cls2(baseDef[key_defs], **currentiDef[key_defs])
+
+
+def merge_interfacedefs(base, derived, _source, msg, has_defs=True):
     # merge the interfaces defined on the type with the template's interface definitions
     for iName, defs in derived.items():
         if not isinstance(defs, dict):
@@ -365,14 +438,8 @@ def merge_interfacedefs(base, derived, _source, msg, has_input_defs=True):
         # for each interface, see if base defines it too
         cls = getattr(defs, "mapCtor", defs.__class__)
         defs = cls(defs)
-        inputs = defs.get("inputs") or cls()
-        if inputs and has_input_defs:
-            inputs, i_defs = _split_inputs(inputs, msg)
-            defs["inputs"] = inputs
-            if i_defs:
-                defs["_input_defs"] = i_defs
-        else:
-            i_defs = {}
+        inputs, i_defs = _split_defs(msg, has_defs, defs, cls)
+        outputs = defs.get("outputs")
         if "operations" in defs:
             operations = defs["operations"] or cls()
         else:
@@ -381,13 +448,10 @@ def merge_interfacedefs(base, derived, _source, msg, has_input_defs=True):
         baseDefs = base.get(iName)
         if baseDefs:
             # add in base's ops and merge interface-level inputs
-            baseInputs = baseDefs.get("inputs")
-            if baseInputs:  # merge shared inputs
-                defs["inputs"] = cls(baseInputs, **inputs)
-
-            base_input_defs = baseDefs.get("_input_defs")
-            if base_input_defs:  # merge shared inputs
-                defs["_input_defs"] = cls(base_input_defs, **i_defs)
+            _merge_shared_inputs(defs, cls, inputs, i_defs, baseDefs)
+            baseOutputs = baseDefs.get("outputs")
+            if baseOutputs:  # merge shared outputs
+                defs["outputs"] = _merge_outputs(baseOutputs, outputs or {})
 
             # set shared implementation
             implementation = baseDefs.get("implementation")
@@ -403,10 +467,41 @@ def merge_interfacedefs(base, derived, _source, msg, has_input_defs=True):
                 if key in baseDefs and key not in defs:
                     defs[key] = baseDefs[key]
 
+            metadata = baseDefs.get("metadata")
+            if metadata:
+                derived_metadata = defs.get("metadata") or {}
+                defs["metadata"] = cls(metadata, **derived_metadata)
+
         # add or replace the interface with derived
         base[iName] = defs
 
     return base
+
+
+def _merge_shared_inputs(defs, cls, inputs, i_defs, baseDefs):
+    key = "inputs"
+    baseInputs = baseDefs.get(key)
+    if baseInputs:  # merge shared inputs
+        defs[key] = cls(baseInputs, **inputs)
+    elif inputs:
+        defs[key] = inputs
+
+    key_defs = "_input_defs"
+    base_input_defs = baseDefs.get(key_defs)
+    if base_input_defs:  # merge shared input defs
+        defs[key_defs] = cls(base_input_defs, **i_defs)
+
+
+def _split_defs(msg, has_defs, defs, cls):
+    inputs = defs.get("inputs") or cls()
+    if inputs and has_defs:
+        inputs, i_defs = _split_inputs(inputs, msg)
+        defs["inputs"] = inputs
+        if i_defs:
+            defs["_input_defs"] = i_defs
+    else:
+        i_defs = {}
+    return inputs, i_defs
 
 
 def _create_operations(interfacesDefs, type_definition, template):
@@ -415,6 +510,7 @@ def _create_operations(interfacesDefs, type_definition, template):
     defaults = interfacesDefs.pop("defaults", cls())
     defaultInputs = defaults.get("inputs")
     defaultInputsDefs = defaults.get("_input_defs")
+    defaultOutputs = defaults.get("outputs")
     for interface_name, value in interfacesDefs.items():
         cls = getattr(value, "mapCtor", value.__class__)
         # merge in shared:
@@ -433,14 +529,14 @@ def _create_operations(interfacesDefs, type_definition, template):
 
         # shared outputs
         outputs = value.get("outputs")
-        defaultOutputs = defaults.get("outputs")
-        if outputs and defaultOutputs:  # merge shared inputs
-            outputs = cls(defaultOutputs, **outputs)
+        if outputs and defaultOutputs:  # merge shared outputs
+            outputs = _merge_outputs(defaultOutputs, outputs)
         else:
             outputs = outputs or defaultOutputs
 
         # shared implementation
         implementation = value.get("implementation") or defaults.get("implementation")
+        metadata = value.get("metadata")
 
         # create an OperationDef for each operation
         _source = value.pop("_source", None)
@@ -455,7 +551,7 @@ def _create_operations(interfacesDefs, type_definition, template):
             op_def = defs[op]
             if not isinstance(op_def, dict):
                 if op_def == "not_implemented":
-                    continue
+                    continue  # don't create this operation
                 # if empty, copy the shared implementation
                 op_def = cls(implementation=op_def or implementation)
             elif implementation and not op_def.get("implementation"):
@@ -471,6 +567,7 @@ def _create_operations(interfacesDefs, type_definition, template):
                 inputs=inputs,
                 outputs=outputs,
                 input_defs=input_defs,
+                metadata=metadata,
             )
             interfaces.append(iface)
 
@@ -483,11 +580,12 @@ def _create_operations(interfacesDefs, type_definition, template):
                     node_template=template,
                     name=no,
                     value=no_def,
+                    metadata=metadata,
                 )
                 interfaces.append(notification)
 
         # add a "default" operation that has the shared inputs and implementation
-        if inputs or implementation or input_defs:
+        if inputs or implementation or input_defs or outputs:
             iface = OperationDef(
                 type_definition,
                 interface_name,
@@ -497,6 +595,7 @@ def _create_operations(interfacesDefs, type_definition, template):
                 inputs=inputs,
                 outputs=outputs,
                 input_defs=input_defs,
+                metadata=metadata,
             )
             interfaces.append(iface)
     return interfaces

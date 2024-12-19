@@ -18,3 +18,6 @@ node_types:
             type: string
           wp_db_password:
             type: string
+        outputs:
+          wp_db_created:
+            type: integer
