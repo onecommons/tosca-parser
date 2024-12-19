@@ -70,6 +70,8 @@ topology_template:
               wp_db_name: { get_property: [mysql_database, name] }
               wp_db_user: { get_property: [mysql_database, user] }
               wp_db_password: { get_property: [mysql_database, password] }
+            outputs:
+              wp_db_created: db_created
 
     mysql_database:
       type: tosca.nodes.Database
