@@ -33,8 +33,12 @@ SECTIONS = (
     TARGET,
     ORDER,
     CONTENTS,
+    DEPENDENCIES,
+    # Add new built-in properties above ^
+    INTERFACES,
     TYPE,
-    PROPERTIES,  # TYPE and PROPERTIES should be last
+    PROPERTIES,
+    ATTRIBUTES,
 ) = (
     "metadata",
     "description",
@@ -49,8 +53,11 @@ SECTIONS = (
     "target",
     "order",
     "contents",
+    "dependencies",
+    "interfaces",
     "type",
     "properties",
+    "attributes",
 )
 
 log = logging.getLogger("tosca")
@@ -67,7 +74,7 @@ class Artifact(EntityTemplate):
         elif isinstance(artifact, dict) and "type" not in artifact:
             artifact = dict(artifact, type="tosca.artifacts.Root")
         super(Artifact, self).__init__(name, artifact, "artifact_type", custom_def, tosca_template)
-        for key in SECTIONS[:-2]:  # skip "type" and "properties"
+        for key in SECTIONS[:-5]:  # skip syntactical fields
             setattr(self, key, artifact.get(key))
         self._source = base
         if self.metadata:
@@ -83,6 +90,11 @@ class Artifact(EntityTemplate):
     @property
     def file_extensions(self):
         return self.type_definition.file_ext
+
+    @property
+    def dependencies(self):
+        return self.type_definition.get_value(DEPENDENCIES,
+                                              self.entity_tpl, parent=True)
 
     def _validate_required_fields(self, template):
         if "file" not in template:
