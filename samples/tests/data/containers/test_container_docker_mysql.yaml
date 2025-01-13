@@ -31,6 +31,16 @@ topology_template:
             implementation: my_image
             inputs:
               MYSQL_ROOT_PASSWORD: { get_input: mysql_root_pwd }
+          configure:
+            implementation:
+              primary:
+                type: tosca.artifacts.Deployment.Image.Container.Docker
+                file: mysql
+                repository: docker_hub
+                description: A inline artifact
+            inputs:
+              MYSQL_ROOT_PASSWORD: { get_input: mysql_root_pwd }
+
 
     # The properties of the runtime to host the container
     mysql_runtime:

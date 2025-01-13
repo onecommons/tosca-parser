@@ -1078,7 +1078,11 @@ class ToscaTemplateTest(TestCase):
     def test_containers(self):
         tosca_tpl = TestCase.test_sample(
             "data/containers/test_container_docker_mysql.yaml")
-        ToscaTemplate(tosca_tpl, parsed_params={"mysql_root_pwd": "12345678"})
+        t = ToscaTemplate(tosca_tpl, parsed_params={"mysql_root_pwd": "12345678"})
+        node = t.topology_template.node_templates["mysql_container"]
+        interfaces = node.interfaces
+        assert interfaces[0].name == "create" and not interfaces[0].primary
+        assert interfaces[1].name == "configure" and interfaces[1].primary
 
     def test_endpoint_on_compute(self):
         tosca_tpl = TestCase.test_sample("data/test_endpoint_on_compute.yaml")
