@@ -504,12 +504,19 @@ def _split_defs(msg, has_defs, defs, cls):
     return inputs, i_defs
 
 
-def _create_operations(interfacesDefs, type_definition, template):
+def create_operations(interfacesDefs, type_definition, template):
+    return _create_operations(interfacesDefs, type_definition, template, True)
+
+
+def _create_operations(interfacesDefs, type_definition, template, split_inputs=False):
     interfaces = []
     cls = getattr(interfacesDefs, "mapCtor", interfacesDefs.__class__)
     defaults = interfacesDefs.pop("defaults", cls())
-    defaultInputs = defaults.get("inputs")
-    defaultInputsDefs = defaults.get("_input_defs")
+    if split_inputs and defaults.get("inputs"):
+        defaultInputs, defaultInputsDefs = _split_inputs(defaults["inputs"], "")
+    else:
+        defaultInputs = defaults.get("inputs")
+        defaultInputsDefs = defaults.get("_input_defs")
     defaultOutputs = defaults.get("outputs")
     for interface_name, value in interfacesDefs.items():
         cls = getattr(value, "mapCtor", value.__class__)
@@ -521,7 +528,10 @@ def _create_operations(interfacesDefs, type_definition, template):
         else:
             inputs = inputs or defaultInputs
 
-        input_defs = value.pop("_input_defs", None)
+        if split_inputs and inputs:
+            inputs, input_defs = _split_inputs(inputs, "")
+        else:
+            input_defs = value.pop("_input_defs", None)
         if input_defs and defaultInputsDefs:  # merge shared inputs
             input_defs = cls(defaultInputsDefs, **inputs)
         else:
@@ -558,6 +568,10 @@ def _create_operations(interfacesDefs, type_definition, template):
                 op_def["implementation"] = implementation
             if _source:
                 op_def["_source"] = _source
+            if split_inputs and op_def.get("inputs"):
+                op_def["inputs"], i_defs = _split_inputs(op_def["inputs"], "")
+                if i_defs:
+                    op_def["_input_defs"] = i_defs
             iface = OperationDef(
                 type_definition,
                 interface_name,
