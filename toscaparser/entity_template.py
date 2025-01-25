@@ -410,6 +410,24 @@ class EntityTemplate(object):
                 props.append(prop)
         return props
 
+    def update_property(self, name, value):
+        if self._properties_tpl is not None:
+            self._properties_tpl[name] = value
+        if self._properties is not None:
+            props = self.get_properties()
+            if name in props:
+                props[name].value = value
+            elif self.type_definition:
+                prop_def = self.type_definition.get_properties_def().get(name)
+                if prop_def:
+                    prop = Property(
+                        prop_def.name,
+                        value,
+                        prop_def.schema,
+                        self.custom_def,
+                    )
+                    self._properties.append(prop)
+
     @staticmethod
     def _create_interfaces(type_definition, template):
         return create_interfaces(type_definition, template)
