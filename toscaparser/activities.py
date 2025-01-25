@@ -58,6 +58,16 @@ class Precondition(object):
             self._condition = list(ConditionClause.getConditions(self.precondition_tpl.get(CONDITION, [])))
         return self._condition
 
+def value_to_type(value):
+  if isinstance(value, str):
+      m = scalarunit.scalar_pattern.match(value)
+      if m and m.groups()[1]:
+          return scalarunit.scalar_type_from_unit(m.groups()[1]) or "number"
+  for py_type, tosca_type in Schema.PYTHON_TO_PROPERTY_TYPES.items():
+      if isinstance(value, py_type):
+          return tosca_type
+  return None
+
 class ConditionClause(object):
 
   def __init__(self, name, definition, datatype=None):
@@ -78,14 +88,7 @@ class ConditionClause(object):
     ctype, value = next(iter(constraint.items()))
     if isinstance(value, list) and ctype == "in_range":
         value = value[0]
-    if isinstance(value, str):
-        m = scalarunit.scalar_pattern.match(value)
-        if m and m.groups()[1]:
-            return scalarunit.scalar_type_from_unit(m.groups()[1]) or "number"
-    for py_type, tosca_type in Schema.PYTHON_TO_PROPERTY_TYPES.items():
-        if isinstance(value, py_type):
-            return tosca_type
-    return None
+    return value_to_type(value)
 
   def evaluate(self, attributes):
     if self.name == 'not':
