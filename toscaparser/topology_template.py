@@ -30,6 +30,7 @@ from toscaparser.common.exception import ValidationError
 from toscaparser.elements.statefulentitytype import StatefulEntityType
 from toscaparser.elements.artifacttype import ArtifactTypeDef
 from toscaparser.elements.relationshiptype import RelationshipType
+from toscaparser.elements.capabilitytype import CapabilityType
 from toscaparser.elements.nodetype import NodeType
 from toscaparser.elements.entity_type import EntityType, Namespace
 
@@ -536,6 +537,8 @@ def find_type(typename: str, custom_defs, namespace_id=None):
         typedef = RelationshipType(typename, custom_defs)
     elif test_typedef.is_derived_from("tosca.artifacts.Root"):
         typedef = ArtifactTypeDef(typename, custom_defs)
+    elif test_typedef.is_derived_from(CapabilityType.TOSCA_TYPEURI_CAPABILITY_ROOT):
+        typedef = CapabilityType("", typename, custom_defs)
     else:
         typedef = test_typedef
     EntityType.add_type(typename, typedef)

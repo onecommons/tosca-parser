@@ -158,7 +158,7 @@ class NodeType(StatefulEntityType):
                 custom_def = self.custom_def
                 if namespace_id and isinstance(self.custom_def, Namespace):
                     custom_def = self.custom_def.find_namespace(namespace_id)
-                cap = CapabilityType(name, ctype, self.type, custom_def)
+                cap = CapabilityType(name, ctype, custom_def)
                 typecapabilities.append(cap)
         return typecapabilities
 

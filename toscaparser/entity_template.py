@@ -200,7 +200,7 @@ class EntityTemplate(object):
     def _create_capability(self, capabilitydefs, name, ctype, props):
         c = capabilitydefs.get(name)
         if ctype and (not c or ctype != c.type):
-            c = CapabilityType(name, ctype, self.type_definition.type,
+            c = CapabilityType(name, ctype,
                                     self.type_definition.custom_def)
         properties = {}
         # first use the definition default value

@@ -18,11 +18,10 @@ class CapabilityType(StatefulEntityType):
     '''TOSCA built-in capabilities type.'''
     TOSCA_TYPEURI_CAPABILITY_ROOT = 'tosca.capabilities.Root'
 
-    def __init__(self, name, ctype, ntype, custom_def=None):
+    def __init__(self, name, ctype, custom_def=None):
         self.name = name
         super(CapabilityType, self).__init__(ctype, self.CAPABILITY_PREFIX,
                                                 custom_def)
-        self.nodetype = ntype
 
     @property
     def parent_type(self):
@@ -32,4 +31,4 @@ class CapabilityType(StatefulEntityType):
         pnode = self.derived_from(self.defs)
         if pnode:
             return CapabilityType(self.name, pnode,
-                                     self.nodetype, self.custom_def)
+                                     self.custom_def)
