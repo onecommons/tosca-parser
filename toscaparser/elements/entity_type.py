@@ -238,11 +238,11 @@ class EntityType(object):
 
     def _ancestors(self, seen=None):
         if seen is None:
-            seen = {self.type}
+            seen = {self.global_name}
             yield self
         for p in self.parent_types():
-            if p.type not in seen:
-                seen.add(p.type)
+            if p.global_name not in seen:
+                seen.add(p.global_name)
                 yield p
                 for p in p._ancestors(seen):
                     yield p

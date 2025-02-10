@@ -45,7 +45,6 @@ class StatefulEntityType(EntityType):
     def __init__(self, entitytype, prefix, custom_def=None):
         entire_entitytype = entitytype
         custom = False
-        source = None
         if not isinstance(entitytype, str):
             ExceptionCollector.appendException(TypeMismatchError(
                                                what=entitytype,
@@ -74,9 +73,8 @@ class StatefulEntityType(EntityType):
                 ExceptionCollector.appendException(
                     MissingTypeError(what=entitytype))
             self.type = entitytype
-        if not source:
-            self.global_name = self.type
-            source = self.defs and self.defs.get("_source") or None
+        self.global_name = self.type
+        source = self.defs and self.defs.get("_source") or None
         self.local_name = self.type
         local_namespace_id = False
         if isinstance(source, dict):
@@ -152,12 +150,26 @@ class StatefulEntityType(EntityType):
             if parent:
                 yield parent
 
+    def super(self, next):
+        if not next or next.global_name == self.global_name:
+            return self.parent_type
+        found = False
+        for parent in self._ancestors():
+            if parent is self:
+                continue
+            if found:
+                return parent
+            if parent.global_name == next.global_name:
+                found = True
+        return None
+
     @property
     def parent_type(self):
         prel = self.derived_from(self.defs)
         if prel:
             # prefix is only used to expand "tosca:Type"
             return StatefulEntityType(prel, self.NODE_PREFIX, custom_def=self.custom_def)
+        return None
 
     def _implements(self, type_str):
         # for backwards compatibility compare the local_name (the unprefixed name)
