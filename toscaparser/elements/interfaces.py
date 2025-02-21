@@ -149,6 +149,7 @@ class OperationDef:
         outputs=None,
         input_defs=None,
         metadata=None,
+        notification=False,
     ):
         self.ntype = type_definition
         self.node_template = node_template
@@ -160,6 +161,7 @@ class OperationDef:
         self.name = name
         self.value = value
         self.metadata = metadata
+        self.notification = notification
         self.implementation = None
         self.invoke = None
         self.input_defs = input_defs
@@ -547,21 +549,14 @@ def _create_operations(interfacesDefs, type_definition, template, split_inputs=F
         # shared implementation
         implementation = value.get("implementation") or defaults.get("implementation")
         metadata = value.get("metadata")
-
-        # create an OperationDef for each operation
         _source = value.pop("_source", None)
-        if "operations" in value:
-            defs = value.get("operations") or cls()
-        else:
-            defs = value
 
-        for op in list(defs):
-            if op in INTERFACE_DEF_RESERVED_WORDS:
-                continue
-            op_def = defs[op]
+        def _create_operationdef(
+            operation_name, op_def, inputs, input_defs, notification
+        ):
             if not isinstance(op_def, dict):
                 if op_def == "not_implemented":
-                    continue  # don't create this operation
+                    return None  # don't create this operation
                 # if empty, copy the shared implementation
                 op_def = cls(implementation=op_def or implementation)
             elif implementation and not op_def.get("implementation"):
@@ -572,35 +567,42 @@ def _create_operations(interfacesDefs, type_definition, template, split_inputs=F
                 op_def["inputs"], i_defs = _split_inputs(op_def["inputs"], "")
                 if i_defs:
                     op_def["_input_defs"] = i_defs
-            iface = OperationDef(
+            return OperationDef(
                 type_definition,
                 interface_name,
                 node_template=template,
-                name=op,
+                name=operation_name,
                 value=op_def,
                 inputs=inputs,
                 outputs=outputs,
                 input_defs=input_defs,
                 metadata=metadata,
+                notification=notification,
             )
-            interfaces.append(iface)
+
+        if "operations" in value:
+            defs = value.get("operations") or cls()
+        else:
+            defs = value
+
+        for op_name in list(defs):
+            if op_name in INTERFACE_DEF_RESERVED_WORDS:
+                continue
+            op_def = defs[op_name]
+            op = _create_operationdef(op_name, op_def, inputs, input_defs, False)
+            if op:
+                interfaces.append(op)
 
         notifications = value.get("notifications")
         if notifications:
             for no, no_def in notifications.items():
-                notification = OperationDef(
-                    type_definition,
-                    interface_name,
-                    node_template=template,
-                    name=no,
-                    value=no_def,
-                    metadata=metadata,
-                )
-                interfaces.append(notification)
+                notification = _create_operationdef(no, no_def, None, None, True)
+                if notification:
+                    interfaces.append(notification)
 
         # add a "default" operation that has the shared inputs and implementation
         if inputs or implementation or input_defs or outputs:
-            iface = OperationDef(
+            op = OperationDef(
                 type_definition,
                 interface_name,
                 node_template=template,
@@ -611,5 +613,5 @@ def _create_operations(interfacesDefs, type_definition, template, split_inputs=F
                 input_defs=input_defs,
                 metadata=metadata,
             )
-            interfaces.append(iface)
+            interfaces.append(op)
     return interfaces
