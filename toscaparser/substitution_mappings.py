@@ -88,7 +88,7 @@ class SubstitutionMappings(object):
             return None
         tpl = dict(type=self.node_type.type, properties=self.properties)
         # XXX capabilities, requirements, attributes
-        return self.topology.add_template("_substitution_mapping", tpl, False)
+        return self.topology.add_node_template("_substitution_mapping", tpl, False)
 
     def substitute(self, nodetemplate, remaining_topologies):
         if nodetemplate:

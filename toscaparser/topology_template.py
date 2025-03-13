@@ -126,7 +126,7 @@ class TopologyTemplate(object):
                 nodetemplates[name] = tpl
         return nodetemplates
 
-    def add_template(self, name, tpl, get_relationships=True):
+    def add_node_template(self, name, tpl, get_relationships=True):
         # if name in self.node_templates:
         #     exception.ExceptionCollector.appendException(
         #           exception.ValidationError(message=
@@ -146,6 +146,12 @@ class TopologyTemplate(object):
             node.relationships
         self.node_templates[name] = node
         return node
+
+    def add_relationship_template(self, name, tpl):
+        self.tpl.setdefault(RELATIONSHIP_TEMPLATES, {})[name] = tpl
+        rel_template = RelationshipTemplate(tpl, name, self.custom_defs)
+        self.relationship_templates[name] = rel_template
+        return rel_template
 
     def _relationship_templates(self):
         rel_templates = {}
