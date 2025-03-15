@@ -925,6 +925,16 @@ data_types:
   tosca.datatypes.xml:
     type: string
 
+  tosca.datatypes.TimeInterval:
+    derived_from: tosca.datatypes.Root
+    properties:
+      start_time:
+        type: timestamp
+        required: true
+      end_time:
+        type: timestamp
+        required: true
+
 ##########################################################################
 # Artifact Type.
 # An Artifact Type is a reusable entity that defines the type of one or more
