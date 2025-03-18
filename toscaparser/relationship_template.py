@@ -16,24 +16,39 @@ from toscaparser.elements.statefulentitytype import StatefulEntityType
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.elements.entity_type import Namespace
 
-log = logging.getLogger('tosca')
+log = logging.getLogger("tosca")
 
 
 class RelationshipTemplate(EntityTemplate):
-    '''Relationship template.'''
+    """Relationship template."""
 
-    SECTIONS = (DERIVED_FROM, PROPERTIES, REQUIREMENTS,
-                INTERFACES, TYPE, DEFAULT_FOR, DEPENDENCIES, DIRECTIVES) = \
-               ('derived_from', 'properties', 'requirements', 'interfaces',
-                 'type', 'default_for', 'dependencies', 'directives')
-    ANY = 'ANY'
+    SECTIONS = (
+        DERIVED_FROM,
+        PROPERTIES,
+        REQUIREMENTS,
+        INTERFACES,
+        TYPE,
+        DEFAULT_FOR,
+        DEPENDENCIES,
+        DIRECTIVES,
+    ) = (
+        "derived_from",
+        "properties",
+        "requirements",
+        "interfaces",
+        "type",
+        "default_for",
+        "dependencies",
+        "directives",
+    )
+    ANY = "ANY"
 
-    def __init__(self, relationship_template, name, custom_def=None,
-                 target=None, source=None):
-        super(RelationshipTemplate, self).__init__(name,
-                                                   relationship_template,
-                                                   'relationship_type',
-                                                   custom_def)
+    def __init__(
+        self, relationship_template, name, custom_def=None, target=None, source=None
+    ):
+        super(RelationshipTemplate, self).__init__(
+            name, relationship_template, "relationship_type", custom_def
+        )
         self.name = name
         self.target = target
         self.source = source
@@ -97,3 +112,13 @@ class RelationshipTemplate(EntityTemplate):
             if featureCap:
                 return [featureCap]
         return capabilities
+
+    def is_default_connection(self):
+        return self.default_for == "SELF"
+
+    @staticmethod
+    def _is_default_connection(value):
+        return (
+            isinstance(value.get("relationship"), dict)
+            and value["relationship"].get("default_for") == "SELF"
+        )

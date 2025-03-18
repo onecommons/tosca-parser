@@ -78,7 +78,7 @@ class NodeTemplate(EntityTemplate):
             self._all_requirements = []
             # self.requirements is from the yaml
             requires = self.requirements
-            type_requirements = self.type_definition.requirement_definitions
+            type_requirements = self.type_definition.requirement_definitions if self.type_definition else {}
             names = []
             if requires and isinstance(requires, list):
                 for r in requires:
@@ -86,10 +86,14 @@ class NodeTemplate(EntityTemplate):
                     names.append(name)
                     if isinstance(value, str):
                         value = dict(node=value)
+                    elif RelationshipTemplate._is_default_connection(value):
+                        continue  # don't include these
                     self._all_requirements.append((name, value))
 
             # add requirements on the type definition that were not defined by the template
             for name, req_on_type in type_requirements.items():
+                if RelationshipTemplate._is_default_connection(req_on_type):
+                    continue  # don't include these
                 if name not in names:
                     self._all_requirements.append((name, {}))
         return self._all_requirements
@@ -156,7 +160,7 @@ class NodeTemplate(EntityTemplate):
                     match = False
                     node = req_on_type.get('node')
                     is_template = node and self.find_node_related_template(node, req_on_type.get("!namespace-node"))
-                    if is_template:
+                    if is_template or RelationshipTemplate._is_default_connection(req_on_type):
                         relTpl = self._relationship_from_req(name, req_on_type, None)
                         if relTpl:
                             match = True
@@ -344,8 +348,9 @@ class NodeTemplate(EntityTemplate):
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == rel_type, (relationship, rel_type)
             relTpl = RelationshipTemplate(relationship, name, rel_type_namespace)
-
         relTpl.source = self
+        if relTpl.is_default_connection():
+            return relTpl
 
         node = reqDef.get('node')
         node_filter = reqDef.get('node_filter')
