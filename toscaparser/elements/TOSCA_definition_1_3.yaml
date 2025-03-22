@@ -51,21 +51,33 @@ node_types:
     properties:
       name:
         type: string
+        description: >
+          The logical name of the store (or container).
       size:
         type: scalar-unit.size
         default: 0 MB
         constraints:
           - greater_or_equal: 0 MB
+        description: >
+          The requested initial storage size.
 
   tosca.nodes.Storage.BlockStorage:
     derived_from: tosca.nodes.Abstract.Storage
+    description: >
+      The TOSCA BlockStorage node currently represents a server-local block storage device (i.e., not shared)
+      offering evenly sized blocks of data from which raw storage volumes can be created.
     properties:
+      name:
+        type: string
+        default: ""
       volume_id:
         type: string
         required: false
+        description: ID of an existing volume (that is in the accessible scope of the requesting application).
       snapshot_id:
         type: string
         required: false
+        description: Some identifier that represents an existing snapshot that should be used when creating the block storage (volume).
     attributes:
       volume_id:
         type: string
@@ -73,24 +85,35 @@ node_types:
       attachment:
         type: tosca.capabilities.Attachment
 
-  # for backwards compatibility:
   tosca.nodes.BlockStorage:
     derived_from: tosca.nodes.Storage.BlockStorage
-    properties:
-      name:
-        type: string
-        default: ""
+    metadata:
+      alias: true
+      deprecated: true
 
   tosca.nodes.Storage.ObjectStorage:
     derived_from: tosca.nodes.Abstract.Storage
+    description: >
+      The TOSCA ObjectStorage node represents storage that provides the ability
+      to store data as objects (or BLOBs of data) without consideration for the
+      underlying filesystem or devices
     properties:
       maxsize:
         type: scalar-unit.size
+        required: false
         constraints:
           - greater_or_equal: 0 GB
+        description: >
+          The requested maximum storage size.
     capabilities:
       storage_endpoint:
         type: tosca.capabilities.Endpoint
+
+  tosca.nodes.ObjectStorage:
+    derived_from: tosca.nodes.Storage.ObjectStorage
+    metadata:
+      alias: true
+      deprecated: true
 
   tosca.nodes.Abstract.Compute:
     derived_from: tosca.nodes.Root
@@ -393,36 +416,6 @@ node_types:
           capability: tosca.capabilities.network.Linkable
           relationship: tosca.relationships.network.LinksTo
           node: tosca.nodes.network.Port
-
-  tosca.nodes.ObjectStorage:
-    derived_from: tosca.nodes.Root
-    description: >
-      The TOSCA ObjectStorage node represents storage that provides the ability
-      to store data as objects (or BLOBs of data) without consideration for the
-      underlying filesystem or devices
-    properties:
-      name:
-        type: string
-        required: true
-        description: >
-          The logical name of the object store (or container).
-      size:
-        type: scalar-unit.size
-        required: false
-        constraints:
-          - greater_or_equal: 0 GB
-        description: >
-          The requested initial storage size.
-      maxsize:
-        type: scalar-unit.size
-        required: false
-        constraints:
-          - greater_or_equal: 0 GB
-        description: >
-          The requested maximum storage size.
-    capabilities:
-      storage_endpoint:
-        type: tosca.capabilities.Endpoint
 
   tosca.nodes.LoadBalancer:
     derived_from: tosca.nodes.Root
@@ -787,7 +780,7 @@ interface_types:
   tosca.interfaces.Root:
     description: >
       The TOSCA root Interface Type all other TOSCA Interface types derive from
-  
+
   tosca.interfaces.node.lifecycle.Standard:
     operations:
       create:
