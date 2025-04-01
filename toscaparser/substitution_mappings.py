@@ -72,7 +72,8 @@ class SubstitutionMappings(object):
         self._requirements = None
         self._properties = None
         self._node_template = None  # inner node
-        self._outer_relationships = {}
+        self._outer_relationships = {}  # requirements on outer node
+        self._outer_nodes = {} # outer nodes => replaced inner nodes
         self.substituted = 0
         self._validate()
 
@@ -190,13 +191,13 @@ class SubstitutionMappings(object):
                 return [next(iter(r)) for r in node.requirements]
         return []  # XXX extract from requirement mapping
 
-    def add_relationship(self, name, reqDef, rel):
+    def add_relationship(self, req_name, reqDef, outer_rel):
         # this is called in NodeTemplate.relationships by the outer node template
         # (always called before self._update_requirements)
-        self._outer_relationships.setdefault(name, []).append((name, reqDef, rel))
+        self._outer_relationships.setdefault(req_name, []).append((req_name, reqDef, outer_rel))
 
     def maybe_substitute(self, node, capability):
-        if node.name in self._outer_relationships:
+        if node.name in self._outer_relationships:  # inner node name matches outer requirement name
             requirement_name = node.name
             name, reqDef, rel = self._outer_relationships[requirement_name][0]
             if rel and rel.target:
@@ -205,6 +206,7 @@ class SubstitutionMappings(object):
                 log.debug(
                     f"replaced {requirement_name} on {node.name} with {rel.target.name}"
                 )
+                self._outer_nodes[rel.target.name] = node.name
                 return rel.target, capability
         return node, capability
 
