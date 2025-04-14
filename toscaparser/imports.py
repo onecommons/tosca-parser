@@ -54,6 +54,8 @@ def is_url(url):
 def normalize_path(path):
     "Convert file URLs to paths and expand user"
     if path.startswith("file:"):
+        if "#" in path:  # treat like an URL, so don't strip file: scheme
+            return path
         path = path[len("file:") :]
         if path and path[0] == "/":
             path = "/" + path.lstrip("/")  # make sure there's only one /
