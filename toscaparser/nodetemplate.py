@@ -603,12 +603,13 @@ class NodeTemplate(EntityTemplate):
                 ExceptionCollector.appendException(
                     ValidationError(message=msg))
 
-    def _validate_nodefilter_filter(self, node_filter, cap_label=''):
+    @staticmethod
+    def _validate_nodefilter_filter(node_filter, name, cap_label=''):
         if cap_label:
-            name = 'capability "%s" on nodefilter on template "%s"' % (cap_label, self.name)
+            name = 'capability "%s" on nodefilter on template "%s"' % (cap_label, name)
         else:
-            name = 'nodefilter on template "%s"' % self.name
-        return self.validate_filter(node_filter, name)
+            name = 'nodefilter on template "%s"' % name
+        return NodeTemplate.validate_filter(node_filter, name)
 
     @staticmethod
     def validate_filter(node_filter, name):
@@ -644,33 +645,49 @@ class NodeTemplate(EntityTemplate):
         return valid
 
     def _validate_nodefilter(self, node_filter):
-        valid = True
-        if not self._validate_nodefilter_filter(node_filter):
+        return self.validate_nodefilter(node_filter, self.name)
+
+    @staticmethod
+    def validate_nodefilter(node_filter, name):
+        if not isinstance(node_filter, dict):
+            ExceptionCollector.appendException(
+                TypeMismatchError(
+                    what="nodefilter in template " + name,
+                    type='dict'))
             return False
+        valid = NodeTemplate._validate_nodefilter_filter(node_filter, name)
+        if 'match' in node_filter:
+            propfilters = node_filter['match']
+            if not isinstance(propfilters, list):
+                ExceptionCollector.appendException(
+                    TypeMismatchError(
+                        what='"match" in nodefilter of template %s' % name,
+                        type='list'))
+                valid = False
 
         capfilters = node_filter.get('capabilities')
         if capfilters:
             if not isinstance(capfilters, list):
                 ExceptionCollector.appendException(
                     TypeMismatchError(
-                        what='"capabilities" of nodefilter in template "%s"' % self.name,
+                        what='"capabilities" of nodefilter in template "%s"' % name,
                         type='list'))
                 return False
             for capfilter in capfilters:
                 if not isinstance(capfilter, dict):
                     ExceptionCollector.appendException(
                         TypeMismatchError(
-                            what='capabilities list item on nodefilter in template "%s"' % self.name,
+                            what='capabilities list item on nodefilter in template "%s"' % name,
                             type='dict'))
                     valid = False
                     continue
                 if len(capfilter) != 1:
-                    msg = _('Invalid nodefilter on template "%s": only one capability name per list item') % self.name
+                    msg = _('Invalid nodefilter on template "%s": only one capability name per list item') % name
                     ExceptionCollector.appendException(ValidationError(message=msg))
                     valid = False
                     continue
-                name, filter = list(capfilter.items())[0]
-                if not self._validate_nodefilter_filter(filter, name):
+                cap_name, filter = list(capfilter.items())[0]
+                if not NodeTemplate._validate_nodefilter_filter(filter, name, cap_name):
                     valid = False
         return valid
 
