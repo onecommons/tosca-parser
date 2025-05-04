@@ -408,11 +408,17 @@ class NodeTemplate(EntityTemplate):
             if min_required == 0:
                 return None
             if node:
-                if not node_on_template and ("@" in node_typename or node_typename in NodeType.TOSCA_DEF):
+                is_type = ("@" in node_typename or node_typename in NodeType.TOSCA_DEF)
+                if not node_on_template and is_type:
                     # not an error if "node" wasn't explicitly declared on the template and "node" referenced a type name
                     msg = None
                 else:
-                    msg = _('Could not find target template "%(node)s"'
+                    if is_type:
+                        msg = _('Could not find match for type "%(node)s"'
+                                  ' on requirement "%(rname)s"'
+                                ) % {'node': node, 'rname': name}
+                    else:
+                        msg = _('Could not find target template "%(node)s"'
                               ' for requirement "%(rname)s"'
                             ) % {'node': node, 'rname': name}
             else:

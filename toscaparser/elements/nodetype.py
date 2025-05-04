@@ -68,9 +68,8 @@ class NodeType(StatefulEntityType):
         pnode = self.derived_from(self.defs)
         if pnode:
             if pnode == self.type:
-                # circular reference
                 ExceptionCollector.appendException(
-                    InvalidTypeError(what=self.type))
+                    InvalidTypeDefinition(type=self.type, what="derived_from has circular reference"))
                 return None
             return NodeType(pnode, self.custom_def)
         elif self.type != "tosca.nodes.Root":
