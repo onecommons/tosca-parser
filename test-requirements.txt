@@ -3,7 +3,7 @@
 # process, which may cause wedges in the gate later.
 hacking==4.0.0 # Apache-2.0
 coverage==6.4.2
-fixtures==4.0.1
+fixtures==4.2.5
 oslotest==4.5.0
 python-subunit==1.4.0
 testscenarios
