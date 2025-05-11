@@ -940,6 +940,10 @@ class ToscaTemplateTest(TestCase):
                   properties:
                     - public_ports:
                         q: true
+                  capabilities:
+                    - app_endpoint:
+                        properties:
+                          - secure: true
                   requirements:
                       - host:
                           node_filter:
@@ -956,6 +960,14 @@ class ToscaTemplateTest(TestCase):
             requirements:
               - container:
                   node_filter:
+                    capabilities:
+                      - context_root:
+                          properties:
+                            - context_root:
+                                q: /web_root
+                      - app_endpoint:
+                          properties:
+                            - secure: false
                     requirements:
                     - host:
                         node_filter:
@@ -973,11 +985,22 @@ class ToscaTemplateTest(TestCase):
         reqDef = NodeType.merge_requirement_definition(typeReqDef, tplReqDef)
         assert reqDef == {
             "node_filter": {
+                "properties": [{"public_ports": {"q": True}}],
+                "capabilities": [
+                    {
+                        "context_root": {
+                            "properties": [{"context_root": {"q": "/web_root"}}]
+                        }
+                    },
+                    {"app_endpoint": [{"secure": False}]},
+                ],
                 "requirements": [
                     {
                         "host": {
                             "node_filter": {
-                                "match": [{"get_nodes_of_type": "tosca.nodes.WebApplication"}],
+                                "match": [
+                                    {"get_nodes_of_type": "tosca.nodes.WebApplication"}
+                                ],
                                 "requirements": [
                                     {
                                         "host": {
@@ -993,12 +1016,11 @@ class ToscaTemplateTest(TestCase):
                                             },
                                         }
                                     }
-                                ]
+                                ],
                             }
                         }
                     }
                 ],
-                "properties": [{"public_ports": {"q": True}}],
             },
             "relationship": {"type": "tosca.relationships.Root"},
         }, reqDef

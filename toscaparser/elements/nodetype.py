@@ -40,6 +40,8 @@ def _merge_dict_lists(base, current, mergefn=None):
             merged[index] = {key: mergefn(item[key], current[index][key])}
     return merged
 
+def _merge_cap_list(base, current):
+    return _merge_dict_lists(base["properties"], current["properties"])
 
 class NodeType(StatefulEntityType):
     '''TOSCA built-in node type.'''
@@ -176,19 +178,25 @@ class NodeType(StatefulEntityType):
             return dict(node=base, **current)
         else:
             tpl = dict(base, **current)
-        if base.get('node_filter') and current.get('node_filter'):
+        if base.get("node_filter") and current.get("node_filter"):
             tpl["node_filter"] = {}
             bfilters = base["node_filter"]
             cfilters = current["node_filter"]
-            for key in ["requirements", "properties", "match"]:
+            for key, mergefn in {
+                "requirements": NodeType.merge_requirement_definition,
+                "properties": None,
+                "match": None,
+                "capabilities": _merge_cap_list,
+            }.items():
                 if bfilters.get(key):
-                    mergefn = NodeType.merge_requirement_definition if key == "requirements" else None
-                    tpl["node_filter"][key] = _merge_dict_lists(bfilters[key], cfilters.get(key, []), mergefn)
+                    tpl["node_filter"][key] = _merge_dict_lists(
+                        bfilters[key], cfilters.get(key, []), mergefn
+                    )
                 elif key in cfilters:
                     tpl["node_filter"][key] = cfilters[key]
-        if base.get('metadata') and current.get('metadata'):
+        if base.get("metadata") and current.get("metadata"):
             # merge metadata
-            tpl['metadata'] = dict(base['metadata'], **current['metadata'])
+            tpl["metadata"] = dict(base["metadata"], **current["metadata"])
         return tpl
 
     def get_all_requirements(self):
