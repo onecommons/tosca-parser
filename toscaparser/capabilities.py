@@ -19,22 +19,25 @@ class Capability(object):
     def __init__(self, name, properties, definition, custom_def=None):
         self.name = name
         self._properties = properties
+        self._properties_objects = None
         self.type_definition = definition
         self.custom_def = custom_def
         self.type = definition.type
 
     def get_properties_objects(self):
         '''Return a list of property objects.'''
-        properties = []
-        props = self._properties
-        if props:
-            for name, value in props.items():
-                props_def = self.type_definition.get_properties_def()
-                if props_def and name in props_def:
-                    properties.append(Property(name, value,
-                                               props_def[name].schema,
-                                               self.custom_def))
-        return properties
+        if self._properties_objects is None:
+            properties = []
+            props = self._properties
+            if props:
+                for name, value in props.items():
+                    props_def = self.type_definition.get_properties_def()
+                    if props_def and name in props_def:
+                        properties.append(Property(name, value,
+                                                  props_def[name].schema,
+                                                  self.custom_def))
+            self._properties_objects = properties
+        return self._properties_objects
 
     def get_properties(self):
         '''Return a dictionary of property name-object pairs.'''
@@ -46,6 +49,24 @@ class Capability(object):
         props = self.get_properties()
         if props and name in props:
             return props[name].value
+
+    def builtin_properties(self):
+        return {}
+
+    def update_property(self, name, value):
+        props = self.get_properties()
+        if name in props:
+            props[name].value = value
+        elif self.type_definition:
+            prop_def = self.type_definition.get_properties_def().get(name)
+            if prop_def:
+                prop = Property(
+                    prop_def.name,
+                    value,
+                    prop_def.schema,
+                    self.custom_def,
+                )
+                self._properties_objects.append(prop)
 
     def is_derived_from(self, type_str):
         '''Check if object inherits from the given type.
