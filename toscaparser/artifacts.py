@@ -17,6 +17,7 @@ from toscaparser.common.exception import UnknownFieldError
 from toscaparser.common.exception import MissingRequiredFieldError
 from toscaparser.entity_template import EntityTemplate
 from toscaparser.utils import validateutils
+from toscaparser.properties import Property
 
 # 3.6.7 Artifact definition p84
 SECTIONS = (
@@ -31,8 +32,8 @@ SECTIONS = (
     PERMISSIONS,
     INTENT,
     TARGET,
-    ORDER,
     CONTENTS,
+    ORDER,
     DEPENDENCIES,
     # Add new built-in properties above ^
     INTERFACES,
@@ -51,8 +52,8 @@ SECTIONS = (
     "permissions",
     "intent",
     "target",
-    "order",
     "contents",
+    "order",
     "dependencies",
     "interfaces",
     "type",
@@ -81,6 +82,14 @@ class Artifact(EntityTemplate):
             validateutils.validate_map(self.metadata)
         # XXX validate file ext matches type definition
         self._validate_required_fields(artifact)
+
+    def builtin_properties(self):
+      return {name: Property(
+                        name,
+                        getattr(self, name),
+                        dict(type="integer" if name == "order" else "string"),
+                        self.custom_def,
+                    ) for name in SECTIONS[2:-5]}
 
     @property
     def mime_type(self):

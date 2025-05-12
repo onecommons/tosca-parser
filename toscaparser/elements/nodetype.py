@@ -187,6 +187,7 @@ class NodeType(StatefulEntityType):
                 "properties": None,
                 "match": None,
                 "capabilities": _merge_cap_list,
+                "artifacts": _merge_cap_list,
             }.items():
                 if bfilters.get(key):
                     tpl["node_filter"][key] = _merge_dict_lists(

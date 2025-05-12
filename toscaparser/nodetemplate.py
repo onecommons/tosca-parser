@@ -612,7 +612,7 @@ class NodeTemplate(EntityTemplate):
     @staticmethod
     def _validate_nodefilter_filter(node_filter, name, cap_label=''):
         if cap_label:
-            name = 'capability "%s" on nodefilter on template "%s"' % (cap_label, name)
+            name = '%s on nodefilter on template "%s"' % (cap_label, name)
         else:
             name = 'nodefilter on template "%s"' % name
         return NodeTemplate.validate_filter(node_filter, name)
@@ -670,37 +670,45 @@ class NodeTemplate(EntityTemplate):
                         what='"match" in nodefilter of template %s' % name,
                         type='list'))
                 valid = False
+        if not NodeTemplate._validate_nodefilter_key(node_filter, name, 'capabilities', 'capability'):
+            valid = False
+        if not NodeTemplate._validate_nodefilter_key(node_filter, name, 'artifacts', 'artifact'):
+            valid = False
+        return valid
 
-        capfilters = node_filter.get('capabilities')
+    @staticmethod
+    def _validate_nodefilter_key(node_filter, name, key, label):
+        valid = True
+        capfilters = node_filter.get(key)
         if capfilters:
             if not isinstance(capfilters, list):
                 ExceptionCollector.appendException(
                     TypeMismatchError(
-                        what='"capabilities" of nodefilter in template "%s"' % name,
+                        what='"%s" of nodefilter in template "%s"' % (key, name),
                         type='list'))
                 return False
             for capfilter in capfilters:
                 if not isinstance(capfilter, dict):
                     ExceptionCollector.appendException(
                         TypeMismatchError(
-                            what='capabilities list item on nodefilter in template "%s"' % name,
+                            what='%s list item on nodefilter in template "%s"' % (key, name),
                             type='dict'))
                     valid = False
                     continue
                 if len(capfilter) != 1:
-                    msg = _('Invalid nodefilter on template "%s": only one capability name per list item') % name
+                    msg = _('Invalid nodefilter on template "%s": only one %s name per list item') % (name, label)
                     ExceptionCollector.appendException(ValidationError(message=msg))
                     valid = False
                     continue
                 cap_name, filter = list(capfilter.items())[0]
-                if not NodeTemplate._validate_nodefilter_filter(filter, name, cap_name):
+                if not NodeTemplate._validate_nodefilter_filter(filter, name, '%s  "%s"' % (label, cap_name)):
                     valid = False
         return valid
 
-    @staticmethod
-    def _match_filter(entity, node_filter):
+    def _match_filter(self, entity, node_filter):
         filters = node_filter.get('properties') or []
-        props = entity.get_properties()
+        props = entity.builtin_properties()
+        props.update(entity.get_properties())
         for condition in filters:
             assert isinstance(condition, dict)
             key, value = list(condition.items())[0]
@@ -732,20 +740,53 @@ class NodeTemplate(EntityTemplate):
         return True
 
     def match_nodefilter(self, node_filter):
-        capfilters = node_filter.get('capabilities')
-        cap_matched = False
-        if capfilters:
-            assert isinstance(capfilters, list)
+        return self._match_nodefilter(node_filter, self._match_filter)
+
+    def _match_nodefilter(self, node_filter, matchfn):
+        matched = False
+        filters = node_filter.get('capabilities')
+        if filters:
+            assert isinstance(filters, list)
             capabilities = self.get_capabilities()
-            for capfilter in capfilters:
-                assert isinstance(capfilter, dict)
-                name, filter = list(capfilter.items())[0]
-                cap = capabilities.get(name)  # XXX can instead be a type name
+            for filter in filters:
+                assert isinstance(filter, dict)
+                name, filter = list(filter.items())[0]
+                cap = capabilities.get(name)
                 if not cap:
+                    # name can be a type name
+                    matched_type = False
+                    for cap in capabilities.values():
+                        if cap.is_derived_from(name):
+                              matched_type = True
+                              if not matchfn(cap, filter):
+                                  return False
+                    if not matched_type:
+                        return False
+                if not matchfn(cap, filter):
                     return False
-                if not self._match_filter(cap, filter):
+            matched = True
+
+        filters = node_filter.get('artifacts')
+        if filters:
+            assert isinstance(filters, list)
+            for filter in filters:
+                assert isinstance(filter, dict)
+                name, filter = list(filter.items())[0]
+                artifact = self.artifacts.get(name)
+                if not artifact:
+                    # name can be a type name
+                    matched_type = False
+                    for artifact in self.artifacts.values():
+                        if artifact.is_derived_from(name):
+                              matched_type = True
+                              if not matchfn(artifact, filter):
+                                  return False
+                    if not matched_type:
+                        return False
+                if not matchfn(artifact, filter):
                     return False
-            cap_matched = True
+            matched = True
+
         if 'properties' in node_filter:
-            return self._match_filter(self, node_filter)
-        return cap_matched  # don't match if node_filter was empty
+            return matchfn(self, node_filter)
+        return matched  # don't match if node_filter was empty

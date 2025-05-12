@@ -165,6 +165,9 @@ class EntityTemplate(object):
         if props and name in props.keys():
             return props[name].value
 
+    def builtin_properties(self):
+        return {}
+
     @property
     def interfaces(self):
         if self._interfaces is None:

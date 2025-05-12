@@ -35,6 +35,11 @@ topology_template:
             distribution: Ubuntu
             version: 14.04
         endpoint:
+      artifacts:
+        image:
+          type: tosca.artifacts.Deployment.Image.VM
+          file: image.qcow2
+          version: "1.0"
     test:
       type: tosca.nodes.DBMS
       requirements:
@@ -45,3 +50,7 @@ topology_template:
                     properties:
                       - num_cpus: { in_range: [ 1, 4 ] }
                       - mem_size: { greater_or_equal: 4 GB }
+              artifacts:
+                - tosca.artifacts.Deployment:
+                    properties:
+                      - version: "1.0"
