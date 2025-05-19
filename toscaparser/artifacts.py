@@ -68,6 +68,8 @@ class Artifact(EntityTemplate):
     """Artifacts defined in Node types or templates."""
 
     SECTIONS = SECTIONS
+    file = ""
+    repository = None
 
     def __init__(self, name, artifact, custom_def=None, base=None, tosca_template=None):
         if isinstance(artifact, str):

@@ -25,6 +25,7 @@ SECTIONS = (DESCRIPTION, URL, CREDENTIAL, REVISION, METADATA, FILE) = \
 
 
 class Repository(object):
+    url = ""
     def __init__(self, name, values):
         self.name = name
         self.tpl = values

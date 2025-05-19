@@ -30,7 +30,12 @@ globals = _LocalState()
 
 class _Namespace:
     def __init__(
-        self, nested_custom_types, source_info, namespace_id="", shared_namespace=False
+        self,
+        nested_custom_types,
+        source_info,
+        namespace_id="",
+        shared_namespace=False,
+        repositories=None,
     ):
         self.all_namespaces = nested_custom_types
         self.source_info = source_info
@@ -39,6 +44,7 @@ class _Namespace:
         # register this namespace:
         self.all_namespaces[namespace_id] = self
         self.shared_namespace = shared_namespace
+        self.repositories = {} if repositories is None else repositories
         # self.metadata = {}  # local_name => section?
 
     def get_local_name(self, global_name):

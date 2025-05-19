@@ -81,10 +81,16 @@ class ImportResolver:
     """
     Callback interface for integration with an TOSCA orchestrator.
     """
+
     solve_topology = None
 
-    def get_repository(self, name, tpl):
+    def get_repository(self, name, tpl=None):
+        if tpl is None:
+            return None
         return Repository(name, tpl)
+
+    def add_repository(self, name, tpl):
+        return self.get_repository(name, tpl)
 
     def get_repository_url(self, importsLoader, repository_name, package=None):
         if package:
@@ -146,7 +152,11 @@ class ImportsLoader(object):
         repository_root=None,
     ):
         self.importslist = importslist
-        self.custom_defs = Namespace({}, None) if namespace is None else namespace
+        self.custom_defs = (
+            Namespace({}, None, repositories=repositories)
+            if namespace is None
+            else namespace
+        )
         self.nested_tosca_tpls = {}
         self.resolver = resolver or ImportResolver()
         self.repository_root = None
@@ -173,7 +183,7 @@ class ImportsLoader(object):
         imports_names = set()
 
         if not self.importslist:
-            msg = _('"imports" keyname is defined without including ' "templates.")
+            msg = _('"imports" keyname is defined without including templates.')
             log.error(msg)
             ExceptionCollector.appendException(ValidationError(message=msg))
             return
@@ -239,6 +249,10 @@ class ImportsLoader(object):
                 return self.custom_defs.all_namespaces[namespace_id], namespace_prefix
             self.nested_tosca_tpls[full_file_name] = (imported_tpl, namespace_id)
 
+        if imported_tpl and (repositories := imported_tpl.get("repositories")):
+            # inherit repositories from outer scope but keep local ones separate from the outer scope
+            self.repositories = dict(self.repositories, **repositories)
+
         if namespace_id in self.custom_defs.all_namespaces:
             imported_types = self.custom_defs.all_namespaces[namespace_id]
         else:
@@ -247,6 +261,7 @@ class ImportsLoader(object):
                 _source,
                 namespace_id,
                 bool(declared_namespace_id),
+                self.repositories,
             )
 
         if imported_tpl:
@@ -437,9 +452,11 @@ class ImportsLoader(object):
             self._validate_import_keys(import_name, import_uri_def)
             file_name = import_uri_def.get(self.FILE)
             repository = import_uri_def.get(self.REPOSITORY)
-            repos = self.repositories.keys()
             if repository is not None:
-                if repository not in repos:
+                if (
+                    repository not in self.repositories
+                    and not self.resolver.get_repository(repository, None)
+                ):
                     ExceptionCollector.appendException(
                         ValidationError(
                             message=_('Unknown repository in import "%s"')
