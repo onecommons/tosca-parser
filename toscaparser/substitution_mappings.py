@@ -204,7 +204,7 @@ class SubstitutionMappings(object):
                 if capability:
                     capability = rel.target.get_capabilities()[capability.name]
                 log.debug(
-                    f"replaced {requirement_name} on {node.name} with {rel.target.name}"
+                    f'substituted inner node "{node.name}" with outer node "{rel.target.name}"'
                 )
                 self._outer_nodes[rel.target.name] = node.name
                 return rel.target, capability

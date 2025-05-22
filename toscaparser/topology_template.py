@@ -453,16 +453,21 @@ class TopologyTemplate(object):
             solve_topology(self)
         for node_template in self.nodetemplates:
             ExceptionCollector.near = f' in node template "{node_template.name}"'
-            for rel_tpl, req, reqDef in node_template.relationships:
-                # XXX should use something like findProps to recursively validate properties
-                for prop in rel_tpl.get_properties_objects():
-                    functions.get_function(self, req, prop.value)
-                for interface in rel_tpl.interfaces:
-                    if interface.inputs:
-                        for name, value in interface.inputs.items():
-                            functions.get_function(self,
-                                                   rel_tpl,
-                                                   value)
+            try:
+                for rel_tpl, req, reqDef in node_template.relationships:
+                    # XXX should use something like findProps to recursively validate properties
+                    for prop in rel_tpl.get_properties_objects():
+                        functions.get_function(self, req, prop.value)
+                    for interface in rel_tpl.interfaces:
+                        if interface.inputs:
+                            for name, value in interface.inputs.items():
+                                functions.get_function(self,
+                                                      rel_tpl,
+                                                      value)
+            except Exception as e:
+                error = ValidationError(message = f"unexpected error: {node_template.entity_tpl}")
+                error.__cause__ = e
+                ExceptionCollector.appendException(error)
 
             if node_template.substitution:
                 node_template.substitution.topology.validate_relationships(strict)
