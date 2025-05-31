@@ -242,9 +242,10 @@ class NodeTemplate(EntityTemplate):
                         required=self.TYPE))
                 return None, None, None
         elif relationship in self.available_rel_tpls:
-            tpl = self.available_rel_tpls[relationship]
-            type = tpl.type
-            relTpl = tpl
+            relTpl = self.available_rel_tpls[relationship]
+            type = relTpl.type
+            if relTpl.target or relTpl.source:  # already used, so clone
+                relTpl = RelationshipTemplate(relTpl.entity_tpl, relationship, namespace)
         elif (relationship in namespace
                 or relationship in StatefulEntityType.TOSCA_DEF):
             # it's the name of a type
