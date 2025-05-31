@@ -89,7 +89,7 @@ def validate_string(value):
 def validate_list(value):
     if not isinstance(value, collections.abc.MutableSequence):
         ExceptionCollector.appendException(
-            ValueError(_('"%s" is not a list.') % value))
+            ValueError(f'"{value}" is not a list.'))
     return value
 
 
