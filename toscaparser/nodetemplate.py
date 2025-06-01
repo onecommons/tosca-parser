@@ -346,7 +346,10 @@ class NodeTemplate(EntityTemplate):
         if relationship is None:
             return None
 
-        if not relTpl:
+        found_rel = None
+        if relTpl:
+            found_rel = relTpl # return this even if we don't find a matching node
+        else:
             assert isinstance(relationship, dict) and relationship['type'] == rel_type, (relationship, rel_type)
             relTpl = RelationshipTemplate(relationship, name, rel_type_namespace, stub=True)
 
@@ -369,13 +372,13 @@ class NodeTemplate(EntityTemplate):
                             ValidationError(message = _('No matching capability "%(cname)s" found'
                             ' on target node "%(tname)s" with capabilities %(caps)s for requirement "%(rname)s" of node "%(nname)s".')
                             % {'cname': capability, 'rname': name, 'nname': self.name, 'tname': related_node.name, 'caps': list(related_node.get_capabilities())}))
-                        return None
+                        return found_rel
                     else:
                         ExceptionCollector.appendException(
                             ValidationError(message = _('No capability with a matching target type found'
                               ' on target node "%(tname)s" for requirement "%(rname)s" of node "%(nname)s".')
                             % {'rname': name, 'nname': self.name, 'tname': related_node.name}))
-                        return None
+                        return found_rel
                 related_capability = capabilities[0] # first one is best match
         elif not capability and not relTpl.type_definition.valid_target_types and not node_filter:
             min_required = reqDef.get("occurrences", [1])[0]
@@ -384,7 +387,7 @@ class NodeTemplate(EntityTemplate):
                   ValidationError(message='requirement "%s" of node "%s" must specify a node_filter, a node or a capability' %
                                   (name, self.name)))
             # else: not an error if requirement is optional
-            return None
+            return found_rel
 
         node_typename = node # treat node as a type name
         resolver = self.topology_template.tosca_template and self.topology_template.tosca_template.import_resolver
@@ -407,33 +410,32 @@ class NodeTemplate(EntityTemplate):
 
         if not related_node:
             min_required = reqDef.get("occurrences", [1])[0]
-            if min_required == 0:
-                return None
+            error = None
             if node:
                 is_type = ("@" in node_typename or node_typename in NodeType.TOSCA_DEF)
-                if not node_on_template and is_type:
-                    # not an error if "node" wasn't explicitly declared on the template and "node" referenced a type name
-                    msg = None
+                if is_type:
+                    if node_on_template and min_required > 0:
+                        error = _('Could not find match for type "%(node)s"'
+                                      ' on requirement "%(rname)s"'
+                                    ) % {'node': node, 'rname': name}
+                    # otherwise not an error if "node" wasn't explicitly declared on the template and "node" referenced a type name
                 else:
-                    if is_type:
-                        msg = _('Could not find match for type "%(node)s"'
-                                  ' on requirement "%(rname)s"'
-                                ) % {'node': node, 'rname': name}
-                    else:
-                        msg = _('Could not find target template "%(node)s"'
-                              ' for requirement "%(rname)s"'
-                            ) % {'node': node, 'rname': name}
-            else:
-                msg = _('No matching target template found'
+                    error = _('Could not find target template "%(node)s"'
+                          ' for requirement "%(rname)s"'
+                        ) % {'node': node, 'rname': name}
+                    found_rel = None  # explicit mismatch, don't return relationship
+            elif min_required > 0 and not relTpl.default_for:
+                # don't require a node if we matched a default relationship
+                error = _('No matching target template found'
                            ' for requirement "%(rname)s"'
                            ) % {'rname': name}
-            if msg:
+            if error:
                 if "default" in self.directives:
-                    log.warning(f'{msg} on default node template "{self.name}"')
+                    log.warning(f'{error} on default node template "{self.name}"')
                 else:
                     ExceptionCollector.appendException(
-                        ValidationError(message = msg))
-            return None
+                        ValidationError(message = error))
+            return found_rel
         return relTpl
 
     def get_relationship_templates(self):
