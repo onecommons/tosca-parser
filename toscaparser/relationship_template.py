@@ -44,16 +44,19 @@ class RelationshipTemplate(EntityTemplate):
     ANY = "ANY"
 
     def __init__(
-        self, relationship_template, name, custom_def=None, target=None, source=None
+        self, relationship_template, name, custom_def=None, target=None, source=None, stub = False
     ):
+        self.stub = stub
         super(RelationshipTemplate, self).__init__(
             name, relationship_template, "relationship_type", custom_def
         )
-        self.name = name
         self.target = target
         self.source = source
         self.capability = None
         self.default_for = self.entity_tpl.get(self.DEFAULT_FOR)
+
+    def _should_validate_properties(self):
+        return not self.stub
 
     def get_matching_capabilities(
         self, targetNodeTemplate, capability_name, cap_type_def=None

@@ -348,7 +348,8 @@ class NodeTemplate(EntityTemplate):
 
         if not relTpl:
             assert isinstance(relationship, dict) and relationship['type'] == rel_type, (relationship, rel_type)
-            relTpl = RelationshipTemplate(relationship, name, rel_type_namespace)
+            relTpl = RelationshipTemplate(relationship, name, rel_type_namespace, stub=True)
+
         relTpl.source = self
         if relTpl.is_default_connection():
             return relTpl
