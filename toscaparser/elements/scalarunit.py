@@ -64,7 +64,11 @@ class ScalarUnit(object):
             ExceptionCollector.appendException(ValueError(msg))
 
     def validate_scalar_unit(self):
+        from toscaparser.functions import is_function
+
         regex = scalar_pattern
+        if is_function(self.value):
+            return self.value
         try:
             result = regex.match(str(self.value)).groups()
             validateutils.str_to_num(result[0])
@@ -76,7 +80,7 @@ class ScalarUnit(object):
             ExceptionCollector.appendException(
                 ValueError(_('"%s" is not a valid scalar-unit.')
                            % self.value))
-
+            return None
     def get_num_from_scalar_unit(self, unit=None):
         if unit:
             unit = self._check_unit_in_scalar_standard_units(unit)
