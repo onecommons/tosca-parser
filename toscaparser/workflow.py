@@ -32,10 +32,6 @@ class Workflow(object):
     def __init__(self, name, workflow, custom_def=None):
         self.name = name
         self._tpl = workflow
-        self.meta_data = None
-        if METADATA in workflow:
-            self.meta_data = workflow.get(METADATA)
-            validateutils.validate_map(self.meta_data)
         self._validate_keys()
         self.steps = self._steps(workflow.get(STEPS))
         self._validate_steps()
@@ -56,10 +52,6 @@ class Workflow(object):
     @property
     def description(self):
         return self._tpl.get('description')
-
-    @property
-    def metadata(self):
-        return self._tpl.get('metadata')
 
     def _steps(self, steps):
         return {name: Step(name, step_tpl) for name, step_tpl in steps.items()}

@@ -57,10 +57,6 @@ class Policy(EntityTemplate):
     def description(self):
         return self.entity_tpl.get('description')
 
-    @property
-    def metadata(self):
-        return self.entity_tpl.get('metadata')
-
     def get_targets_type(self):
         return self.targets_type
 

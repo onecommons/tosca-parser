@@ -77,11 +77,9 @@ class Artifact(EntityTemplate):
         elif isinstance(artifact, dict) and "type" not in artifact:
             artifact = dict(artifact, type="tosca.artifacts.Root")
         super(Artifact, self).__init__(name, artifact, "artifact_type", custom_def, tosca_template)
-        for key in SECTIONS[:-5]:  # skip syntactical fields
+        for key in SECTIONS[1:-5]:  # skip syntactical fields
             setattr(self, key, artifact.get(key))
         self._source = base
-        if self.metadata:
-            validateutils.validate_map(self.metadata)
         # XXX validate file ext matches type definition
         self._validate_required_fields(artifact)
 

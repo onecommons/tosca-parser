@@ -79,6 +79,7 @@ class EntityTemplate(object):
         self._interfaces = None
         self._requirements = None
         self._capabilities = None
+        self.metadata = {}
         if not self.type_definition:
             msg = "no type found %s for %s"  % (entity_name, template)
             ExceptionCollector.appendException(ValidationError(message=msg))
@@ -97,6 +98,7 @@ class EntityTemplate(object):
 
         metadata = self.type_definition.get_value('metadata', self.entity_tpl, parent=True)
         if metadata and isinstance(metadata, dict):
+            self.metadata = metadata
             if 'additionalProperties' in metadata:
                 self.additionalProperties = metadata['additionalProperties']
             expected_type = metadata.get('should_implement')
