@@ -44,9 +44,9 @@ SECTIONS = (DEFINITION_VERSION, NAMESPACE, TEMPLATE_NAME,
             'capability_types', 'artifact_types', 'data_types',
             'interface_types', 'policy_types', 'group_types', 'repositories')
 # Sections that are specific to individual template versions
-SPECIAL_SECTIONS = (METADATA, DECORATORS, DEPLOYMENT_BLUEPRINTS) = ('metadata', 'decorators', 'deployment_blueprints')
+SPECIAL_SECTIONS = (METADATA, DECORATORS, DEPLOYMENT_BLUEPRINTS, INPUT_VALUES) = ('metadata', 'decorators', 'deployment_blueprints', 'input_values')
 
-log = logging.getLogger("tosca.model")
+log = logging.getLogger("tosca")
 
 YAML_LOADER = toscaparser.utils.yamlparser.load_yaml
 
@@ -330,6 +330,6 @@ class ToscaTemplate(object):
                 msg = (_('The template "%(path)s" successfully passed '
                          'validation.') % {'path': self.path})
             else:
-                msg = _('The pre-parsed input successfully passed validation.')
+                msg = _('The pre-parsed service template successfully passed validation.')
 
             log.debug(msg)
