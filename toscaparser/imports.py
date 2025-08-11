@@ -132,6 +132,9 @@ class ImportResolver:
     def get_safe_mode(self):
         return False
 
+    def patch_template(self, module, template_name, patch=None):
+        return None
+
 
 class ImportsLoader(object):
     IMPORTS_SECTION = (FILE, REPOSITORY, NAMESPACE_URI, NAMESPACE_PREFIX, WHEN) = (
