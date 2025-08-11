@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import codecs
 import urllib
 import urllib.error
 import urllib.request
@@ -35,7 +34,7 @@ def load_yaml(path, a_file=True, fragment=None):
     f = None
     try:
         if a_file:
-            f = codecs.open(path, encoding='utf-8', errors='strict')
+            f = open(path, encoding='utf-8', errors='strict')
         else:
             f = urllib.request.urlopen(path, context=ssl.create_default_context(cafile=certifi.where()))
         contents = f.read()

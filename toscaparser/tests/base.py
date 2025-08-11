@@ -13,7 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import codecs
 import os
 
 import fixtures
@@ -95,4 +94,4 @@ class MockTestClass():
         else:
             file_path = path
 
-        return codecs.open(file_path, encoding='utf-8', errors='strict')
+        return open(file_path, encoding='utf-8', errors='strict')
