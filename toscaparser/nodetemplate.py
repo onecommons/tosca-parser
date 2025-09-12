@@ -296,14 +296,20 @@ class NodeTemplate(EntityTemplate):
                         related_node = found
                         related_capability = found_cap
                     else:
-                        # type resolution must be unambiguous
-                        # XXX only an error if exceeds max occurrences
-                        if node_filter:
-                            # only treat as error if node_filter, otherwise just treat as unmatched
+                        # more than one non-default match
+                        max_required = req_def.get("occurrences", [1, "UNBOUNDED"])[1]
+                        if max_required == 1:
                             ExceptionCollector.appendException(
-                          ValidationError(message=
-      'requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"' %
-                                        (req_name, self.name, related_node.name, found.name)))
+                                ValidationError(
+                                    message='requirement "%s" of node "%s" is ambiguous, targets more than one template: "%s" and "%s"'
+                                    % (
+                                        req_name,
+                                        self.name,
+                                        related_node.name,
+                                        found.name,
+                                    )
+                                )
+                            )
                         return None, None
                 else:
                     related_node = found
