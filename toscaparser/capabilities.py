@@ -51,6 +51,21 @@ class Capability(object):
             return props[name].value
 
     def builtin_properties(self):
+        version = (
+            self.type_definition
+            and self.type_definition.get_value("version", parent=True)
+            or None
+        )
+        if version is not None:
+            return dict(
+                version=Property(
+                    "version",
+                    version,
+                    dict(type="version"),
+                    self.custom_def,
+                )
+            )
+
         return {}
 
     def update_property(self, name, value):

@@ -120,10 +120,31 @@ class Namespace(_Namespace, dict):
 class EntityType(object):
     '''Base class for TOSCA elements.'''
 
-    SECTIONS = (DERIVED_FROM, PROPERTIES, ATTRIBUTES, REQUIREMENTS,
-                INTERFACES, CAPABILITIES, TYPE, ARTIFACTS, METADATA) = \
-               ('derived_from', 'properties', 'attributes', 'requirements',
-                'interfaces', 'capabilities', 'type', 'artifacts', 'metadata')
+    SECTIONS = (
+        DERIVED_FROM,
+        PROPERTIES,
+        ATTRIBUTES,
+        REQUIREMENTS,
+        INTERFACES,
+        CAPABILITIES,
+        TYPE,
+        ARTIFACTS,
+        METADATA,
+        VERSION,
+        DESCRIPTION,
+    ) = (
+        "derived_from",
+        "properties",
+        "attributes",
+        "requirements",
+        "interfaces",
+        "capabilities",
+        "type",
+        "artifacts",
+        "metadata",
+        "version",
+        "description",
+    )
 
     TOSCA_DEF_SECTIONS = ['node_types', 'data_types', 'artifact_types',
                           'group_types', 'relationship_types',
