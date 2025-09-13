@@ -22,6 +22,7 @@ from toscaparser.elements.portspectype import PortSpec
 from toscaparser.elements import scalarunit
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils import yamlparser
+from toscaparser.utils.validateutils import validate_version
 
 
 class Schema(collections.abc.Mapping):
@@ -190,6 +191,7 @@ class Constraint(object):
         MAX_LENGTH,
         PATTERN,
         SCHEMA,
+        VERSION,
     ) = (
         "equal",
         "greater_than",
@@ -203,6 +205,7 @@ class Constraint(object):
         "max_length",
         "pattern",
         "schema",
+        "version",
     )
 
     def __new__(cls, property_name=None, property_type=None, constraint=None):
@@ -787,6 +790,51 @@ class SchemaConstraint(Constraint):
             'had the following errors validating its json schema: "%(cvalue)s".'
         ) % dict(pname=self.property_name, pvalue=value, cvalue=self.message)
 
+class VersionConstraint(Constraint):
+    """Constraint class for "version"
+
+    Constrains a property or parameter to a value that is semver compatible
+    with the declared version requirement.
+    """
+
+    constraint_key = Constraint.VERSION
+
+    valid_types = (int, float, str)
+
+    valid_prop_types = (
+        Schema.INTEGER,
+        Schema.FLOAT,
+        Schema.NUMBER,
+        Schema.VERSION,
+        Schema.STRING,
+    )
+
+    def __init__(self, property_name, property_type, constraint):
+        super(VersionConstraint, self).__init__(
+            property_name, property_type, constraint
+        )
+        if not isinstance(self.constraint_value, self.valid_types):
+            ExceptionCollector.appendException(
+                InvalidSchemaError(
+                    message=_('The property "version" expects a version string.')
+                )
+            )
+
+    def _is_valid(self, value):
+        try:
+            return validate_version(self.constraint_value, value)
+        except Exception:
+            return False
+
+    def _err_msg(self, value):
+        return _(
+            'The version "%(pvalue)s" of property "%(pname)s" is not '
+            'compatible with "%(cvalue)s".'
+        ) % dict(
+            pname=self.property_name,
+            pvalue=self.value_msg,
+            cvalue=self.constraint_value_msg,
+        )
 
 constraint_mapping = {
     Constraint.EQUAL: Equal,
@@ -801,6 +849,7 @@ constraint_mapping = {
     Constraint.MAX_LENGTH: MaxLength,
     Constraint.PATTERN: Pattern,
     Constraint.SCHEMA: SchemaConstraint,
+    Constraint.VERSION: VersionConstraint,
 }
 
 

@@ -10,111 +10,129 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from toscaparser.common.exception import (
-    InvalidTOSCAVersionPropertyException)
+from toscaparser.common.exception import InvalidTOSCAVersionPropertyException
 from toscaparser.tests.base import TestCase
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils.validateutils import TOSCAVersionProperty
 
 
 class TOSCAVersionPropertyTest(TestCase):
-
     def test_tosca_version_property(self):
-        version = '18.0.3.beta-1'
-        expected_output = '18.0.3.beta-1'
+        version = "18.0.3.beta-1"
+        expected_output = "18.0.3.beta-1"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
         version = 18
-        expected_output = '18'
+        expected_output = "18"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
         version = 18.0
-        expected_output = '18.0'
+        expected_output = "18.0"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
-        version = '18.0.3'
-        expected_output = '18.0.3'
+        version = "18.0.3"
+        expected_output = "18.0.3"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
         version = 0
-        expected_output = '0'
+        expected_output = "0"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
 
         version = 00
-        expected_output = '0'
+        expected_output = "0"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
         version = 0.0
-        expected_output = '0.0'
+        expected_output = "0.0"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
         version = 00.00
-        expected_output = '0.0'
+        expected_output = "0.0"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
-        version = '0.0.0'
-        expected_output = '0.0.0'
+        version = "0.0.0"
+        expected_output = "0.0.0"
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
 
     def test_tosca_version_property_invalid_major_version(self):
-
-        version = 'x'
+        version = "x"
         exp_msg = _('Value of TOSCA version property "x" is invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
     def test_tosca_version_property_invalid_minor_version(self):
-
-        version = '18.x'
+        version = "18.x"
         exp_msg = _('Value of TOSCA version property "18.x" is invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
-        version = '18.x.y'
+        version = "18.x.y"
         exp_msg = _('Value of TOSCA version property "18.x.y" is invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
-        version = '18-2'
+        version = "18-2"
         exp_msg = _('Value of TOSCA version property "18-2" is invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
     def test_tosca_version_property_invalid_fix_version(self):
-
-        version = '18.0.a'
+        version = "18.0.a"
         exp_msg = _('Value of TOSCA version property "18.0.a" is invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
     def test_tosca_version_property_invalid_qualifier(self):
         # change test, this is now valid because we support semantic versioning syntax (https://semver.org/)
-        version = '18.0.1-xyz'
-        expected_output = '18.0.1-xyz'
+        version = "18.0.1-xyz"
+        expected_output = "18.0.1-xyz"
         output = TOSCAVersionProperty(version).get_version()
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
         self.assertEqual(output, expected_output)
 
         # valid semver 2.0:
@@ -124,38 +142,140 @@ class TOSCAVersionPropertyTest(TestCase):
         assert full.build_metadata == "7527a406"
         assert TOSCAVersionProperty("18.0.1+7527a406").build_metadata == "7527a406"
 
-        version = 'v2'
-        expected_output = 'v2'
-        assert TOSCAVersionProperty(version).is_semver_compatible_with(TOSCAVersionProperty(version))
+        version = "v2"
+        expected_output = "v2"
+        assert TOSCAVersionProperty(version).is_semver_compatible_with(
+            TOSCAVersionProperty(version)
+        )
         output = TOSCAVersionProperty(version).get_version()
         self.assertEqual(output, expected_output)
 
-        version = '0.0.0.abc'
+        version = "0.0.0.abc"
         exp_msg = _('Value of TOSCA version property "0.0.0.abc" is invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
     def test_tosca_version_property_invalid_build_version(self):
-        version = '18.0.1.abc-x'
-        exp_msg = _('Value of TOSCA version property '
-                    '"18.0.1.abc-x" is invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        version = "18.0.1.abc-x"
+        exp_msg = _('Value of TOSCA version property "18.0.1.abc-x" is invalid.')
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
-        version = '0.0.0.abc-x'
-        exp_msg = _('Value of TOSCA version property "0.0.0.abc-x" is '
-                    'invalid.')
-        err = self.assertRaises(InvalidTOSCAVersionPropertyException,
-                                TOSCAVersionProperty, version)
+        version = "0.0.0.abc-x"
+        exp_msg = _('Value of TOSCA version property "0.0.0.abc-x" is invalid.')
+        err = self.assertRaises(
+            InvalidTOSCAVersionPropertyException, TOSCAVersionProperty, version
+        )
         self.assertEqual(exp_msg, err.__str__())
 
     def test_tosca_version_property_semver_compatibility(self):
         assert TOSCAVersionProperty("v1.1.0").is_semver_compatible_with(
-                                    TOSCAVersionProperty("v1.2.0"))
+            TOSCAVersionProperty("v1.2.0")
+        )
         assert not TOSCAVersionProperty("2.1.0").is_semver_compatible_with(
-                                    TOSCAVersionProperty("1.2.0"))
+            TOSCAVersionProperty("1.2.0")
+        )
         assert TOSCAVersionProperty("0.1.0").is_semver_compatible_with(
-                                    TOSCAVersionProperty("v0.1.0"))
+            TOSCAVersionProperty("v0.1.0")
+        )
 
+    def test_tosca_version_property_tilde_compatibility(self):
+        # Test ~1.2.3 allows >=1.2.3, <1.3.0 (patch-level changes only)
+        assert TOSCAVersionProperty("~1.2.3").has_minimum_version(
+            TOSCAVersionProperty("1.2.3")
+        )
+        assert TOSCAVersionProperty("~1.2.3").has_minimum_version(
+            TOSCAVersionProperty("1.2.9")
+        )
+        assert not TOSCAVersionProperty("~1.2.3").has_minimum_version(
+            TOSCAVersionProperty("1.3.0")
+        )
+        assert not TOSCAVersionProperty("~1.2.3").has_minimum_version(
+            TOSCAVersionProperty("1.1.9")
+        )
+
+        # Test ~1.2 allows >=1.2.0, <1.3.0
+        assert TOSCAVersionProperty("~1.2").has_minimum_version(
+            TOSCAVersionProperty("1.2.0")
+        )
+        assert TOSCAVersionProperty("~1.2").has_minimum_version(
+            TOSCAVersionProperty("1.2.9")
+        )
+        assert not TOSCAVersionProperty("~1.2").has_minimum_version(
+            TOSCAVersionProperty("1.3.0")
+        )
+
+        # Test ~1 allows >=1.0.0, <2.0.0 (minor- and patch-level changes)
+        assert TOSCAVersionProperty("~1").has_minimum_version(
+            TOSCAVersionProperty("1.0.0")
+        )
+        assert TOSCAVersionProperty("~1").has_minimum_version(
+            TOSCAVersionProperty("1.9.9")
+        )
+        assert not TOSCAVersionProperty("~1").has_minimum_version(
+            TOSCAVersionProperty("2.0.0")
+        )
+
+        # Test with v prefix
+        assert TOSCAVersionProperty("~v1.2.3").has_minimum_version(
+            TOSCAVersionProperty("v1.2.5")
+        )
+        assert not TOSCAVersionProperty("~v1.2.3").has_minimum_version(
+            TOSCAVersionProperty("v1.3.0")
+        )
+
+    def test_version_constraint_comparison_requirements(self):
+        from toscaparser.utils.validateutils import validate_version
+
+        # Test >= comparisons
+        assert validate_version(">=1.2.0", "1.2.0")
+        assert validate_version(">=1.2.0", "1.2.5")
+        assert validate_version(">=1.2.0", "1.9.0")
+        assert validate_version(">=1.2.0", "2.0.0")
+        assert not validate_version(">=1.2.0", "1.1.9")
+
+        # Test <= comparisons
+        assert validate_version("<=1.5.0", "1.0.0")
+        assert validate_version("<=1.5.0", "1.2.5")
+        assert validate_version("<=1.5.0", "1.5.0")
+        assert not validate_version("<=1.5.0", "1.5.1")
+        assert not validate_version("<=1.5.0", "2.0.0")
+
+        # Test > comparisons
+        assert validate_version(">1.2.0", "1.2.1")
+        assert validate_version(">1.2.0", "1.9.0")
+        assert validate_version(">1.2.0", "2.0.0")
+        assert not validate_version(">1.2.0", "1.2.0")
+        assert not validate_version(">1.2.0", "1.1.9")
+
+        # Test < comparisons
+        assert validate_version("<1.5.0", "1.0.0")
+        assert validate_version("<1.5.0", "1.4.9")
+        assert not validate_version("<1.5.0", "1.5.0")
+        assert not validate_version("<1.5.0", "1.5.1")
+        assert not validate_version("<1.5.0", "2.0.0")
+
+        # Test = (exact) comparisons
+        assert validate_version("=1.2.3", "1.2.3")
+        assert not validate_version("=1.2.3", "1.2.4")
+        assert not validate_version("=1.2.3", "1.2.2")
+        assert not validate_version("=1.2.3", "1.3.0")
+
+        # Test multiple requirements
+        assert validate_version(">= 1.2.0, < 1.5.0", "1.2.0")
+        assert validate_version(">= 1.2.0, < 1.5.0", "1.3.5")
+        assert validate_version(">= 1.2.0, < 1.5.0", "1.4.9")
+        assert not validate_version(">= 1.2.0, < 1.5.0", "1.1.9")  # below >= 1.2.0
+        assert not validate_version(">= 1.2.0, < 1.5.0", "1.5.0")  # not < 1.5.0
+        assert not validate_version(">= 1.2.0, < 1.5.0", "2.0.0")  # above < 1.5.0
+
+        # Test multiple requirements with mixed operators
+        assert validate_version(">= 1.0.0, <= 2.0.0", "1.0.0")
+        assert validate_version(">= 1.0.0, <= 2.0.0", "1.4.9")
+        assert validate_version(">= 1.0.0, <= 2.0.0", "2.0.0")
+        assert not validate_version(">= 1.0.0, <= 2.0.0", "0.9.9")  # below >= 1.0.0
+        assert not validate_version(">= 1.0.0, <= 2.0.0", "2.0.1")  # above <= 2.0.0

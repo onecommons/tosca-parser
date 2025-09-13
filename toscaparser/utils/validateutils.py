@@ -181,14 +181,15 @@ def validate_timestamp(value):
 
 
 class TOSCAVersionProperty(object):
-
-    VERSION_RE = re.compile(r'^v?(?P<major_version>([0-9]+))'
-                            r'(\.(?P<minor_version>([0-9]+)))?'
-                            r'(\.(?P<fix_version>([0-9]+)))?'
-                            r'(\.(?P<qualifier>([0-9A-Za-z]+)))?'
-                            r'(\-(?P<build_version>([0-9]+)))?'
-                            r'(\-(?P<pre_release>([0-9A-Za-z.\-]+)))?'
-                            r'(\+(?P<build_metadata>([0-9A-Za-z.\-]+)))?$')
+    VERSION_RE = re.compile(
+        r"^[\^~]?v?(?P<major_version>([0-9]+))"
+        r"(\.(?P<minor_version>([0-9]+)))?"
+        r"(\.(?P<fix_version>([0-9]+)))?"
+        r"(\.(?P<qualifier>([0-9A-Za-z]+)))?"
+        r"(\-(?P<build_version>([0-9]+)))?"
+        r"(\-(?P<pre_release>([0-9A-Za-z.\-]+)))?"
+        r"(\+(?P<build_metadata>([0-9A-Za-z.\-]+)))?$"
+    )
 
     def __init__(self, version):
         self.version = str(version)
@@ -210,6 +211,10 @@ class TOSCAVersionProperty(object):
         self.build_version = self._validate_build(ver['build_version'])
         # build_metadata comes after fix (aka patch) or pre_release
         self.build_metadata = self._validate_qualifier(ver['build_metadata'])
+
+    @classmethod
+    def is_valid(cls, test):
+        return cls.VERSION_RE.match(test) is not None
 
     def _validate_qualifier(self, value):
         """Validate qualifier
@@ -246,3 +251,105 @@ class TOSCAVersionProperty(object):
     def is_semver_compatible_with(self, version):
         """Return true if major version is equal and minor version is less than or equal to the given version."""
         return int(self.major_version) == int(version.major_version) and int(self.minor_version or 0) <= int(version.minor_version or 0)
+
+    def has_minimum_version(self, version):
+        """Return true if version satisfies tilde requirement semantics.
+
+        Tilde requirements specify patch-level compatibility:
+        - ~1.2.3 allows >=1.2.3, <1.3.0 (patch-level changes only)
+        - ~1.2 allows >=1.2.0, <1.3.0 (patch-level changes only)
+        - ~1 allows >=1.0.0, <2.0.0 (minor- and patch-level changes)
+        """
+        req_major = int(self.major_version)
+        req_minor = int(self.minor_version or 0)
+        req_patch = int(self.fix_version or 0)
+
+        ver_major = int(version.major_version)
+        ver_minor = int(version.minor_version or 0)
+        ver_patch = int(version.fix_version or 0)
+
+        # Major version must match
+        if req_major != ver_major:
+            return False
+
+        # If only major version specified (~1), allow minor/patch changes
+        if self.minor_version is None:
+            return True
+
+        # Minor version must match for patch-level compatibility
+        if req_minor != ver_minor:
+            return False
+
+        # Version must be >= requirement
+        return ver_patch >= req_patch
+
+    def version_tuple(self):
+        return (
+            int(self.major_version),
+            int(self.minor_version or 0),
+            int(self.fix_version or 0),
+        )
+
+    def compare_version(self, test_version, operator):
+        """Compare two TOSCAVersionProperty objects using the given operator."""
+
+        # Convert to comparable tuples (major, minor, patch)
+
+        test_tuple = test_version.version_tuple()
+        req_tuple = self.version_tuple()
+
+        if operator == ">=":
+            return test_tuple >= req_tuple
+        elif operator == "<=":
+            return test_tuple <= req_tuple
+        elif operator == ">":
+            return test_tuple > req_tuple
+        elif operator == "<":
+            return test_tuple < req_tuple
+        elif operator == "=":
+            return test_tuple == req_tuple
+        else:
+            return False
+
+
+def validate_version(version_req, version) -> bool:
+    """
+    Return true if version satisfies the version requirement.
+    Handles multiple requirements (">= 1.2, < 1.5"), comparison operators, caret (^) and tilde (~) requirements.
+    A bare version string is comparable to a caret operator (semver comparison).
+    If version is not semver-like, it must match the requirement exactly.
+    """
+    expected = str(version_req).strip()
+    test = str(version).strip()
+    if not TOSCAVersionProperty.is_valid(test):
+        # non semver-like version strings must match exactly
+        return expected == test
+
+    test_version = TOSCAVersionProperty(test.strip())
+    # Split multiple requirements by comma
+    requirements = [req.strip() for req in expected.split(",")]
+
+    # All requirements must be satisfied
+    for req in requirements:
+        if not _evaluate_requirement(req, test_version):
+            return False
+
+    return True
+
+
+def _evaluate_requirement(expected, test_version) -> bool:
+    """Evaluate a version requirement against the test version."""
+    # Check for comparison operators
+    for op in [">=", "<=", ">", "<", "="]:
+        if expected.startswith(op):
+            req_version = TOSCAVersionProperty(expected[len(op) :].strip())
+            return req_version.compare_version(test_version, op)
+
+    # Check for tilde requirement
+    if expected.startswith("~"):
+        req_version = TOSCAVersionProperty(expected)
+        return req_version.has_minimum_version(test_version)
+
+    # Caret requirement (default) or exact
+    req_version = TOSCAVersionProperty(expected)
+    return req_version.is_semver_compatible_with(test_version)
