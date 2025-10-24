@@ -1543,7 +1543,7 @@ tosca-parser/master/toscaparser/tests/data/custom_types/wordpress.yaml
                 properties:
                   device: test_device
         '''
-        expectedmessage = _('"properties" of template "storage_attachto" is '
+        expectedmessage = _('"properties" of template "storage_attachto" (tosca.relationships.AttachesTo) is '
                             'missing required field "[\'location\']".')
         rel_template = (toscaparser.utils.yamlparser.
                         simple_parse(tpl_snippet))['relationship_templates']
@@ -1663,7 +1663,7 @@ tosca-parser/master/toscaparser/tests/data/custom_types/wordpress.yaml
             properties:
               maxsize: 1 GB
         '''
-        expectedmessage = _('"properties" of template "server" is missing '
+        expectedmessage = _('"properties" of template "server" (tosca.nodes.ObjectStorage) is missing '
                             'required field "[\'name\']".')
         err = self.assertRaises(
             exception.MissingRequiredFieldError,
@@ -1937,7 +1937,7 @@ tosca-parser/master/toscaparser/tests/data/custom_types/wordpress.yaml
         name = list(policies.keys())[0]
         makePolicy = lambda: Policy(name, policies[name], None, None,
                            self._custom_types_policy())
-        expectedmessage = _('"properties" of template "some_policy" is '
+        expectedmessage = _('"properties" of template "some_policy" (tosca.policies.somePolicy) is '
                             'missing required field "[\'name\']".')
         err = self.assertRaises(
             exception.MissingRequiredFieldError,

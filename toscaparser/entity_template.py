@@ -360,15 +360,21 @@ class EntityTemplate(object):
             if req_props_no_value_or_default:
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(
-                        what='"properties" of template "%s"' % self.name,
-                        required=req_props_no_value_or_default))
+                        what='"properties" of template "%s" (%s)'
+                        % (self.name, entitytype.type),
+                        required=req_props_no_value_or_default,
+                    )
+                )
         else:
             # Required properties in schema, but not in template
             if required_props:
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(
-                        what='"properties" of template "%s"' % self.name,
-                        required=required_props))
+                        what='"properties" of template "%s" (%s)'
+                        % (self.name, entitytype.type),
+                        required=required_props,
+                    )
+                )
 
     def _validate_field(self, template):
         if not isinstance(template, dict):
