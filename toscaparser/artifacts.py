@@ -71,17 +71,34 @@ class Artifact(EntityTemplate):
     file = ""
     repository = None
 
-    def __init__(self, name, artifact, custom_def=None, base=None, tosca_template=None):
+    def __init__(
+        self,
+        name,
+        artifact,
+        custom_def=None,
+        base=None,
+        tosca_template=None,
+        stub=False,
+    ):
         if isinstance(artifact, str):
             artifact = dict(file=artifact, type="tosca.artifacts.Root")
         elif isinstance(artifact, dict) and "type" not in artifact:
             artifact = dict(artifact, type="tosca.artifacts.Root")
+        self.stub = stub
         super(Artifact, self).__init__(name, artifact, "artifact_type", custom_def, tosca_template)
         for key in SECTIONS[1:-5]:  # skip syntactical fields
             setattr(self, key, artifact.get(key))
         self._source = base
-        # XXX validate file ext matches type definition
-        self._validate_required_fields(artifact)
+        if self._should_validate_properties():
+            # XXX validate file ext matches type definition
+            self._validate_required_fields(artifact)
+
+    def _should_validate_properties(self):
+        return not self.stub
+
+    def revalidate_properties(self):
+        super().revalidate_properties()
+        self._validate_required_fields(self.entity_tpl)
 
     def builtin_properties(self):
       return {name: Property(

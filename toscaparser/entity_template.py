@@ -288,11 +288,11 @@ class EntityTemplate(object):
                   type='dict'))
             return {}
         if self._should_validate_properties():
-            # this is just a placeholder template for the imported one so it might not have properties
             self._common_validate_properties(self.type_definition, properties, self.additionalProperties)
         return properties
 
     def _should_validate_properties(self):
+        # this is just a placeholder template for the imported one so it might not have properties
         return not self.entity_tpl.get(self.IMPORTED)
 
     def revalidate_properties(self):

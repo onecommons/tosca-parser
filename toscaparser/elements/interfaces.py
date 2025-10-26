@@ -321,17 +321,20 @@ class OperationDef:
         from toscaparser.artifacts import Artifact
 
         if isinstance(inline_artifact, dict):
+            if "type" in inline_artifact:
+                # only create an artifact object if a type was declared
+                # generate name from operation name
+                name = f"__primary_{self.interfacename}_{self.name}"
+                stub = len(inline_artifact) == 1 + ("metadata" in inline_artifact) + (
+                    "description" in inline_artifact
+                ) + ("copy" in inline_artifact)
+                return Artifact(name, inline_artifact, self.custom_def, stub=stub)
             if "file" not in inline_artifact:
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(
                         what="inline artifact in " + self._msg, required="file"
                     )
                 )
-            if "type" in inline_artifact:
-                # only create an artifact object if a type was declared
-                # generate name from operation name
-                name = f"__primary_{self.interfacename}_{self.name}"
-                return Artifact(name, inline_artifact, self.custom_def)
             for key in inline_artifact:
                 if key not in INLINE_ARTIFACT_DEF_RESERVED_WORDS:
                     what = (
