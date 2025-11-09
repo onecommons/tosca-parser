@@ -117,11 +117,10 @@ class RelationshipTemplate(EntityTemplate):
         return capabilities
 
     def is_default_connection(self):
-        return self.default_for == "SELF"
+        return self.default_for
 
     @staticmethod
     def _is_default_connection(value):
-        return (
-            isinstance(value.get("relationship"), dict)
-            and value["relationship"].get("default_for") == "SELF"
-        )
+        return isinstance(value.get("relationship"), dict) and value[
+            "relationship"
+        ].get("default_for")
