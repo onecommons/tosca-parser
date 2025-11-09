@@ -133,9 +133,8 @@ class ToscaTemplate(object):
             ExceptionCollector.stop()
 
     def validate_relationships(self):
+        # note: nested topologies are validated when the substituted node template is validated
         self.topology_template.validate_relationships(self.strict)
-        for nested in self.nested_topologies.values():
-            nested.validate_relationships(self.strict)
 
     def _topology_template(self, custom_defs):
         return TopologyTemplate(self._tpl_topology_template(),

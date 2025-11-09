@@ -196,6 +196,13 @@ class SubstitutionMappings(object):
         # (always called before self._update_requirements)
         self._outer_relationships.setdefault(req_name, []).append((req_name, reqDef, outer_rel))
 
+    def get_outer_node(self, inner_name):
+        if inner_name in self._outer_relationships:
+            name, reqDef, rel = self._outer_relationships[inner_name][0]
+            if rel and rel.target:
+                return rel.target
+        return None
+
     def maybe_substitute(self, node, capability):
         if node.name in self._outer_relationships:  # inner node name matches outer requirement name
             requirement_name = node.name
