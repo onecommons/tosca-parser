@@ -18,9 +18,9 @@ from toscaparser.dataentity import DataEntity
 from toscaparser import functions
 from toscaparser.groups import Group
 from toscaparser.nodetemplate import NodeTemplate
-from toscaparser.parameters import Input
 from toscaparser.parameters import Output
 from toscaparser.policy import Policy
+from .properties import Property
 from toscaparser.workflow import Workflow
 from toscaparser.relationship_template import RelationshipTemplate
 from toscaparser.substitution_mappings import SubstitutionMappings
@@ -84,13 +84,13 @@ class TopologyTemplate(object):
         inputs = []
         parsed_params = self.parsed_params
         for name, attrs in self._tpl_inputs().items():
-            input = Input(name, attrs, self.custom_defs)
             if parsed_params is not None and name in parsed_params:
-                input.validate(parsed_params[name])
+                value = parsed_params[name]
             else:
-                default = input.default
-                if default:
-                    input.validate(default)
+                value = attrs.get("default")
+            attrs.setdefault("type", "any")
+            input = Property(name, value, attrs, self.custom_defs)
+            input.validate()
             if parsed_params is not None:
                 if (input.name not in parsed_params and input.required
                                             and input.default is None):
