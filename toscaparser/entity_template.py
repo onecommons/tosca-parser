@@ -292,11 +292,13 @@ class EntityTemplate(object):
         return properties
 
     def _should_validate_properties(self):
-        # this is just a placeholder template for the imported one so it might not have properties
+        # this is just a placeholder template for the imported one so it might not have required properties
         return not self.entity_tpl.get(self.IMPORTED)
 
     def revalidate_properties(self):
         self._common_validate_properties(self.type_definition, self.get_properties(), self.additionalProperties)
+        for prop in self.get_properties_objects():
+            prop.validate()  # might normalize and modify prop.value
 
     def _validate_capabilities(self):
         type_capabilities = self.type_definition.get_capabilities_def()
