@@ -14,7 +14,7 @@ from toscaparser.dataentity import DataEntity
 from toscaparser.elements.constraints import Schema
 from toscaparser import functions
 from toscaparser.elements.entity_type import Namespace
-from toscaparser.elements.scalarunit import get_scalarunit_class
+from toscaparser.elements.scalarunit import get_scalarunit_class, parse_scalar_unit
 import logging
 
 class Property(object):
@@ -88,11 +88,20 @@ class Property(object):
             if metadata and metadata.get('default_unit'):
                 try:
                     float(value)
-                    # no unit specified, append the default unit
-                    if get_scalarunit_class(self.type)._check_unit_in_scalar_standard_units(metadata['default_unit']):
-                        value = str(value) + metadata['default_unit']
-                except Exception:
+                except ValueError:
                     pass
+                else:
+                    # additional check in case the value is of a type that also converts to scalar values
+                    num, unit = parse_scalar_unit(str(value))
+                    if num is not None and unit is None:
+                        # value coerces to a number but not a scalar value
+                        # so append the default unit
+                        if get_scalarunit_class(
+                            self.type
+                        )._check_unit_in_scalar_standard_units(
+                            metadata["default_unit"]
+                        ):
+                            value = str(value) + metadata["default_unit"]
             value = DataEntity.validate_datatype(self.type, value,
                                                       self.entry_schema,
                                                       self.custom_def,

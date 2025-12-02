@@ -17,6 +17,7 @@ from toscaparser.common import exception
 from toscaparser.elements.scalarunit import ScalarUnit_Frequency
 from toscaparser.elements.scalarunit import ScalarUnit_Size
 from toscaparser.elements.scalarunit import ScalarUnit_Time
+from toscaparser.elements.scalarunit import parse_scalar_unit
 from toscaparser.nodetemplate import NodeTemplate
 from toscaparser.topology_template import TopologyTemplate
 from toscaparser.tests.base import TestCase
@@ -379,8 +380,9 @@ class ScalarDefaultUnitTest(TestCase):
           properties:
             disk_size: 3
         '''
+        assert parse_scalar_unit(str(3)) == (3, None)
         nodetemplates = yamlparser.simple_parse(tpl_snippet)
-        topology = TopologyTemplate({'node_templates':nodetemplates}, self.custom_def)
+        topology = TopologyTemplate({"node_templates": nodetemplates}, self.custom_def)
         nodetemplate = topology.node_templates["server"]
         assert nodetemplate
         self.assertEqual(nodetemplate.get_property_value('disk_size'), "3 GB")

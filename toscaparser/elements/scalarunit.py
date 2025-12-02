@@ -22,11 +22,14 @@ log = logging.getLogger('tosca')
 scalar_pattern = re.compile(r'([-+]?[0-9.]+)\s*\*?\s*(\w+)?')
 
 def parse_scalar_unit(value):
-  match = scalar_pattern.match(str(value))
-  if match:
-      return validateutils.str_to_num(match.group(1)), match.group(2)
-  else:
-      return None, None
+    match = scalar_pattern.match(str(value))
+    if match:
+        try:
+            return validateutils.str_to_num(match.group(1)), match.group(2)
+        except ValueError:
+            return None, None
+    else:
+        return None, None
 
 class ScalarUnit(object):
     '''Parent class for scalar-unit type.'''
@@ -75,12 +78,12 @@ class ScalarUnit(object):
             scalar_unit = self._check_unit_in_scalar_standard_units(result[1])
             self.value = ' '.join([result[0], scalar_unit])
             return self.value
-
         except Exception:
             ExceptionCollector.appendException(
                 ValueError(_('"%s" is not a valid scalar-unit.')
                            % self.value))
             return None
+
     def get_num_from_scalar_unit(self, unit=None):
         if unit:
             unit = self._check_unit_in_scalar_standard_units(unit)
