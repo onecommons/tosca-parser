@@ -126,7 +126,7 @@ class ScalarUnit(object):
             smallest_val = int(smallest_val)
         if round(smallest_val, 4) > 0:
             smallest_val = round(smallest_val, 5)
-        return str(smallest_val) + " " + smallest_unit
+        return str(smallest_val) + smallest_unit
 
 
 class ScalarUnit_Size(ScalarUnit):

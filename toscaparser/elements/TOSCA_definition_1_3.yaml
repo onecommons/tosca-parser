@@ -55,9 +55,9 @@ node_types:
           The logical name of the store (or container).
       size:
         type: scalar-unit.size
-        default: 0 MB
+        default: 0MB
         constraints:
-          - greater_or_equal: 0 MB
+          - greater_or_equal: 0MB
         description: >
           The requested initial storage size.
 
@@ -102,7 +102,7 @@ node_types:
         type: scalar-unit.size
         required: false
         constraints:
-          - greater_or_equal: 0 GB
+          - greater_or_equal: 0GB
         description: >
           The requested maximum storage size.
     capabilities:
@@ -568,17 +568,17 @@ capability_types:
         required: false
         type: scalar-unit.frequency
         constraints:
-          - greater_or_equal: 0.1 GHz
+          - greater_or_equal: 0.1GHz
       disk_size:
         required: false
         type: scalar-unit.size
         constraints:
-          - greater_or_equal: 0 MB
+          - greater_or_equal: 0MB
       mem_size:
         required: false
         type: scalar-unit.size
         constraints:
-          - greater_or_equal: 0 MB
+          - greater_or_equal: 0MB
 
   tosca.capabilities.Endpoint:
     derived_from: tosca.capabilities.Root
