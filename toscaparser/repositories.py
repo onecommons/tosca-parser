@@ -30,31 +30,28 @@ log = logging.getLogger("tosca")
 
 class Repository(object):
     url = ""
-    def __init__(self, name, values):
+
+    def __init__(self, name, tpl):
         self.name = name
-        self.tpl = values
         # TOSCA 1.0 backwards compatibility:
-        if isinstance(self.tpl, str):
-            tpl = dict(url=self.tpl)
-        else:
-            tpl = self.tpl
-        if isinstance(tpl, dict):
-            log.debug(
-                "ddd %s, %s, %s %s %s", self, name, values, self.tpl, id(self.tpl)
-            )
+        if isinstance(tpl, str):
+            self.tpl = dict(url=tpl)
+        elif isinstance(tpl, dict):
+            self.tpl = tpl
             if URL not in tpl.keys():
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(what=_('repository "%s"')
                                               % self.name, required='url'))
+            self.url = tpl["url"]
             for key, value in tpl.items():
                 if key not in SECTIONS:
                     ExceptionCollector.appendException(
                         UnknownFieldError(what=_('repository "%s"')
                                           % name, field=key))
-                log.debug("ddd3 %s, %s %s", self, key, value)
-                setattr(self, key, value)
-                log.debug("ddd4 %s, %s %s", self, self.name, self.url)
-
+                else:
+                    log.debug("ddd3 %s, %s %s", self, key, value)
+                    setattr(self, key, value)
+                    log.debug("ddd4 %s, %s %s", self, self.name, self.url)
             self.validate()
             self.hostname = urlparse(self.url).hostname
         else:
