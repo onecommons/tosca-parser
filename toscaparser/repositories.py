@@ -26,29 +26,36 @@ SECTIONS = (DESCRIPTION, URL, CREDENTIAL, REVISION, METADATA, FILE) = \
 
 class Repository(object):
     url = ""
-    def __init__(self, name, values):
+    description = None
+    credential = None
+    revision = None
+    metadata = None
+    file = None
+    hostname = None
+
+    def __init__(self, name, tpl):
         self.name = name
-        self.tpl = values
         # TOSCA 1.0 backwards compatibility:
-        if isinstance(self.tpl, str):
-            tpl = dict(url=self.tpl)
-        else:
-            tpl = self.tpl
-        if isinstance(tpl, dict):
+        if isinstance(tpl, str):
+            self.tpl = dict(url=tpl)
+        elif isinstance(tpl, dict):
+            self.tpl = tpl
             if URL not in tpl.keys():
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(what=_('repository "%s"')
                                               % self.name, required='url'))
+            self.url = tpl.get("url")
             for key, value in tpl.items():
                 if key not in SECTIONS:
                     ExceptionCollector.appendException(
                         UnknownFieldError(what=_('repository "%s"')
                                           % name, field=key))
-                setattr(self, key, value)
-
+                elif key != "url":
+                    setattr(self, key, value)
             self.validate()
             self.hostname = urlparse(self.url).hostname
         else:
+            self.tpl = tpl
             ExceptionCollector.appendException(
                 TypeMismatchError(what=_('repository "%s"') % self.name, type="dict"))
 
@@ -61,6 +68,3 @@ class Repository(object):
         if self.credential:
             self.credential = DataEntity("tosca.datatypes.Credential",
                                   self.credential, prop_name=CREDENTIAL).validate()
-
-for key in SECTIONS:
-  setattr(Repository, key, None)
