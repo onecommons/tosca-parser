@@ -39,7 +39,9 @@ class Repository(object):
         else:
             tpl = self.tpl
         if isinstance(tpl, dict):
-            log.debug("ddd %s, %s, %s %s", self, name, values, self.tpl)
+            log.debug(
+                "ddd %s, %s, %s %s %s", self, name, values, self.tpl, id(self.tpl)
+            )
             if URL not in tpl.keys():
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(what=_('repository "%s"')
@@ -49,7 +51,9 @@ class Repository(object):
                     ExceptionCollector.appendException(
                         UnknownFieldError(what=_('repository "%s"')
                                           % name, field=key))
+                log.debug("ddd3 %s, %s %s", self, key, value)
                 setattr(self, key, value)
+                log.debug("ddd4 %s, %s %s", self, self.name, self.url)
 
             self.validate()
             self.hostname = urlparse(self.url).hostname
@@ -58,7 +62,7 @@ class Repository(object):
                 TypeMismatchError(what=_('repository "%s"') % self.name, type="dict"))
 
     def validate(self):
-        log.debug("ddd2 %s, %s %s", self, self.name, self.url)
+        log.debug("ddd5 %s, %s %s %s", self, self.name, self.url, id(self.tpl))
         url_val = toscaparser.utils.urlutils.UrlUtils.validate_url(self.url)
         if url_val is not True:
             ExceptionCollector.appendException(
