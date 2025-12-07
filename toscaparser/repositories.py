@@ -23,6 +23,10 @@ from toscaparser.dataentity import DataEntity
 SECTIONS = (DESCRIPTION, URL, CREDENTIAL, REVISION, METADATA, FILE) = \
            ('description', 'url', 'credential', 'revision', 'metadata', 'file')
 
+import logging
+
+log = logging.getLogger("tosca")
+
 
 class Repository(object):
     url = ""
@@ -35,6 +39,7 @@ class Repository(object):
         else:
             tpl = self.tpl
         if isinstance(tpl, dict):
+            log.debug("ddd %s, %s, %s %s", self, name, values, self.tpl)
             if URL not in tpl.keys():
                 ExceptionCollector.appendException(
                     MissingRequiredFieldError(what=_('repository "%s"')
@@ -53,6 +58,7 @@ class Repository(object):
                 TypeMismatchError(what=_('repository "%s"') % self.name, type="dict"))
 
     def validate(self):
+        log.debug("ddd2 %s, %s %s", self, self.name, self.url)
         url_val = toscaparser.utils.urlutils.UrlUtils.validate_url(self.url)
         if url_val is not True:
             ExceptionCollector.appendException(
