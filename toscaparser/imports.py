@@ -259,12 +259,18 @@ class ImportsLoader(object):
         if namespace_id in self.custom_defs.all_namespaces:
             imported_types = self.custom_defs.all_namespaces[namespace_id]
         else:
+            mtime = (
+                os.path.getmtime(full_file_name)
+                if os.path.isfile(full_file_name)
+                else None
+            )
             imported_types = Namespace(
                 self.custom_defs.all_namespaces,
                 _source,
                 namespace_id,
                 bool(declared_namespace_id),
                 self.repositories,
+                mtime,
             )
 
         if imported_tpl:

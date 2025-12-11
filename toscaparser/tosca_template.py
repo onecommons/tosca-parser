@@ -220,7 +220,12 @@ class ToscaTemplate(object):
         This method loads the custom type definitions referenced in "imports"
         section of the TOSCA YAML template.
         """
-        imported_types = Namespace({}, None, self.path or "")
+        mtime = (
+            os.path.getmtime(self.path)
+            if self.path and os.path.isfile(self.path)
+            else None
+        )
+        imported_types = Namespace({}, None, self.path or "", mtime=mtime)
         imports_loader = toscaparser.imports.ImportsLoader(
             None, self.path, imported_types, self.tpl.get("repositories"),
             self.import_resolver, self.base_dir

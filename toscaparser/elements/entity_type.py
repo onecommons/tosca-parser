@@ -36,6 +36,7 @@ class _Namespace:
         namespace_id="",
         shared_namespace=False,
         repositories=None,
+        mtime=None,
     ):
         self.all_namespaces = nested_custom_types
         self.source_info = source_info
@@ -45,6 +46,7 @@ class _Namespace:
         self.all_namespaces[namespace_id] = self
         self.shared_namespace = shared_namespace
         self.repositories = {} if repositories is None else repositories
+        self.mtime = mtime
         # self.metadata = {}  # local_name => section?
 
     def get_local_name(self, global_name):
