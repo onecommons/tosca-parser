@@ -94,7 +94,7 @@ class ToscaTemplate(object):
                 self.path = path
             else:
                 self.path, base_dir = self._get_path(path, base_dir)
-                self.tpl = YAML_LOADER(self.path, self.a_file)
+                self.tpl = YAML_LOADER(self.path, self.a_file) or {}
         self.base_dir = base_dir or (self.path and os.path.dirname(self.path)) or "."
 
         if yaml_dict_tpl:
@@ -124,13 +124,18 @@ class ToscaTemplate(object):
                 self._handle_nested_tosca_templates_with_topology(all_custom_defs.all_namespaces)
 
         if verify:
-            if self.tpl and self.topology_template.tpl:
+            if self.topology_template and self.topology_template.tpl:
                 # now that all the node templates have been loaded we can validated the relationships between them
                 self.validate_relationships()
             ExceptionCollector.stop()
             self.raise_validation_errors()
         else:
             ExceptionCollector.stop()
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # this loads tosca_plugins:
+        self._validate_field()
 
     def validate_relationships(self):
         # note: nested topologies are validated when the substituted node template is validated
