@@ -15,6 +15,7 @@ import os
 from toscaparser.common import exception
 from toscaparser import functions
 from toscaparser.tests.base import TestCase
+from toscaparser.tests import utils
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.utils.gettextutils import _
 from unittest import skip
@@ -22,7 +23,7 @@ from unittest import skip
 @skip("redo tests")
 class IntrinsicFunctionsTest(TestCase):
 
-    tosca_tpl = TestCase.test_sample(
+    tosca_tpl = utils.get_sample_test_path(
         "data/tosca_single_instance_wordpress.yaml")
     params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
               'db_root_pwd': '12345678'}
@@ -120,7 +121,7 @@ class IntrinsicFunctionsTest(TestCase):
         self.assertEqual(dbms_root_password.result(), '12345678')
 
     def test_get_property_with_host(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/functions/test_get_property_with_host.yaml")
         mysql_database = self._get_node('mysql_database',
                                         ToscaTemplate(tosca_tpl,
@@ -138,7 +139,7 @@ class IntrinsicFunctionsTest(TestCase):
         self.assertEqual(1, result)
 
     def test_get_property_with_nested_params(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/functions/tosca_nested_property_names_indexes.yaml")
         webserver = self._get_node('wordpress',
                                    ToscaTemplate(tosca_tpl,
@@ -153,7 +154,7 @@ class IntrinsicFunctionsTest(TestCase):
         self.assertEqual(3, wp_list_prop.result())
 
     def test_get_property_with_capabilties_inheritance(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/functions/test_capabilties_inheritance.yaml")
         some_node = self._get_node('some_node',
                                    ToscaTemplate(tosca_tpl,
@@ -165,7 +166,7 @@ class IntrinsicFunctionsTest(TestCase):
         self.assertEqual('someval', some_input.result())
 
     def test_get_property_source_target_keywords(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/functions/test_get_property_source_target_keywords.yaml")
         tosca = ToscaTemplate(tosca_tpl,
                               parsed_params={'db_root_pwd': '1234'})
@@ -186,7 +187,7 @@ class IntrinsicFunctionsTest(TestCase):
         self.assertEqual(3306, source_port.result())
 
     def test_get_prop_cap_host(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/functions/test_get_prop_cap_host.yaml")
         some_node = self._get_node('some_node',
                                    ToscaTemplate(tosca_tpl))
@@ -195,7 +196,7 @@ class IntrinsicFunctionsTest(TestCase):
         self.assertEqual('someval', some_prop.value.result())
 
     def test_get_prop_cap_bool(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/functions/test_get_prop_cap_bool.yaml")
         some_node = self._get_node('software',
                                    ToscaTemplate(tosca_tpl))
@@ -203,12 +204,22 @@ class IntrinsicFunctionsTest(TestCase):
         self.assertIsInstance(some_prop.value, functions.GetProperty)
         self.assertEqual(False, some_prop.value.result())
 
+
+    def test_check_invalid_input(self):
+        self.assertRaises(
+            exception.ValidationError, self._load_template,
+            'functions/test_invalid_input.yaml')
+        exception.ExceptionCollector.assertExceptionMessage(
+            exception.UnknownInputError,
+            _('Unknown input "non_existent_input".'))
+
+
 @skip("redo tests")
 class GetAttributeTest(TestCase):
 
     def _load_template(self, filename):
         return ToscaTemplate(os.path.join(
-            TestCase.test_sample('data'), filename),
+            utils.get_sample_test_path('data'), filename),
             parsed_params={'db_root_pwd': '1234'})
 
     def _get_operation(self, interfaces, operation):
@@ -305,7 +316,7 @@ class GetAttributeTest(TestCase):
               'Unexpected attribute/index value "0"'))
 
     def test_get_attribute_source_target_keywords(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/functions/test_get_attribute_source_target_keywords.yaml")
         tosca = ToscaTemplate(tosca_tpl,
                               parsed_params={'db_root_pwd': '12345678'})
@@ -347,7 +358,7 @@ class GetAttributeTest(TestCase):
 class ConcatTest(TestCase):
 
     def _load_template(self, filename):
-        return ToscaTemplate(TestCase.test_sample(filename))
+        return ToscaTemplate(utils.get_sample_test_path(filename))
 
     def test_validate_concat(self):
         tosca = self._load_template("data/functions/test_concat.yaml")
@@ -368,7 +379,7 @@ class ConcatTest(TestCase):
 class TokenTest(TestCase):
 
     def _load_template(self, filename):
-        return ToscaTemplate(TestCase.test_sample(filename))
+        return ToscaTemplate(utils.get_sample_test_path(filename))
 
     def test_validate_token(self):
         tosca = self._load_template("data/functions/test_token.yaml")

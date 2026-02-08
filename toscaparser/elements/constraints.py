@@ -217,7 +217,7 @@ class Constraint(object):
         if cls is not Constraint:
             return super(Constraint, cls).__new__(cls)
 
-        if(not isinstance(constraint, collections.abc.Mapping) or
+        if (not isinstance(constraint, collections.abc.Mapping) or
            len(constraint) != 1):
             ExceptionCollector.appendException(
                 InvalidSchemaError(message=_("Invalid constraint: %s (must be a map with one key)") % constraint)
@@ -528,7 +528,7 @@ class InRange(Constraint):
 
     def __init__(self, property_name, property_type, constraint):
         super(InRange, self).__init__(property_name, property_type, constraint)
-        if(not isinstance(self.constraint_value, collections.abc.Sequence) or
+        if (not isinstance(self.constraint_value, collections.abc.Sequence) or
            (len(constraint[self.IN_RANGE]) != 2)):
             ExceptionCollector.appendException(
                 InvalidSchemaError(

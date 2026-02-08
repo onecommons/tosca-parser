@@ -78,6 +78,7 @@ class ToscaTemplate(object):
         verify=True,
         fragment="",
         base_dir=None,
+        strict=None,
     ):
         ExceptionCollector.start()
         self.a_file = a_file
@@ -88,6 +89,8 @@ class ToscaTemplate(object):
         self.nested_tosca_tpls = {}
         self.nested_topologies = {}
         self.verify = verify
+        if strict is not None:
+            self.strict = strict
         if path:
             # don't validate or load if yaml_dict_tpl was set
             if yaml_dict_tpl:
@@ -140,6 +143,13 @@ class ToscaTemplate(object):
     def validate_relationships(self):
         # note: nested topologies are validated when the substituted node template is validated
         self.topology_template.validate_relationships(self.strict)
+        if self.strict:
+            self._validate_relationship_occurences()
+
+    def _validate_relationship_occurences(self):
+        for tpl in self.nodetemplates:
+            # Check if the requirements has a correct number of occurrences
+            tpl._validate_relationship_occurrences()
 
     def _topology_template(self, custom_defs):
         return TopologyTemplate(self._tpl_topology_template(),

@@ -989,6 +989,14 @@ artifact_types:
     derived_from: tosca.artifacts.Root
     description: TOSCA base type for template type artifacts
 
+  tosca.artifacts.template.Jinja2:
+    derived_from: tosca.artifacts.template
+    description: Jinja2 template file
+
+  tosca.artifacts.template.Twig:
+    derived_from: tosca.artifacts.template
+    description: Twig template file
+
 ##########################################################################
 # Policy Type.
 # TOSCA Policy Types represent logical grouping of TOSCA nodes that have

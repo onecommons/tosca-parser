@@ -12,10 +12,9 @@
 
 ##########################################################################
 # The content of this file reflects TOSCA Simple Profile in YAML version
-# 1.0.0. It describes the definition for TOSCA types including Node Type,
+# 1.0.3. It describes the definition for TOSCA types including Node Type,
 # Relationship Type, Capability Type and Interfaces.
 ##########################################################################
-tosca_definitions_version: tosca_simple_yaml_1_0
 
 ##########################################################################
 # Node Type.

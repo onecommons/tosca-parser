@@ -105,8 +105,10 @@ class GetInput(Function):
                 self.args[1])
 
         input = [input_def for input_def in self.tosca_tpl.inputs
-                 if self.input_name == input_def.name][0]
-        return input.default
+                 if self.input_name == input_def.name]
+        if input:
+            return input[0].default
+        return None
 
     @property
     def input_name(self):
@@ -741,9 +743,9 @@ class GetOperationOutput(Function):
 
     def _find_operation_name(self, interface_name, operation_name,
                              interfaces=None):
-        if(interface_name == 'Configure' or
+        if (interface_name == 'Configure' or
            interface_name == 'tosca.interfaces.node.relationship.Configure'):
-            if(operation_name in
+            if (operation_name in
                StatefulEntityType.
                interfaces_relationship_configure_operations):
                 return operation_name
@@ -752,9 +754,9 @@ class GetOperationOutput(Function):
                     ValueError(_('Enter an operation of Configure interface'
                                  ).format(GET_OPERATION_OUTPUT)))
                 return
-        elif(interface_name == 'Standard' or
-             interface_name == 'tosca.interfaces.node.lifecycle.Standard'):
-            if(operation_name in
+        elif (interface_name == 'Standard' or
+              interface_name == 'tosca.interfaces.node.lifecycle.Standard'):
+            if (operation_name in
                StatefulEntityType.interfaces_node_lifecycle_operations):
                 return operation_name
             else:

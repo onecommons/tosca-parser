@@ -112,6 +112,7 @@ class EntityTemplate(object):
         for prop in self.get_properties_objects():
             prop.validate()  # might normalize and modify prop.value
         self.type_definition._validate_interfaces(self)
+        self._attributes = None
 
     @property
     def type(self):
@@ -149,6 +150,14 @@ class EntityTemplate(object):
             else:
                 self._requirements = self.entity_tpl.get(self.REQUIREMENTS) or []
         return self._requirements
+
+    @property
+    def attributes(self):
+        if self._attributes is None:
+            self._attributes = self.type_definition.get_value(
+                self.ATTRIBUTES,
+                self.entity_tpl) or []
+        return self._attributes
 
     def get_properties_objects(self):
         '''Return properties objects for this template.'''

@@ -25,6 +25,7 @@ from toscaparser.nodetemplate import NodeTemplate
 from toscaparser.topology_template import TopologyTemplate
 from toscaparser.tests.base import MockTestClass
 from toscaparser.tests.base import TestCase
+from toscaparser.tests import utils
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.utils.gettextutils import _
 from toscaparser.utils.urlutils import UrlUtils
@@ -48,13 +49,13 @@ def _get_nodetemplate(tpl_snippet, name, custom_def_snippet=None):
 
 class ToscaTemplateTest(TestCase):
     '''TOSCA template.'''
-    tosca_tpl = TestCase.test_sample(
+    tosca_tpl = utils.get_sample_test_path(
         "data/tosca_single_instance_wordpress.yaml")
     params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
               'db_root_pwd': '12345678'}
     tosca = ToscaTemplate(tosca_tpl, parsed_params=params)
-    tosca_elk_tpl = TestCase.test_sample("data/tosca_elk.yaml")
-    tosca_repo_tpl = TestCase.test_sample(
+    tosca_elk_tpl = utils.get_sample_test_path("data/tosca_elk.yaml")
+    tosca_repo_tpl = utils.get_sample_test_path(
         "data/repositories/tosca_repositories_test_definition.yaml")
 
     def test_version(self):
@@ -170,15 +171,15 @@ class ToscaTemplateTest(TestCase):
         # Nodes that contain "relationship" in "requirements"
         depend_node_types = (
             "tosca.nodes.SoftwareComponent",
+            "sample.SC",
         )
 
         # Nodes that do not contain "relationship" in "requirements"
         non_depend_node_types = (
             "tosca.nodes.Compute",
-            "sample.SC",
         )
 
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_nodetype_without_relationship.yaml")
         tosca = ToscaTemplate(tosca_tpl)
 
@@ -263,7 +264,7 @@ class ToscaTemplateTest(TestCase):
 
     def test_normative_type_by_short_name(self):
         # test template with a short name Compute
-        template = TestCase.test_sample(
+        template = utils.get_sample_test_path(
             "data/test_tosca_normative_type_by_shortname.yaml")
 
         tosca_tpl = ToscaTemplate(template)
@@ -362,13 +363,15 @@ class ToscaTemplateTest(TestCase):
            with explicit relationship.
         5. Requirement expressed via TOSCA types with a filter.
         """
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/requirements/test_requirements.yaml")
         tosca = ToscaTemplate(tosca_tpl)
         for node_tpl in tosca.nodetemplates:
             if node_tpl.name == 'my_app':
                 expected_relationship = [
                     ('tosca.relationships.ConnectsTo', 'mysql_database'),
+                    ('tosca.relationships.ConnectsTo', 'mysql_database'),
+                    ('tosca.relationships.HostedOn', 'my_webserver'),
                     ('tosca.relationships.HostedOn', 'my_webserver')]
                 actual_relationship = sorted([
                     (relations[0].type, relations[0].target.name) for
@@ -515,11 +518,17 @@ class ToscaTemplateTest(TestCase):
                             "test": 1
                         }
                     }
-                }
-            }
+                },
+                "requirements": [
+                    {
+                        "host": "test_server"
+                    }
+                ]
+            },
+            'test_server': {'type': 'tosca.nodes.Compute'}
         }
 
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_capability_without_properties.yaml")
         tosca = ToscaTemplate(tosca_tpl)
 
@@ -531,7 +540,7 @@ class ToscaTemplateTest(TestCase):
         )
 
     def test_local_template_with_local_relpath_import(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress.yaml")
         params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
                   'db_root_pwd': '12345678'}
@@ -540,9 +549,9 @@ class ToscaTemplateTest(TestCase):
 
     @mock.patch.object(ToscaTemplate, '_tpl_imports')
     def test_local_template_with_url_import(self, mock_tpl_imports):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress_with_url_import.yaml")
-        import_file_path = TestCase.test_sample(
+        import_file_path = utils.get_sample_test_path(
             "data/custom_types/wordpress.yaml")
         mock_tpl_imports.return_value = [import_file_path]
         tosca = ToscaTemplate(tosca_tpl,
@@ -556,9 +565,9 @@ class ToscaTemplateTest(TestCase):
         mock_path = 'https://example.com/custom_types/wordpress.yaml'
 
         mockclass = MockTestClass()
-        mockclass.comp_urldict = {tosca_tpl: TestCase.test_sample(
+        mockclass.comp_urldict = {tosca_tpl: utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress.yaml"),
-            mock_path: TestCase.test_sample(
+            mock_path: utils.get_sample_test_path(
                 "data/custom_types/wordpress.yaml")}
         mock_urlopen.side_effect = mockclass.mock_urlopen_method
         tosca = ToscaTemplate(tosca_tpl, a_file=False,
@@ -576,7 +585,7 @@ class ToscaTemplateTest(TestCase):
                      'with_local_abspath_import.yaml')
 
         mockclass = MockTestClass()
-        mockclass.comp_urldict = {tosca_tpl: TestCase.test_sample(
+        mockclass.comp_urldict = {tosca_tpl: utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress_with_local_abspath_"
             "import.yaml")}
         mock_urlopen.side_effect = mockclass.mock_urlopen_method
@@ -599,11 +608,11 @@ class ToscaTemplateTest(TestCase):
                      'with_url_import.yaml')
 
         mockclass = MockTestClass()
-        mockclass.comp_urldict = {tosca_tpl: TestCase.test_sample(
+        mockclass.comp_urldict = {tosca_tpl: utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress_with_url_import.yaml")}
         mock_urlopen.side_effect = mockclass.mock_urlopen_method
 
-        import_file_path = TestCase.test_sample(
+        import_file_path = utils.get_sample_test_path(
             "data/custom_types/wordpress.yaml")
         mock_tpl_imports.return_value = [import_file_path]
         mock_isabs.return_value = False
@@ -614,7 +623,8 @@ class ToscaTemplateTest(TestCase):
         self.assertTrue(tosca.topology_template.custom_defs)
 
     def test_csar_parsing_wordpress(self):
-        csar_archive = TestCase.test_sample("data/CSAR/csar_wordpress.zip")
+        csar_archive = utils.get_sample_test_path(
+            "data/CSAR/csar_wordpress.zip")
         self.assertTrue(ToscaTemplate(csar_archive,
                                       parsed_params={"db_name": "mysql",
                                                      "db_user": "mysql",
@@ -631,7 +641,7 @@ class ToscaTemplateTest(TestCase):
             content: bytes
 
         response = TestResponse()
-        file_path = TestCase.test_sample("data/CSAR/csar_elk.zip")
+        file_path = utils.get_sample_test_path("data/CSAR/csar_elk.zip")
 
         with open(file_path, 'br') as f:
             response.content = f.read()
@@ -642,10 +652,11 @@ class ToscaTemplateTest(TestCase):
                                       parsed_params={"my_cpus": 4}))
 
     def test_nested_imports_in_templates(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_instance_nested_imports.yaml")
         tosca = ToscaTemplate(tosca_tpl)
-        expected_custom_types = ['tosca.nodes.SoftwareComponent.Kibana',
+        expected_custom_types = ['tosca.nodes.SoftwareComponent.Elasticsearch',
+                                 'tosca.nodes.SoftwareComponent.Kibana',
                                  'tosca.nodes.WebApplication.WordPress',
                                  'test_namespace_prefix.Rsyslog',
                                  'Test2ndRsyslogType',
@@ -667,7 +678,7 @@ class ToscaTemplateTest(TestCase):
                                                             expected_msg)
 
     def test_multiple_validation_errors(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_multiple_validation_errors.yaml")
         self.assertRaises(exception.ValidationError, ToscaTemplate, tosca_tpl,
                           None)
@@ -723,7 +734,7 @@ class ToscaTemplateTest(TestCase):
             exception.MissingTypeError, err10_msg)
 
     def test_invalid_section_names(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_invalid_section_names.yaml")
         self.assertRaises(exception.ValidationError, ToscaTemplate, tosca_tpl,
                           None)
@@ -749,12 +760,13 @@ class ToscaTemplateTest(TestCase):
             exception.UnknownFieldError, err4_msg)
 
     def test_csar_with_alternate_extenstion(self):
-        tosca_tpl = TestCase.test_sample("data/CSAR/csar_elk.csar")
+        tosca_tpl = utils.get_sample_test_path("data/CSAR/csar_elk.csar")
         tosca = ToscaTemplate(tosca_tpl, parsed_params={"my_cpus": 2})
         self.assertTrue(tosca.topology_template.custom_defs)
 
     def test_available_rel_tpls(self):
-        tosca_tpl = TestCase.test_sample("data/test_available_rel_tpls.yaml")
+        tosca_tpl = utils.get_sample_test_path(
+            "data/test_available_rel_tpls.yaml")
         tosca = ToscaTemplate(tosca_tpl)
         for node in tosca.nodetemplates:
             for relations in node.relationships:
@@ -772,7 +784,7 @@ class ToscaTemplateTest(TestCase):
                                                             err_msg)
 
     def test_path_and_yaml_dict_tpl_input(self):
-        test_tpl = TestCase.test_sample("data/tosca_helloworld.yaml")
+        test_tpl = utils.get_sample_test_path("data/tosca_helloworld.yaml")
 
         yaml_dict_tpl = toscaparser.utils.yamlparser.load_yaml(test_tpl)
 
@@ -781,7 +793,7 @@ class ToscaTemplateTest(TestCase):
         self.assertEqual(tosca.version, "tosca_simple_yaml_1_0")
 
     def test_yaml_dict_tpl_input(self):
-        test_tpl = TestCase.test_sample("data/tosca_helloworld.yaml")
+        test_tpl = utils.get_sample_test_path("data/tosca_helloworld.yaml")
 
         yaml_dict_tpl = toscaparser.utils.yamlparser.load_yaml(test_tpl)
 
@@ -791,14 +803,14 @@ class ToscaTemplateTest(TestCase):
 
     @mock.patch.object(ToscaTemplate, '_tpl_imports')
     def test_yaml_dict_tpl_with_params_and_url_import(self, mock_tpl_imports):
-        test_tpl = TestCase.test_sample(
+        test_tpl = utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress_with_url_import.yaml")
 
         yaml_dict_tpl = toscaparser.utils.yamlparser.load_yaml(test_tpl)
 
         params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
                   'db_root_pwd': 'mypasswd'}
-        import_file_path = TestCase.test_sample(
+        import_file_path = utils.get_sample_test_path(
             "data/custom_types/wordpress.yaml")
         mock_tpl_imports.return_value = [import_file_path]
 
@@ -808,7 +820,7 @@ class ToscaTemplateTest(TestCase):
         self.assertEqual(tosca.version, "tosca_simple_yaml_1_0")
 
     def test_yaml_dict_tpl_with_rel_import(self):
-        test_tpl = TestCase.test_sample(
+        test_tpl = utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress.yaml")
 
         yaml_dict_tpl = toscaparser.utils.yamlparser.load_yaml(test_tpl)
@@ -822,12 +834,12 @@ class ToscaTemplateTest(TestCase):
                                                             err_msg)
 
     def test_yaml_dict_tpl_with_fullpath_import(self):
-        test_tpl = TestCase.test_sample(
+        test_tpl = utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress.yaml")
 
         yaml_dict_tpl = toscaparser.utils.yamlparser.load_yaml(test_tpl)
 
-        yaml_dict_tpl['imports'] = [TestCase.test_sample(
+        yaml_dict_tpl['imports'] = [utils.get_sample_test_path(
             "data/custom_types/wordpress.yaml")]
 
         params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
@@ -839,7 +851,7 @@ class ToscaTemplateTest(TestCase):
         self.assertEqual(tosca.version, "tosca_simple_yaml_1_0")
 
     def test_policies_for_node_templates(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/policies/tosca_policy_template.yaml")
         tosca = ToscaTemplate(tosca_tpl)
 
@@ -860,7 +872,7 @@ class ToscaTemplateTest(TestCase):
                                              '4096 MB')
 
     def test_policies_for_groups(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/policies/tosca_policy_template.yaml")
         tosca = ToscaTemplate(tosca_tpl)
 
@@ -892,7 +904,7 @@ class ToscaTemplateTest(TestCase):
 
     def test_policies_for_custom(self):
         host_prop = {}
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/policies/tosca_custom_policy_template.yaml")
         tosca = ToscaTemplate(tosca_tpl)
 
@@ -923,7 +935,7 @@ class ToscaTemplateTest(TestCase):
                                                              '512 MB')
 
     def test_node_filter(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/node_filter/test_node_filter.yaml")
         t = ToscaTemplate(tosca_tpl)
         filter_match = t.topology_template.node_templates['test'].relationships[0][0].target.name
@@ -1026,33 +1038,34 @@ class ToscaTemplateTest(TestCase):
         }, reqDef
 
     def test_attributes_inheritance(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_attributes_inheritance.yaml")
         ToscaTemplate(tosca_tpl)
 
     @mock.patch.object(urllib.request, 'urlopen')
     def test_repositories_definition(self, mock_urlopen):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/repositories/test_repositories_definition.yaml")
         mock_path = "https://example.com/custom_types/compute_with_prop.yaml"
 
         mockclass = MockTestClass()
-        mockclass.comp_urldict = {mock_path: TestCase.test_sample(
+        mockclass.comp_urldict = {mock_path: utils.get_sample_test_path(
             "data/custom_types/compute_with_prop.yaml")}
         mock_urlopen.side_effect = mockclass.mock_urlopen_method
         ToscaTemplate(tosca_tpl)
 
     def test_custom_caps_def(self):
-        tosca_tpl = TestCase.test_sample("data/test_custom_caps_def.yaml")
+        tosca_tpl = utils.get_sample_test_path(
+            "data/test_custom_caps_def.yaml")
         ToscaTemplate(tosca_tpl)
 
     def test_custom_caps_with_custom_datatype(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_custom_caps_with_datatype.yaml")
         ToscaTemplate(tosca_tpl)
 
     def test_custom_rel_with_script(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/test_tosca_custom_rel_with_script.yaml")
         tosca = ToscaTemplate(tosca_tpl)
         rel = tosca.relationship_templates["my_custom_rel"]
@@ -1062,7 +1075,7 @@ class ToscaTemplateTest(TestCase):
         self.assertEqual(rel.interfaces[0].type, "tosca.interfaces.relationship.Configure")
 
     def test_various_portspec_errors(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/datatypes/test_datatype_portspec_add_req.yaml")
         self.assertRaises(exception.ValidationError, ToscaTemplate, tosca_tpl,
                           None)
@@ -1098,7 +1111,7 @@ class ToscaTemplateTest(TestCase):
             exception.RangeValueError, msg)
 
     def test_containers(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/containers/test_container_docker_mysql.yaml")
         t = ToscaTemplate(tosca_tpl, parsed_params={"mysql_root_pwd": "12345678"})
         node = t.topology_template.node_templates["mysql_container"]
@@ -1107,16 +1120,17 @@ class ToscaTemplateTest(TestCase):
         assert interfaces[1].name == "configure" and interfaces[1].primary
 
     def test_endpoint_on_compute(self):
-        tosca_tpl = TestCase.test_sample("data/test_endpoint_on_compute.yaml")
+        tosca_tpl = utils.get_sample_test_path(
+            "data/test_endpoint_on_compute.yaml")
         ToscaTemplate(tosca_tpl)
 
     def test_nested_dsl_def(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/dsl_definitions/test_nested_dsl_def.yaml")
         self.assertIsNotNone(ToscaTemplate(tosca_tpl))
 
     def test_multiple_policies(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/policies/test_tosca_nfv_multiple_policies.yaml")
         tosca = ToscaTemplate(tosca_tpl)
         self.assertEqual(
@@ -1124,17 +1138,18 @@ class ToscaTemplateTest(TestCase):
             sorted([policy.name for policy in tosca.policies]))
 
     def test_custom_capability(self):
-        tosca_tpl = TestCase.test_sample("data/test_custom_capabilty.yaml")
+        tosca_tpl = utils.get_sample_test_path(
+            "data/test_custom_capabilty.yaml")
         ToscaTemplate(tosca_tpl)
 
     def test_csar_multilevel_imports_relative_path(self):
-        csar_archive = TestCase.test_sample(
+        csar_archive = utils.get_sample_test_path(
             "data/CSAR/csar_relative_path_import_check.zip")
         self.assertTrue(ToscaTemplate(csar_archive, parsed_params=dict(selected_flavour="")))
 
     @skip("not yet implemented")
     def test_csar_multiple_deployment_flavours(self):
-        csar_archive = TestCase.test_sample(
+        csar_archive = utils.get_sample_test_path(
             "data/CSAR/csar_multiple_deployment_flavour.zip")
         tosca = ToscaTemplate(csar_archive, parsed_params=dict(selected_flavour="", descriptor_id="", descriptor_version="", provider="", product_name="", software_version="", vnfm_info="", flavour_id="", flavour_description=""))
         flavours = list()
@@ -1146,7 +1161,8 @@ class ToscaTemplateTest(TestCase):
         self.assertEqual(flavours[1]['flavour_id'], 'complex')
 
     def test_custom_rel_get_type(self):
-        tosca_tpl = TestCase.test_sample("data/test_tosca_custom_rel.yaml")
+        tosca_tpl = utils.get_sample_test_path(
+            "data/test_tosca_custom_rel.yaml")
         tosca = ToscaTemplate(tosca_tpl)
         for src in tosca.nodetemplates:
             for relations in src.relationships:
@@ -1154,7 +1170,7 @@ class ToscaTemplateTest(TestCase):
                 self.assertEqual(rel_tpl.type, "MyAttachesTo")
 
     def test_policies_without_required_property(self):
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/policies/test_policies_without_required_property.yaml")
         self.assertRaises(exception.ValidationError, ToscaTemplate,
                           tosca_tpl, None)
@@ -1164,17 +1180,18 @@ class ToscaTemplateTest(TestCase):
     def test_local_custom_defs(self, mock_tpl_imports):
         """Compare if custom defs on local and remote the same."""
 
-        tosca_tpl = TestCase.test_sample(
+        tosca_tpl = utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress_with_url_import.yaml")
 
-        local_def = TestCase.test_sample("data/custom_types/wordpress.yaml")
+        local_def = utils.get_sample_test_path(
+            "data/custom_types/wordpress.yaml")
         remote_def = (
             "https://example.com/custom_types/wordpress.yaml")
 
         local_defs = {remote_def: local_def}
         params = {'db_name': 'my_wordpress', 'db_user': 'my_db_user',
                   'db_root_pwd': '12345678'}
-        import_file_path = TestCase.test_sample(
+        import_file_path = utils.get_sample_test_path(
             "data/custom_types/wordpress.yaml")
         mock_tpl_imports.return_value = [import_file_path]
         tosca = ToscaTemplate(tosca_tpl, parsed_params=params)

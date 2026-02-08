@@ -578,6 +578,52 @@ class NodeTemplate(EntityTemplate):
                     # disable this check to allow node templates to define additional requirements
                     # self._common_validate_field(req, allowed_reqs, 'requirements')
 
+    def _validate_relationship_occurrences(self):
+        type_requires = self.type_definition.get_all_requirements()
+        requires = self.type_definition.get_value(self.REQUIREMENTS,
+                                                  self.entity_tpl)
+        if requires is None:
+            requires = []
+        # TODO: reimplement this:
+        # # in case of substitution mapping, we need to get also the substitution
+        # if self.sub_mapping_tosca_template:
+        #     mapping_reqs = self.sub_mapping_tosca_template.requirements
+        #     if mapping_reqs:
+        #         if isinstance(mapping_reqs, list):
+        #             requires.extend(mapping_reqs)
+        #         else:
+        #             requires.append(mapping_reqs)
+        #     for tpl in self.sub_mapping_tosca_template.nodetemplates:
+        #         if tpl.type == self.type:
+        #             if tpl.requirements:
+        #                 if isinstance(tpl.requirements, list):
+        #                     requires.extend(tpl.requirements)
+        #                 else:
+        #                     requires.append(tpl.requirements)
+        #             break
+
+        if type_requires:
+            for treq in type_requires:
+                for key, value in treq.items():
+                    occurrences = value.get('occurrences', [1, 'UNBOUNDED'])
+                    min_occurrences = occurrences[0]
+                    max_occurrences = occurrences[1]
+                    if max_occurrences == "UNBOUNDED":
+                        max_occurrences = 9999999999
+
+                    count = 0
+                    for req in requires:
+                        for req_name in list(req.keys()):
+                            if req_name == key:
+                                count += 1
+
+                    if count < min_occurrences or count > max_occurrences:
+                        ExceptionCollector.appendException(
+                            ValidationError(
+                                message='Relationship "%s" in template "%s"'
+                                        ' has a wrong number of '
+                                        'occurrences' % (key, self.name)))
+
     def _validate_requirements_properties(self, requirements):
         # TODO(anyone): Only occurrences property of the requirements is
         # validated here. Validation of other requirement properties are being
