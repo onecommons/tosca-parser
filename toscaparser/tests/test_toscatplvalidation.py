@@ -2164,8 +2164,9 @@ tosca-parser/master/toscaparser/tests/data/custom_types/wordpress.yaml
     def test_template_without_requirement(self):
         tpl_path = utils.get_sample_test_path(
             "data/test_template_without_requirement.yaml")
-        err = self.assertRaises(exception.ValidationError,
-                                lambda: ToscaTemplate(tpl_path))
+        err = self.assertRaises(
+            exception.ValidationError, lambda: ToscaTemplate(tpl_path, strict=True)
+        )
         expectedmessage = _('Relationship "host" in template "webserver" has '
                             'a wrong number of occurrences')
         self.assertIn(expectedmessage, err.message)

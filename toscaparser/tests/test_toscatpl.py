@@ -655,16 +655,19 @@ class ToscaTemplateTest(TestCase):
         tosca_tpl = utils.get_sample_test_path(
             "data/test_instance_nested_imports.yaml")
         tosca = ToscaTemplate(tosca_tpl)
-        expected_custom_types = ['tosca.nodes.SoftwareComponent.Elasticsearch',
-                                 'tosca.nodes.SoftwareComponent.Kibana',
-                                 'tosca.nodes.WebApplication.WordPress',
-                                 'test_namespace_prefix.Rsyslog',
-                                 'Test2ndRsyslogType',
-                                 'test_2nd_namespace_prefix.Rsyslog',
-                                 "test_2nd_namespace_prefix.tosca.nodes.SoftwareComponent.Logstash",
-                                 'test_namespace_prefix.tosca.nodes.SoftwareComponent.Logstash',
-                                 'tosca.nodes.SoftwareComponent.Rsyslog.'
-                                 'TestRsyslogType']
+        expected_custom_types = [
+            "tosca.nodes.SoftwareComponent.Elasticsearch",
+            "test_namespace_prefix.tosca.nodes.SoftwareComponent.Elasticsearch",
+            "test_2nd_namespace_prefix.tosca.nodes.SoftwareComponent.Elasticsearch",
+            "tosca.nodes.SoftwareComponent.Kibana",
+            "tosca.nodes.WebApplication.WordPress",
+            "test_namespace_prefix.Rsyslog",
+            "Test2ndRsyslogType",
+            "test_2nd_namespace_prefix.Rsyslog",
+            "test_2nd_namespace_prefix.tosca.nodes.SoftwareComponent.Logstash",
+            "test_namespace_prefix.tosca.nodes.SoftwareComponent.Logstash",
+            "tosca.nodes.SoftwareComponent.Rsyslog.TestRsyslogType",
+        ]
         self.assertCountEqual(tosca.topology_template.custom_defs.keys(),
                               expected_custom_types)
 

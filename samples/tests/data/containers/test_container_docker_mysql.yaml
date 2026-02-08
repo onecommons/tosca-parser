@@ -44,13 +44,13 @@ topology_template:
 
     # The properties of the runtime to host the container
     mysql_runtime:
-      type: tosca.nodes.Container.Runtime
+      type: tosca.nodes.Container.Runtime.Docker
       capabilities:
         host:
           properties:
-            num_cpus: 1
-            disk_size: 10 GB
-            mem_size: 2 MB
+            # num_cpus: 1
+            # disk_size: 10 GB
+            # mem_size: 2 MB
       requirements:
         - host: my_server
 
