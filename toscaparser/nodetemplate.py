@@ -54,6 +54,7 @@ class NodeTemplate(EntityTemplate):
         self._instance_keys = None
         self._all_requirements = None
         self._missing_requirements = None
+        self._invalid_requirements = {}
 
     def _should_validate_properties(self):
         tosca_template = self.topology_template.tosca_template
