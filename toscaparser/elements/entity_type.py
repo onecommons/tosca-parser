@@ -119,6 +119,8 @@ class Namespace(_Namespace, dict):
             else:
                 self[k] = v
 
+MAX_ANCESTORS = 20
+
 class EntityType(object):
     '''Base class for TOSCA elements.'''
 
@@ -231,7 +233,7 @@ class EntityType(object):
         else:
             return parent
 
-    def is_derived_from(self, type_str):
+    def is_derived_from(self, type_str, counter=0):
         '''Check if object inherits from the given type.
 
         Returns true if this object is derived from 'type_str'.
@@ -244,8 +246,9 @@ class EntityType(object):
         elif self._implements(type_str):
             return True
         else:
-            for p in self.parent_types():
-                if p.is_derived_from(type_str):
+            for p in self.parent_types():  
+                # short curcuit if too many ancestors to avoid infinite loops in case of cycles
+                if counter < MAX_ANCESTORS and p.is_derived_from(type_str, counter + 1):
                     return True
             return False
 
