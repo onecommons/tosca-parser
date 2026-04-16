@@ -226,9 +226,20 @@ class ExceptionCollector(object):
     def appendException(exception):
         if ExceptionCollector.collecting:
             if not ExceptionCollector.contains(exception):
-                exception.trace = traceback.extract_stack()[:-1]
+                # extract_stack()[:-1] drops this appendException frame itself.
+                # The next frame up is the caller that raised the error — keep
+                # its file/line/method but blank its call source since that
+                # source is always the `ExceptionCollector.appendException(...)`
+                # line, which is redundant noise in every report.
+                stack = traceback.extract_stack()[:-1]
+                if stack:
+                    last = stack[-1]
+                    stack[-1] = traceback.FrameSummary(
+                        last.filename, last.lineno, last.name, line=""
+                    )
+                exception.trace = stack
                 ExceptionCollector.exceptions.append(exception)
-                log.debug( ExceptionCollector.getExceptionReportEntry(exception, False) )
+                log.debug('\n'.join(ExceptionCollector.getExceptionReportEntry(exception, False)))
         else:
             raise exception
 
@@ -243,27 +254,42 @@ class ExceptionCollector(object):
           for entry in traceList:
               f, l, m, c = entry[0], entry[1], entry[2], entry[3]
               traceString += (_('\t\tFile %(file)s, line %(line)s, in '
-                                '%(method)s\n\t\t\t%(call)s\n')
-                              % {'file': f, 'line': l, 'method': m, 'call': c})
+                                '%(method)s\n')
+                              % {'file': f, 'line': l, 'method': m})
+              if c:
+                  traceString += _('\t\t\t%(call)s\n') % {'call': c}
         return traceString
 
     @staticmethod
     def getExceptionReportEntry(exception, full=True, extra=True):
-        entry = exception.__class__.__name__ + ': ' + str(exception)
+        """Return a list of lines/blocks describing the exception.
+
+        The list is ordered from most essential to most verbose:
+          [0]  "ClassName: message" (with `near` appended if extra=True)
+          [1]  "Caused by: ..." line (only if __cause__ is set)
+          next the stack trace (only if full=True)
+          then the cause's entries, recursively flattened (only if full=True)
+        """
+        summary = exception.__class__.__name__ + ': ' + str(exception)
         if extra and getattr(exception, 'near', None):
-            entry += exception.near
+            summary += exception.near
+        entries = [summary]
         if exception.__cause__:
-            entry += f"\nCaused by:{exception.__cause__.__class__.__name__}:{exception.__cause__}\n"
+            entries.append(
+                f"Caused by:{exception.__cause__.__class__.__name__}:{exception.__cause__}"
+            )
         if full:
-            entry += '\n' + ExceptionCollector.getTraceString(exception.trace)
+            entries.append(ExceptionCollector.getTraceString(exception.trace))
             if exception.__cause__:
                 cause = exception.__cause__
                 if cause.__traceback__:
                     cause.trace = traceback.extract_tb(cause.__traceback__)[:-1]
                 else:
                     cause.trace = ()
-                entry += '\n' + ExceptionCollector.getExceptionReportEntry(cause, full, extra)
-        return entry
+                entries.extend(
+                    ExceptionCollector.getExceptionReportEntry(cause, full, extra)
+                )
+        return entries
 
 
 
@@ -273,11 +299,63 @@ class ExceptionCollector(object):
 
     @staticmethod
     def getExceptionsReport(full=True, extra=True):
+        """Return a list of strings, one per collected exception.
+
+        ``full`` controls verbosity:
+          * ``True``  — everything (summary + cause line + full trace + nested cause entries)
+          * ``False`` — summary + cause line only (no trace)
+          * ``int N`` (non-bool, ``> 0``) — summary followed by the last ``N``
+            lines of the exception's stack trace.
+        """
+        # bool is a subclass of int, so test for bool too
+        trace_tail = isinstance(full, int) and not isinstance(full, bool)
         report = []
         for exception in ExceptionCollector.exceptions:
-            report.append(
-                ExceptionCollector.getExceptionReportEntry(exception, full, extra))
+            if trace_tail and full:
+                pieces = ExceptionCollector._format_trace_tail(
+                    exception, full, extra
+                )
+                report.append('\n'.join(pieces))
+            else:
+                report.append(
+                    '\n'.join(
+                        ExceptionCollector.getExceptionReportEntry(
+                            exception, full, extra
+                        )
+                    )
+                )
         return report
+
+    @staticmethod
+    def _format_trace_tail(exception, n, extra):
+        """Summary line + last ``n`` lines of the stack trace, recursing
+        through ``__cause__`` so each level's summary + trimmed trace is
+        included."""
+        summary = exception.__class__.__name__ + ': ' + str(exception)
+        if extra and getattr(exception, 'near', None):
+            summary += exception.near
+        pieces = [summary]
+        trace_lines = ExceptionCollector.getTraceString(
+            getattr(exception, 'trace', None)
+        ).splitlines()
+        if trace_lines:
+            pieces.extend(trace_lines[-n:])
+        cause = exception.__cause__
+        if cause is not None:
+            if getattr(cause, 'trace', None) is None:
+                if cause.__traceback__:
+                    cause.trace = traceback.extract_tb(cause.__traceback__)[:-1]
+                else:
+                    cause.trace = ()
+            pieces.append(
+                f"Caused by:{cause.__class__.__name__}:{cause}"
+            )
+            cause_trace = ExceptionCollector.getTraceString(
+                cause.trace
+            ).splitlines()
+            if cause_trace:
+                pieces.extend(cause_trace[-n:])
+        return pieces
 
     @staticmethod
     def assertExceptionMessage(exception, message):
