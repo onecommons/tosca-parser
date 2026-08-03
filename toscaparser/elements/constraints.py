@@ -83,12 +83,12 @@ class Schema(collections.abc.Mapping):
     )
 
     PYTHON_TO_PROPERTY_TYPES = {
-     int: INTEGER,
-     float: FLOAT,
-     str: STRING,
-     bool: BOOLEAN,
-     list: LIST,
-     dict: MAP,
+        bool: BOOLEAN,  # needs to be before int because bool is a subclass of int
+        int: INTEGER,
+        float: FLOAT,
+        str: STRING,
+        list: LIST,
+        dict: MAP,
     }
 
     SCALAR_UNIT_SIZE_DEFAULT = "B"

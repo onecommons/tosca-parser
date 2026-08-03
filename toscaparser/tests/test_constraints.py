@@ -13,6 +13,7 @@
 import datetime
 import yaml
 
+from toscaparser.activities import value_to_type
 from toscaparser.common import exception
 from toscaparser.elements.constraints import Constraint
 from toscaparser.elements.constraints import Schema
@@ -22,6 +23,11 @@ from toscaparser.utils import yamlparser
 
 
 class ConstraintTest(TestCase):
+    def test_value_to_type_distinguishes_boolean_from_integer(self):
+        self.assertEqual(Schema.BOOLEAN, value_to_type(True))
+        self.assertEqual(Schema.BOOLEAN, value_to_type(False))
+        self.assertEqual(Schema.INTEGER, value_to_type(1))
+        self.assertEqual(Schema.INTEGER, value_to_type(0))
 
     def test_schema_dict(self):
         tpl_snippet = '''
