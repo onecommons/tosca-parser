@@ -331,7 +331,18 @@ class ToscaTemplateTest(TestCase):
                     expected_hosts,
                     sorted([v[0].target.type for v in node_tpl.relationships]))
 
-    def test_repositories(self):
+    @mock.patch.object(urllib.request, "urlopen")
+    def test_repositories(self, mock_urlopen):
+        # mock URL resolution to avoid dependency on the availability of an external website.
+        mockclass = MockTestClass()
+        mockclass.comp_urldict = {
+            "https://raw.githubusercontent.com/nandinivemula/intern/master/"
+            "tosca_repository_import.yaml": utils.get_sample_test_path(
+                "data/custom_types/wordpress.yaml"
+            )
+        }
+        mock_urlopen.side_effect = mockclass.mock_urlopen_method
+
         template = ToscaTemplate(self.tosca_repo_tpl)
         self.assertEqual(
             ['repo_code0', 'repo_code1', 'repo_code2'],
