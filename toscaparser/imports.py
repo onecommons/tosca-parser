@@ -103,6 +103,17 @@ class ImportResolver:
             return ""
 
     def resolve_url(self, importsLoader, base, file_name, repository_name):
+        """
+        Resolve to an url or absolute path along with its context.
+
+        base is either doc base or the repository URL. If the repository URL was a relative path, it has been resolved against the document base.
+        file_name might be a relative path, an absolute path, or an url
+
+        Returns a tuple of (url_or_path, is_file).
+        """
+        if is_url(file_name):
+            # an absolute url, so ignore base
+            return file_name, False
         if is_url(base) and not repository_name:
             # urls will not have had file component stripped (defer to the resolver implementation)
             base = os.path.dirname(base)
@@ -214,7 +225,9 @@ class ImportsLoader(object):
                 self.custom_defs.add_with_prefix(imported_types, prefix)
 
     def _load_import(self, import_def, import_name):
-        base, full_file_name, imported_tpl = self.load_yaml(import_def, import_name)
+        repository_url_or_doc_base, full_file_name, imported_tpl = self.load_yaml(
+            import_def, import_name
+        )
         if full_file_name is None:
             if TREAT_IMPORTS_AS_FATAL:
                 self.abort(import_def)
@@ -232,13 +245,13 @@ class ImportsLoader(object):
         if not is_url(full_file_name):
             full_file_name = os.path.normpath(full_file_name)
 
-        root_path = base if repository_name else self.repository_root
+        root = repository_url_or_doc_base if repository_name else self.repository_root
         declared_namespace_id = imported_tpl and imported_tpl.get("namespace") or None
         if not declared_namespace_id and self.custom_defs.shared_namespace:
             # if current namespace is global use that one
             declared_namespace_id = self.custom_defs.namespace_id
         _source, namespace_id = self.get_source(
-            root_path, full_file_name, repository_name, file_name, declared_namespace_id
+            root, full_file_name, repository_name, file_name, declared_namespace_id
         )
         # resolver could have changed this
         declared_namespace_id = _source.get("namespace_uri")
@@ -282,7 +295,7 @@ class ImportsLoader(object):
                     imported_types,
                     self.repositories,
                     self.resolver,
-                    root_path,
+                    root,
                 )
                 imports_loader.resolver.load_imports(imports_loader, imports)
                 self.nested_tosca_tpls.update(imports_loader.nested_tosca_tpls)
@@ -398,6 +411,8 @@ class ImportsLoader(object):
         | URL      | file   | file must be a relative path |
         | URL      | URL    | OK                           |
         +----------+--------+------------------------------+
+
+        Returns (repository_url_or_doc_base, resolved_path, fragment, context) or None if it fails.
         """
         repository_name, file_name = self._resolve_import_template(
             import_name, import_uri_def
@@ -422,13 +437,9 @@ class ImportsLoader(object):
             if self.path and not is_url(base) and not os.path.isabs(base):
                 # repository is set to a relative local path
                 base = os.path.normpath(os.path.join(doc_base, base))
-            path, ctx = self.resolver.resolve_url(
-                self, base, os.path.normpath(path), repository_name
-            )
-            if path is None:
-                return None
+            path = os.path.normpath(path)
         else:
-            base = ""
+            base = doc_base
             if not is_url(path):
                 if os.path.isabs(path):
                     if self.path and is_url(self.path):
@@ -449,11 +460,10 @@ class ImportsLoader(object):
                         ) % {"name": file_name}
                         ExceptionCollector.appendException(ImportError(msg))
                         return None
-                    base = doc_base
                     # so join with the current location of import
-            path, ctx = self.resolver.resolve_url(self, base, path, repository_name)
-            if path is None:
-                return None
+        path, ctx = self.resolver.resolve_url(self, base, path, repository_name)
+        if path is None:
+            return None
         return base, path, fragment, ctx
 
     def _resolve_import_template(self, import_name, import_uri_def):
