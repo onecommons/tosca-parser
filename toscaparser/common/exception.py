@@ -239,7 +239,9 @@ class ExceptionCollector(object):
                     )
                 exception.trace = stack
                 ExceptionCollector.exceptions.append(exception)
-                log.debug('\n'.join(ExceptionCollector.getExceptionReportEntry(exception, False)))
+                log.debug(
+                    "\n".join(ExceptionCollector._format_trace_tail(exception, 3, True))
+                )
         else:
             raise exception
 
