@@ -847,6 +847,32 @@ class ToscaTemplateTest(TestCase):
         exception.ExceptionCollector.assertExceptionMessage(ImportError,
                                                             err_msg)
 
+    def test_relationship_template_without_target(self):
+        def tpl(relationship):
+            return {
+                "tosca_definitions_version": "tosca_simple_yaml_1_3",
+                "node_types": {"Source": {"derived_from": "tosca.nodes.Root",
+                    "requirements": [{"conn": {"relationship": "tosca.relationships.ConnectsTo"}}]}},
+                "topology_template": {
+                    "relationship_templates": {"conn": {"type": "tosca.relationships.ConnectsTo"}},
+                    "node_templates": {"source": {"type": "Source",
+                        "requirements": [{"conn": {"relationship": relationship}}]}},
+                },
+            }
+
+        self.assertRaises(exception.ValidationError, ToscaTemplate,
+                          yaml_dict_tpl=tpl("conn"))
+        exception.ExceptionCollector.assertExceptionMessage(
+            exception.ValidationError,
+            'No matching target template found for requirement "conn" (relationship template "conn"'
+            ' has no target node and isn\'t a default connection)')
+
+        self.assertRaises(exception.ValidationError, ToscaTemplate,
+                          yaml_dict_tpl=tpl("tosca.relationships.ConnectsTo"))
+        exception.ExceptionCollector.assertExceptionMessage(
+            exception.ValidationError,
+            'No matching target template found for requirement "conn"')
+
     def test_yaml_dict_tpl_with_fullpath_import(self):
         test_tpl = utils.get_sample_test_path(
             "data/tosca_single_instance_wordpress.yaml")

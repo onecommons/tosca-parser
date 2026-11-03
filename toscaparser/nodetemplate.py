@@ -433,9 +433,15 @@ class NodeTemplate(EntityTemplate):
                     found_rel = None  # explicit mismatch, don't return relationship
             elif min_required > 0 and not relTpl.default_for:
                 # don't require a node if we matched a default relationship
-                error = _('No matching target template found'
-                           ' for requirement "%(rname)s"'
-                           ) % {'rname': name}
+                if found_rel:
+                    error = _('No matching target template found'
+                              ' for requirement "%(rname)s" (relationship template "%(rel)s"'
+                              ' has no target node and isn\'t a default connection)'
+                              ) % {'rname': name, 'rel': reqDef['relationship']}
+                else:
+                    error = _('No matching target template found'
+                               ' for requirement "%(rname)s"'
+                               ) % {'rname': name}
             if error:
                 if "default" in self.directives:
                     log.warning(f'{error} on default node template "{self.name}"')
