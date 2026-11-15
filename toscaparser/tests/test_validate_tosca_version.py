@@ -335,6 +335,26 @@ class TOSCAVersionPropertyTest(TestCase):
         # the limit's own pre-releases are above the range, even when asked for
         assert not validate_version("^1.0.0, >=2.0.0-alpha", "2.0.0-rc.1")
 
+    def test_partial_requirements_match_every_version_they_name(self):
+        from toscaparser.utils.validateutils import validate_version
+
+        cases = {
+            "=1.2": (["1.2.0", "1.2.9"], ["1.1.9", "1.3.0"]),
+            "=1": (["1.0.0", "1.9.9"], ["2.0.0"]),
+            "<=1.2": (["1.2.9"], ["1.3.0"]),
+            "<=1": (["1.9.9"], ["2.0.0"]),
+            ">1.2": (["1.3.0"], ["1.2.9"]),
+            ">1": (["2.0.0"], ["1.9.9"]),
+            # padded with 0s, as before
+            ">=1.2": (["1.2.0"], ["1.1.9"]),
+            "<1.2": (["1.1.9"], ["1.2.0"]),
+        }
+        for requirement, (accepted, rejected) in cases.items():
+            for version in accepted:
+                assert validate_version(requirement, version), (requirement, version)
+            for version in rejected:
+                assert not validate_version(requirement, version), (requirement, version)
+
     def test_a_number_alone_after_a_dash_is_a_pre_release(self):
         """Only after a qualifier is it a TOSCA build version."""
         version = TOSCAVersionProperty("1.0.0-1+build.5")

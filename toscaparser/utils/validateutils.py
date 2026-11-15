@@ -311,11 +311,35 @@ class TOSCAVersionProperty(object):
             return (0, minor + 1, 0)
         return (0, 0, int(self.fix_version) + 1)
 
-    def compare_version(self, test_version, operator):
-        """Compare two TOSCAVersionProperty objects using the given operator."""
+    def partial_limit(self):
+        """The ``version_tuple()`` above every version this one matches when it
+        leaves out the fix version (1.2 matches 1.2.x, so below 1.3.0) or
+        minor version (1 matches 1.x.x, so below 2.0.0); None if it doesn't."""
+        if self.fix_version is not None:
+            return None
+        major = int(self.major_version)
+        if self.minor_version is None:
+            return (major + 1, 0, 0)
+        return (major, int(self.minor_version) + 1, 0)
 
+    def compare_version(self, test_version, operator):
+        """Compare two TOSCAVersionProperty objects using the given operator.
+
+        As in npm and Cargo, a requirement that leaves out a part means every
+        version it matches: =1.2 is >=1.2.0, <1.3.0; <=1.2 is <1.3.0; and
+        >1.2 is >=1.3.0.
+        """
         test_tuple = test_version.precedence()
         req_tuple = self.precedence()
+        # a 3-tuple sorts below its own pre-releases too
+        limit = self.partial_limit()
+        if limit is not None:
+            if operator == "=":
+                return req_tuple <= test_tuple < limit
+            if operator == "<=":
+                return test_tuple < limit
+            if operator == ">":
+                return test_tuple >= limit
 
         if operator == ">=":
             return test_tuple >= req_tuple
