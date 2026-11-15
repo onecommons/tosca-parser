@@ -300,6 +300,19 @@ class TOSCAVersionProperty(object):
         )
         return self.version_tuple() + ((0,) + identifiers,)
 
+    def caret_limit(self):
+        """The ``version_tuple()`` a caret requirement for this version stays
+        below: the next increment of its leftmost non-zero part, or of its
+        last given part if they're all 0 (^1.2.3 and ^1 are below 2.0.0,
+        ^0.2.3 below 0.3.0, ^0.0.3 below 0.0.4, ^0.0 below 0.1.0)."""
+        major = int(self.major_version)
+        if self.minor_version is None or major:
+            return (major + 1, 0, 0)
+        minor = int(self.minor_version)
+        if self.fix_version is None or minor:
+            return (0, minor + 1, 0)
+        return (0, 0, int(self.fix_version) + 1)
+
     def compare_version(self, test_version, operator):
         """Compare two TOSCAVersionProperty objects using the given operator."""
 
@@ -326,6 +339,8 @@ def validate_version(version_req, version) -> bool:
     Handles multiple requirements (">= 1.2, < 1.5"), comparison operators, caret (^) and tilde (~) requirements.
     A bare version string is comparable to a caret operator (semver comparison).
     If version is not semver-like, it must match the requirement exactly.
+    As with Cargo and npm, a pre-release only satisfies requirements that
+    name a pre-release of the same major, minor and fix version.
     """
     expected = str(version_req).strip()
     test = str(version).strip()
@@ -337,12 +352,26 @@ def validate_version(version_req, version) -> bool:
     # Split multiple requirements by comma
     requirements = [req.strip() for req in expected.split(",")]
 
+    if test_version.pre_release and not any(
+        _names_pre_release_of(req, test_version) for req in requirements
+    ):
+        return False
+
     # All requirements must be satisfied
     for req in requirements:
         if not _evaluate_requirement(req, test_version):
             return False
 
     return True
+
+
+def _names_pre_release_of(requirement, version) -> bool:
+    """Whether ``requirement`` names a pre-release of ``version``'s major,
+    minor and fix version."""
+    req_version = TOSCAVersionProperty(requirement.lstrip("<>=").strip())
+    return bool(req_version.pre_release) and (
+        req_version.version_tuple() == version.version_tuple()
+    )
 
 
 def _evaluate_requirement(expected, test_version) -> bool:
@@ -360,7 +389,6 @@ def _evaluate_requirement(expected, test_version) -> bool:
 
     # Caret requirement (default) or exact
     req_version = TOSCAVersionProperty(expected)
-    if req_version.version_tuple() == test_version.version_tuple():
-        # a pre-release is below its release
-        return test_version.precedence() >= req_version.precedence()
-    return req_version.is_semver_compatible_with(test_version)
+    # the limit, a 3-tuple, sorts below its own pre-releases too
+    limit = req_version.caret_limit()
+    return req_version.precedence() <= test_version.precedence() < limit

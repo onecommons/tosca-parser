@@ -283,10 +283,11 @@ class TOSCAVersionPropertyTest(TestCase):
     def test_version_requirements_order_pre_releases_below_their_release(self):
         from toscaparser.utils.validateutils import validate_version
 
+        # >=1.0.0-alpha asks for 1.0.0's pre-releases
         for requirement in [">=1.0.0", "=1.0.0", "1.0.0", "^1.0.0", "~1.0.0", "~1.0", "~1"]:
-            assert not validate_version(requirement, "1.0.0-rc.1"), requirement
-        assert validate_version("<1.0.0", "1.0.0-rc.1")
-        assert validate_version(">0.9.9", "1.0.0-rc.1")
+            both = requirement + ", >=1.0.0-alpha"
+            assert not validate_version(both, "1.0.0-rc.1"), requirement
+        assert validate_version("<1.0.0, >=1.0.0-alpha", "1.0.0-rc.1")
         assert validate_version("^1.0.0-rc.1", "1.0.0")
         assert validate_version("~1.0.0-rc.1", "1.0.0-rc.2")
         # identifiers compare numerically, numbers before words, longer after a prefix
@@ -297,6 +298,41 @@ class TOSCAVersionPropertyTest(TestCase):
         # build metadata doesn't count
         assert validate_version("=1.0.0", "1.0.0+build.5")
         assert validate_version("=1.0.0-rc.1", "1.0.0-rc.1+build.5")
+
+    def test_a_pre_release_must_be_asked_for(self):
+        from toscaparser.utils.validateutils import validate_version
+
+        for requirement in [">=1.0.0", "<2.0.0", "^1.0.0", "~1", ">0.9.9"]:
+            assert not validate_version(requirement, "1.1.0-rc.1"), requirement
+        assert validate_version(">=1.1.0-rc.1", "1.1.0-rc.2")
+        assert not validate_version(">=1.1.0-rc.1", "1.2.0-beta")
+        assert validate_version(">=1.1.0-rc.1", "1.2.0")
+        assert validate_version(">=1.0.0, <1.1.0-rc.5", "1.1.0-rc.1")
+
+    def test_caret_requirements(self):
+        from toscaparser.utils.validateutils import validate_version
+
+        cases = {
+            "^1.2.3": (["1.2.3", "1.9.0"], ["1.2.2", "2.0.0"]),
+            "1.2.3": (["1.2.3", "1.9.0"], ["1.2.2", "2.0.0"]),
+            "^1.2": (["1.2.0", "1.9.9"], ["1.1.9", "2.0.0"]),
+            "^1": (["1.0.0", "1.9.9"], ["0.9.9", "2.0.0"]),
+            "^0.2.3": (["0.2.3", "0.2.9"], ["0.2.2", "0.3.0"]),
+            "^0.0.3": (["0.0.3"], ["0.0.2", "0.0.4"]),
+            "^0.0": (["0.0.0", "0.0.9"], ["0.1.0"]),
+            "^0": (["0.0.0", "0.9.9"], ["1.0.0"]),
+            "^1.2.3-beta.2": (
+                ["1.2.3-beta.4", "1.2.3", "1.9.0"],
+                ["1.2.3-beta.1", "1.2.4-rc.1", "2.0.0"],
+            ),
+        }
+        for requirement, (accepted, rejected) in cases.items():
+            for version in accepted:
+                assert validate_version(requirement, version), (requirement, version)
+            for version in rejected:
+                assert not validate_version(requirement, version), (requirement, version)
+        # the limit's own pre-releases are above the range, even when asked for
+        assert not validate_version("^1.0.0, >=2.0.0-alpha", "2.0.0-rc.1")
 
     def test_is_well_formed_agrees_with_the_constructor_silently(self):
         from toscaparser.common.exception import ExceptionCollector
