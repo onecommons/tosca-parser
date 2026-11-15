@@ -202,48 +202,50 @@ class TOSCAVersionProperty(object):
         self.minor_version = ver['minor_version']
         self.major_version = str(int(ver['major_version']))
         self.fix_version = ver['fix_version']
-        self.qualifier = self._validate_qualifier(ver['qualifier'])
-        self.pre_release = self._validate_qualifier(ver['pre_release'])
-        if self.pre_release and self.qualifier:
-            # mutually exclusive: pre_release is semver style only and the qualifier TOSCA/maven style only
-            ExceptionCollector.appendException(
-                InvalidTOSCAVersionPropertyException(what=(self.version)))
-        self.build_version = self._validate_build(ver['build_version'])
+        self.qualifier = ver['qualifier']
+        self.pre_release = ver['pre_release']
+        self.build_version = ver['build_version']
         # build_metadata comes after fix (aka patch) or pre_release
-        self.build_metadata = self._validate_qualifier(ver['build_metadata'])
+        self.build_metadata = ver['build_metadata']
+        for valid in self._checks(ver):
+            if not valid:
+                ExceptionCollector.appendException(
+                    InvalidTOSCAVersionPropertyException(what=(self.version)))
 
     @classmethod
     def is_valid(cls, test):
         return cls.VERSION_RE.match(test) is not None
 
-    def _validate_qualifier(self, value):
-        """Validate qualifier
+    @classmethod
+    def is_well_formed(cls, version):
+        """Whether constructing a TOSCAVersionProperty from ``version`` would
+        succeed, without reporting to the ExceptionCollector."""
+        match = cls.VERSION_RE.match(str(version))
+        return match is not None and all(cls._checks(match.groupdict()))
 
-           TOSCA version is invalid if a qualifier is present without the
-           fix version or with all of major, minor and fix version 0s.
+    @staticmethod
+    def _checks(ver):
+        """The validity of each part of a parsed version.
 
-           For example, the following versions are invalid
-              18.0.abc
-              0.0.0.abc
+           A qualifier, pre-release or build metadata needs the fix version
+           and isn't allowed when major, minor and fix version are all 0
+           (18.0.abc and 0.0.0.abc are invalid). A qualifier (TOSCA/maven
+           style) and a pre-release (semver style) are mutually exclusive.
+           A build version needs a qualifier (18.0.0-1 is invalid).
         """
-        if (self.fix_version is None and value) or \
-            (self.minor_version == self.major_version ==
-             self.fix_version == '0' and value):
-            ExceptionCollector.appendException(
-                InvalidTOSCAVersionPropertyException(what=(self.version)))
-        return value
+        all_zero = (ver['minor_version'] == str(int(ver['major_version'])) ==
+                    ver['fix_version'] == '0')
 
-    def _validate_build(self, value):
-        """Validate build version
+        def suffix_ok(value):
+            return not value or (ver['fix_version'] is not None and not all_zero)
 
-           TOSCA version is invalid if build version is present without the
-           qualifier.
-           Eg: version = 18.0.0-1 is invalid.
-        """
-        if not self.qualifier and value:
-            ExceptionCollector.appendException(
-                InvalidTOSCAVersionPropertyException(what=(self.version)))
-        return value
+        return [
+            suffix_ok(ver['qualifier']),
+            suffix_ok(ver['pre_release']),
+            not (ver['pre_release'] and ver['qualifier']),
+            not (ver['build_version'] and not ver['qualifier']),
+            suffix_ok(ver['build_metadata']),
+        ]
 
     def get_version(self):
         return self.version
@@ -262,26 +264,21 @@ class TOSCAVersionProperty(object):
         """
         req_major = int(self.major_version)
         req_minor = int(self.minor_version or 0)
-        req_patch = int(self.fix_version or 0)
 
         ver_major = int(version.major_version)
         ver_minor = int(version.minor_version or 0)
-        ver_patch = int(version.fix_version or 0)
 
         # Major version must match
         if req_major != ver_major:
             return False
 
-        # If only major version specified (~1), allow minor/patch changes
-        if self.minor_version is None:
-            return True
-
-        # Minor version must match for patch-level compatibility
-        if req_minor != ver_minor:
+        # Minor version must match for patch-level compatibility,
+        # unless only the major version was specified (~1)
+        if self.minor_version is not None and req_minor != ver_minor:
             return False
 
         # Version must be >= requirement
-        return ver_patch >= req_patch
+        return version.precedence() >= self.precedence()
 
     def version_tuple(self):
         return (
@@ -290,13 +287,24 @@ class TOSCAVersionProperty(object):
             int(self.fix_version or 0),
         )
 
+    def precedence(self):
+        """``version_tuple()``, extended to order pre-releases as semver does:
+        below their release, identifier by identifier, numeric ones
+        numerically and before alphanumeric ones. Build metadata and a
+        TOSCA qualifier are ignored."""
+        if not self.pre_release:
+            return self.version_tuple() + ((1,),)
+        identifiers = tuple(
+            (0, int(part), "") if part.isdigit() else (1, 0, part)
+            for part in self.pre_release.split(".")
+        )
+        return self.version_tuple() + ((0,) + identifiers,)
+
     def compare_version(self, test_version, operator):
         """Compare two TOSCAVersionProperty objects using the given operator."""
 
-        # Convert to comparable tuples (major, minor, patch)
-
-        test_tuple = test_version.version_tuple()
-        req_tuple = self.version_tuple()
+        test_tuple = test_version.precedence()
+        req_tuple = self.precedence()
 
         if operator == ">=":
             return test_tuple >= req_tuple
@@ -352,4 +360,7 @@ def _evaluate_requirement(expected, test_version) -> bool:
 
     # Caret requirement (default) or exact
     req_version = TOSCAVersionProperty(expected)
+    if req_version.version_tuple() == test_version.version_tuple():
+        # a pre-release is below its release
+        return test_version.precedence() >= req_version.precedence()
     return req_version.is_semver_compatible_with(test_version)
