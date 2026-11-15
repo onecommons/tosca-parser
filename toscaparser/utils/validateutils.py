@@ -185,8 +185,8 @@ class TOSCAVersionProperty(object):
         r"^[\^~]?v?(?P<major_version>([0-9]+))"
         r"(\.(?P<minor_version>([0-9]+)))?"
         r"(\.(?P<fix_version>([0-9]+)))?"
-        r"(\.(?P<qualifier>([0-9A-Za-z]+)))?"
-        r"(\-(?P<build_version>([0-9]+)))?"
+        # without a qualifier, "-N" is a semver pre-release, not a build version
+        r"(\.(?P<qualifier>([0-9A-Za-z]+))(\-(?P<build_version>([0-9]+)))?)?"
         r"(\-(?P<pre_release>([0-9A-Za-z.\-]+)))?"
         r"(\+(?P<build_metadata>([0-9A-Za-z.\-]+)))?$"
     )
@@ -231,7 +231,6 @@ class TOSCAVersionProperty(object):
            and isn't allowed when major, minor and fix version are all 0
            (18.0.abc and 0.0.0.abc are invalid). A qualifier (TOSCA/maven
            style) and a pre-release (semver style) are mutually exclusive.
-           A build version needs a qualifier (18.0.0-1 is invalid).
         """
         all_zero = (ver['minor_version'] == str(int(ver['major_version'])) ==
                     ver['fix_version'] == '0')
@@ -243,7 +242,6 @@ class TOSCAVersionProperty(object):
             suffix_ok(ver['qualifier']),
             suffix_ok(ver['pre_release']),
             not (ver['pre_release'] and ver['qualifier']),
-            not (ver['build_version'] and not ver['qualifier']),
             suffix_ok(ver['build_metadata']),
         ]
 

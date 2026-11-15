@@ -295,6 +295,7 @@ class TOSCAVersionPropertyTest(TestCase):
         assert validate_version(">1.0.0-alpha.10", "1.0.0-beta")
         assert validate_version(">1.0.0-alpha.1", "1.0.0-alpha.beta")
         assert validate_version(">1.0.0-alpha", "1.0.0-alpha.1")
+        assert validate_version(">1.0.0-1, <1.0.0-alpha", "1.0.0-2")
         # build metadata doesn't count
         assert validate_version("=1.0.0", "1.0.0+build.5")
         assert validate_version("=1.0.0-rc.1", "1.0.0-rc.1+build.5")
@@ -334,18 +335,28 @@ class TOSCAVersionPropertyTest(TestCase):
         # the limit's own pre-releases are above the range, even when asked for
         assert not validate_version("^1.0.0, >=2.0.0-alpha", "2.0.0-rc.1")
 
+    def test_a_number_alone_after_a_dash_is_a_pre_release(self):
+        """Only after a qualifier is it a TOSCA build version."""
+        version = TOSCAVersionProperty("1.0.0-1+build.5")
+        assert (version.pre_release, version.build_version) == ("1", None)
+        assert version.build_metadata == "build.5"
+        version = TOSCAVersionProperty("18.0.3.beta-1")
+        assert (version.qualifier, version.build_version) == ("beta", "1")
+        assert version.pre_release is None
+        assert TOSCAVersionProperty("1.0.0-1-2").pre_release == "1-2"
+
     def test_is_well_formed_agrees_with_the_constructor_silently(self):
         from toscaparser.common.exception import ExceptionCollector
 
-        for version in ["18.0.1-xyz.1+7527a406", "18.0.3.beta-1", "v2", "0.0.0"]:
+        for version in ["18.0.1-xyz.1+7527a406", "18.0.3.beta-1", "18.0.0-1", "v2", "0.0.0"]:
             TOSCAVersionProperty(version)
             assert TOSCAVersionProperty.is_well_formed(version), version
         ExceptionCollector.start()
         try:
-            for version in ["18.0.0-1", "18.0.abc", "0.0.0.abc", "0.0.0-rc.1", "18.0.1.abc-xyz.1", "x"]:
+            for version in ["18.0.abc", "0.0.0.abc", "0.0.0-rc.1", "18.0.1.abc-xyz.1", "x"]:
                 assert not TOSCAVersionProperty.is_well_formed(version), version
             assert not ExceptionCollector.exceptionsCaught()
-            for version in ["18.0.0-1", "18.0.abc", "0.0.0.abc", "0.0.0-rc.1", "18.0.1.abc-xyz.1", "x"]:
+            for version in ["18.0.abc", "0.0.0.abc", "0.0.0-rc.1", "18.0.1.abc-xyz.1", "x"]:
                 ExceptionCollector.clear()
                 TOSCAVersionProperty(version)
                 assert ExceptionCollector.exceptionsCaught(), version
